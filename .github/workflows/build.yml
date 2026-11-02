@@ -11,7 +11,12 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-15
+    strategy:
+      fail-fast: true
+      max-failed: 1
+      matrix:
+        os: [macos-15, macos-14, macos-13]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -21,13 +26,15 @@ jobs:
           xcodebuild -version
           sw_vers
 
-      - name: Build (ad-hoc signed)
+      - name: Build (ad-hoc signed, universal binary)
         run: |
           set -o pipefail
           xcodebuild -project QuickRecorder.xcodeproj \
             -scheme QuickRecorder \
             -configuration Release \
             -destination 'generic/platform=macOS' \
+            ARCHS="x86_64 arm64" \
+            ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
