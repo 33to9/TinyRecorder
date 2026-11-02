@@ -21,10 +21,13 @@ let isMacOS14 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion == 1
 let isMacOS15 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion == 15
 var scPerm = false
 let fd = FileManager.default
-let ud = UserDefaults.standard
 // Show the menu bar icon by default (new-user friendly).
 // Users can still turn it off in Settings at any time.
-ud.register(defaults: ["showMenubar": true])
+let ud: UserDefaults = {
+    let defaults = UserDefaults.standard
+    defaults.register(defaults: ["showMenubar": true])
+    return defaults
+}()
 var statusBarItem: NSStatusItem!
 var mouseMonitor: Any?
 var keyMonitor: Any?
