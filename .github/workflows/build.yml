@@ -6,9 +6,12 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
