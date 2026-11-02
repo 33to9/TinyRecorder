@@ -43,7 +43,7 @@ struct GeneralView: View {
     @AppStorage("countdown") private var countdown: Int = 0
     @AppStorage("poSafeDelay") private var poSafeDelay: Int = 1
     @AppStorage("showOnDock") private var showOnDock: Bool = true
-    @AppStorage("showMenubar") private var showMenubar: Bool = false
+    @AppStorage("showMenubar") private var showMenubar: Bool = true
     
     @State private var launchAtLogin = false
 
