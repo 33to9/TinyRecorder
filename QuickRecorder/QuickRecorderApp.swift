@@ -263,6 +263,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
 
         statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusBarItem.button?.image = NSImage()
+        installStatusBarEventLocationFix()
 
         mousePointer.title = "Mouse Pointer".local
         mousePointer.level = .screenSaver

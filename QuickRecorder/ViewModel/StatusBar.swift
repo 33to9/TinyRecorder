@@ -6,6 +6,43 @@
 //
 
 import SwiftUI
+import AppKit
+
+/// macOS 27 regression workaround.
+///
+/// The whole menu bar item is a SwiftUI view hosted inside `statusBarItem.button`. Since
+/// macOS 27 every mouse event delivered inside the status item's window reports
+/// `locationInWindow` as the *centre* of that window, wherever the pointer really is.
+/// SwiftUI hit-tests that single fixed point, so only the control sitting in the middle of
+/// the item can ever be activated: the stop / pause / camera buttons of the recording bar
+/// receive the press only if they happen to be centred, and in practice clicks do nothing.
+/// Hover is unaffected, which is why the item still highlights and looks functional.
+///
+/// The click itself is not lost: the events do arrive at the status item's window, hover
+/// and tracking areas still work, and `NSEvent.mouseLocation` is exact. Only the position
+/// reported by the event is wrong, so the cheapest repair is to rebuild those events with
+/// the real pointer position before AppKit dispatches them. On earlier systems the two
+/// already agree and the event is returned untouched.
+func installStatusBarEventLocationFix() {
+    NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged]) { event in
+        guard let window = event.window,
+              window === statusBarItem?.button?.window else { return event }
+
+        let real = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+        let reported = event.locationInWindow
+        guard abs(real.x - reported.x) > 0.5 || abs(real.y - reported.y) > 0.5 else { return event }
+
+        return NSEvent.mouseEvent(with: event.type,
+                                  location: real,
+                                  modifierFlags: event.modifierFlags,
+                                  timestamp: event.timestamp,
+                                  windowNumber: event.windowNumber,
+                                  context: nil,
+                                  eventNumber: event.eventNumber,
+                                  clickCount: event.clickCount,
+                                  pressure: event.pressure) ?? event
+    }
+}
 
 class PopoverState: ObservableObject {
     static let shared = PopoverState()
