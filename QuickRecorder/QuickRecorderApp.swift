@@ -201,10 +201,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     func applicationWillFinishLaunching(_ notification: Notification) {
         scPerm = SCContext.updateAvailableContentSync() != nil
         
-        let process = NSWorkspace.shared.runningApplications.filter({ $0.bundleIdentifier == "com.lihaoyun6.QuickRecorder" })
+        let process = NSWorkspace.shared.runningApplications.filter({ $0.bundleIdentifier == "com.cn33to9.TinyRecorder" })
         if process.count > 1 {
             DispatchQueue.main.async {
-                let button = createAlert(title: "QuickRecorder is Running".local, message: "Please do not run multiple instances!".local, button1: "Quit".local).runModal()
+                let button = createAlert(title: "TinyRecorder is Running".local, message: "Please do not run multiple instances!".local, button1: "Quit".local).runModal()
                 if button == .alertFirstButtonReturn { NSApp.terminate(self) }
             }
         }
@@ -364,7 +364,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                 let width = isMacOS12 ? 800 : 928
                 let mainPanel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: width + offset, height: 100), styleMask: [.fullSizeContentView, .nonactivatingPanel], backing: .buffered, defer: false)
                 mainPanel.contentView = NSHostingView(rootView: ContentView())
-                mainPanel.title = "QuickRecorder".local
+                mainPanel.title = "TinyRecorder".local
                 mainPanel.isOpaque = false
                 mainPanel.level = .floating
                 mainPanel.isRestorable = false
@@ -408,7 +408,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
 }
 
 func closeMainWindow() {
-    for w in NSApp.windows.filter({ $0.title == "QuickRecorder".local }) {
+    for w in NSApp.windows.filter({ $0.title == "TinyRecorder".local }) {
         w.close()
     }
 }
@@ -549,7 +549,7 @@ extension NSMenuItem {
 
 extension NSImage {
     static func createScreenShot() -> NSImage? {
-        let excludedAppBundleIDs = ["com.lihaoyun6.QuickRecorder"]
+        let excludedAppBundleIDs = ["com.cn33to9.TinyRecorder"]
         var exclusionPIDs = [Int]()
         for app in NSWorkspace.shared.runningApplications {
             if excludedAppBundleIDs.contains(app.bundleIdentifier ?? "") {

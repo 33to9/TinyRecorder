@@ -1,59 +1,50 @@
-#
 <p align="center">
-<img src="./QuickRecorder/Assets.xcassets/AppIcon.appiconset/icon_128x128@2x.png" width="200" height="200" />
-<h1 align="center">QuickRecorder</h1>
-<h3 align="center">A lightweight and high-performance screen recorder for macOS<br><a href="./README_zh.md">[中文版本]</a><br><a href="https://lihaoyun6.github.io/quickrecorder/">[Landing Page]</a>
+<h1 align="center">TinyRecorder</h1>
+<h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support<br>轻量化多功能 macOS 录屏工具（支持 macOS 27）<br><a href="README_zh.md">[中文版本]</a>
 </p>
 
-## Screenshot
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./img/preview_en_dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="./img/preview_en.png">
-  <img alt="QuickRecorder Screenshots" src="./img/preview_en.png" width="840"/>
-</picture>
-</p>
+> **TinyRecorder** is a community fork of [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) by [lihaoyun6](https://github.com/lihaoyun6), which has been inactive since mid-2025.
+> The fork focuses on **compatibility with the latest macOS releases** (starting with macOS 27 / "Golden Gate").
 
-## Installation and Usage
-### System Requirements:
-- macOS 12.3 and Later
+## What's fixed in this fork
 
-### Install:
-Download the latest installation file [here](../../releases/latest) or install via Homebrew:
+- ✅ **Menu bar recording controls (stop / pause / camera) not responding on macOS 27** — upstream issue [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295) / [#296](https://github.com/lihaoyun6/QuickRecorder/issues/296). Root cause: macOS 27 reports `locationInWindow` as the centre of an `NSStatusItem`'s window regardless of the real pointer position; SwiftUI hit-testing then only ever fires the centred control. Fixed by rebuilding mouse events with the real pointer position via `NSEvent.mouseLocation`.
+
+## System Requirements
+
+- macOS 12.3 and later
+
+## Install
+
+Download the latest `TinyRecorder_vX.Y.Z.dmg` from [Releases](../../releases/latest).
+
+> The app is ad-hoc signed (no Apple Developer ID / notarization). On first launch: **right-click → Open**.
+
+## Required permissions
+
+| Permission | Needed for |
+|---|---|
+| Screen Recording (屏幕录制) | Recording screen / window / app / system audio |
+| Microphone (麦克风) | Recording your voice |
+| Camera (摄像头) | Camera overlay / Presenter Overlay |
+
+## Building from source
+
+Requirements: Xcode 15+ with macOS SDK.
 
 ```bash
-brew install lihaoyun6/tap/quickrecorder
+git clone https://github.com/33to9/TinyRecorder.git
+cd TinyRecorder
+open QuickRecorder.xcodeproj
+# Select the QuickRecorder scheme, then build (⌘B / ⌘R)
 ```
 
-### Features/Usage:
-- You can use QuickRecorder to record your screens / windows / applications / mobile devices... etc.
+CI builds via GitHub Actions (`.github/workflows/build.yml`) — push a `v*` tag to publish a Release.
 
-- QuickRecorder supports driver-free audio loopback recording, mouse highlighting, screen magnifier and many more useful features.  
-- The new **"[Presenter Overlay](https://support.apple.com/guide/facetime/presenter-overlay-video-conferencing-fctm6333f4bd/mac)"** in macOS 14 was fully supported by QuickRecorder, which can overlay the camera in real time on your recording *(macOS 12/13 can only use camera floating window)*  
-- QuickRecorder is able to record `HEVC with Alpha` video format, that can contain alpha channel in the output file *(currently only iMovie and FCPX support this feature)*  
+## License & attribution
 
-## Q&A
-**1. Where can I reopen the main panel after closing it?**
-> Click the Dock tile or Menubar icon of QuickRecorder to reopen the main panel at any time.
+This project is licensed under **AGPL-3.0** (see [LICENSE](LICENSE)).
 
-**2. Why does QuickRecorder not a sandbox app?**
-> QuickRecorder has no plans to be uploaded to the App Store, so it does not need to be designed as a sandbox app.  
-
-**3. How to independently control the volume of system sound and sound from microphone in other video editor?**
-> QuickRecorder will merge the audio input from the microphone to the main audio track after recording by default. If you need to edit the video, you can turn off the `Record Microphone to Main Track` option in the settings panel. After turning off, the system sound and sound from microphone will be recorded into two audio tracks and can be edited independently.  
-
-## Donate
-<img src="./img/donate.png" width="350"/>
-
-## Thanks
-[Azayaka](https://github.com/Mnpn/Azayaka) @Mnpn
-> The source of inspiration and part of the code of the screen recording engine comes from the Azayaka project, and I am also one of the code contributors to this project
-
-[KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) @sindresorhus  
-> QuickRecorder uses this swift library to handle shortcut key events  
-
-[SwiftLAME](https://github.com/hidden-spectrum/SwiftLAME) @Hidden Spectrum
-> QuickRecorder uses this swift library to handle MP3 output
-
-[ChatGPT](https://chat.openai.com) @OpenAI
-> Note: Part of the code in this project was generated or refactored using ChatGPT.
+- Original project: [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) — Copyright © 2024 [lihaoyun6](https://github.com/lihaoyun6)
+- Screen recording engine partially derived from [Azayaka](https://github.com/Mnpn/Azayaka) by @Mnpn
+- Fork maintained by [33to9](https://github.com/33to9) — Copyright © 2026
