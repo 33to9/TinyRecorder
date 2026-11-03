@@ -6,16 +6,16 @@
         <description>Most recent changes with links to updates.</description>
         <language>en</language>
         <item>
-            <title>Version 1.7.9</title>
-            <link>https://github.com/33to9/TinyRecorder/releases/tag/v1.7.9</link>
-            <sparkle:releaseNotesLink>https://github.com/33to9/TinyRecorder/releases/tag/v1.7.9</sparkle:releaseNotesLink>
-            <pubDate>Tue, 03 Nov 2026 07:07:14 +0000</pubDate>
-            <enclosure url="https://github.com/33to9/TinyRecorder/releases/download/v1.7.9/TinyRecorder_v1.7.9.dmg" length="5449839" type="application/x-bzip2" sparkle:edSignature="QP6RR7ZiqN6Jcxdr9lnyLjwUesBN1deQ6Sn/mcLwcGUU2lEKqWF6nvLP35BXJrlQJM6zohU1nCffRI4M/jxSDA==" />
-            <sparkle:version>179</sparkle:version>
-            <sparkle:shortVersionString>1.7.9</sparkle:shortVersionString>
+            <title>Version 1.7.10</title>
+            <link>https://github.com/33to9/TinyRecorder/releases/tag/v1.7.10</link>
+            <sparkle:releaseNotesLink>https://github.com/33to9/TinyRecorder/releases/tag/v1.7.10</sparkle:releaseNotesLink>
+            <pubDate>Tue, 03 Nov 2026 08:04:05 +0000</pubDate>
+            <enclosure url="https://github.com/33to9/TinyRecorder/releases/download/v1.7.10/TinyRecorder_v1.7.10.dmg" length="5449798" type="application/x-bzip2" sparkle:edSignature="+EtjxYm66pCOn70DFUOe3Iiv/0akBSe5LxMMSPPeDpSePTq5VMnFC5D3v4lnmICt32uhA6N8n49POwtPHyhFDQ==" />
+            <sparkle:version>1710</sparkle:version>
+            <sparkle:shortVersionString>1.7.10</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>12.3</sparkle:minimumSystemVersion>
             <description><![CDATA[
-                <p>TinyRecorder 1.7.9 — see the release page for details.</p>
+                <p>TinyRecorder 1.7.10 — see the release page for details.</p>
             ]]></description>
         </item>
     </channel>
