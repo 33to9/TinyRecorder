@@ -251,3 +251,6 @@
 
 /* Permission guide fallback (v1.7.6) */
 "Open System Settings" = "打开系统设置";
+
+/* Permission list refresh fallback (v1.7.9) */
+"If TinyRecorder is not in the list, quit System Settings (⌘Q) and reopen this page, or add it with the + button." = "如果列表中没有 TinyRecorder，请退出系统设置（⌘Q）后重新打开本页面，或用 + 按钮手动添加。";

@@ -370,6 +370,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     /// Uses CGPreflightScreenCaptureAccess (silent check) + CGRequestScreenCaptureAccess
     /// so the system prompt appears with proper context instead of confusing users.
     func showScreenPermissionGuide() {
+        // 幂等：引导窗已存在时仅激活，避免重复弹出多个
+        if let existing = NSApp.windows.first(where: { $0.isVisible && $0.title == "Screen Recording Permission".local }) {
+            existing.makeKeyAndOrderFront(self)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
         let guidePanel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 430),
                                   styleMask: [.titled, .closable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
@@ -467,6 +473,10 @@ struct ScreenPermissionGuide: View {
                     .font(.callout)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: 370, alignment: .leading)
+                    Text("If TinyRecorder is not in the list, quit System Settings (⌘Q) and reopen this page, or add it with the + button.".local)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: 370, alignment: .leading)
                     Button(requested ? "Open System Settings" : "Grant Permission") {
                         if !requested {
                             requested = true
@@ -493,8 +503,15 @@ struct ScreenPermissionGuide: View {
     }
 
     private func openScreenCaptureSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
+        // 系统设置的「录屏」列表不会实时刷新：若页面早已打开，新授权的 App 条目不会出现。
+        // 因此先礼貌退出系统设置，再重新打开目标页，确保 TinyRecorder 出现在列表里。
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences") {
+            app.terminate()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                NSWorkspace.shared.open(url)
+            }
         }
     }
 

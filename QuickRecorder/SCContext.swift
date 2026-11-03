@@ -66,13 +66,18 @@ class SCContext {
     }
     
     private static func updateAvailableContent(completion: @escaping (SCShareableContent?) -> Void) {
+        // 无权限时绝不触发 SCK 枚举（macOS 15+ 会弹出系统授权框，轮询会造成弹窗轰炸）
+        guard CGPreflightScreenCaptureAccess() else {
+            completion(nil)
+            return
+        }
         SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: true) { [self] content, error in
             if let error = error {
                 switch error {
                 case SCStreamError.userDeclined:
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
-                        self.updateAvailableContent() {_ in}
-                    }
+                    // 权限被拒绝/未授予：交给启动流程里的引导窗处理。
+                    // 不要在这里自动重试——曾经 1 秒重试一次，与系统授权框形成无限弹窗循环。
+                    break
                 default:
                     print("Error: failed to fetch available content: ".local, error.localizedDescription)
                 }
@@ -91,6 +96,11 @@ class SCContext {
     }
     
     static func updateAvailableContent(completion: @escaping () -> Void) {
+        // 无权限时直接引导用户去授权，而不是调用 SCK（会再次触发系统授权框）
+        guard CGPreflightScreenCaptureAccess() else {
+            requestPermissions()
+            return
+        }
         SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { content, error in
             if let error = error {
                 switch error {
@@ -241,15 +251,11 @@ class SCContext {
     }
     
     private static func requestPermissions() {
+        // 弹出统一的权限引导窗（内部幂等，不会叠多个窗口）。
+        // 旧实现：自定义 Alert + NSApp.terminate——强制退出后重启又会自动请求权限，
+        // 与 SCShareableContent 的系统授权框一起形成「弹窗-退出-重开-再弹窗」死循环。
         DispatchQueue.main.async {
-            let alert = createAlert(title: "Permission Required",
-                                                       message: "TinyRecorder needs screen recording permissions, even if you only intend on recording audio.",
-                                                       button1: "Open Settings",
-                                                       button2: "Cancel")
-            if alert.runModal() == .alertFirstButtonReturn {
-                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-            }
-            NSApp.terminate(self)
+            (NSApp.delegate as? AppDelegate)?.showScreenPermissionGuide()
         }
     }
     
