@@ -248,3 +248,7 @@
 "Repair Screen Recording Permission?" = "修复屏幕录制权限？";
 "This resets the screen recording permission record for TinyRecorder and relaunches the app. Grant permission again when prompted." = "将重置 TinyRecorder 的屏幕录制权限记录并重启应用，之后按提示重新授权即可。";
 "Repair Failed" = "修复失败";
+
+/* Permission guide fallback (v1.7.6) */
+"In the dialog, click \"Allow\" — System Settings also opens automatically as a fallback." = "在弹窗中点“允许”——系统设置也会自动打开作为备用入口。";
+"Open System Settings" = "打开系统设置";

@@ -457,22 +457,34 @@ struct ScreenPermissionGuide: View {
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Click \"Grant Permission\" below; macOS will show a system dialog.".local, systemImage: "1.circle.fill")
-                        Label("In the dialog, click \"Allow\", or enable TinyRecorder in System Settings.".local, systemImage: "2.circle.fill")
+                        Label("In the dialog, click \"Allow\" — System Settings also opens automatically as a fallback.".local, systemImage: "2.circle.fill")
                         Label("Return here and restart TinyRecorder when the checkmark turns green.".local, systemImage: "3.circle.fill")
                     }
                     .font(.callout)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: 370, alignment: .leading)
-                    Button("Grant Permission") {
-                        requested = true
-                        CGRequestScreenCaptureAccess()
+                    Button(requested ? "Open System Settings" : "Grant Permission") {
+                        if !requested {
+                            requested = true
+                            CGRequestScreenCaptureAccess()
+                            // The system prompt is a transient banner and is only
+                            // shown once per app; if the user missed it, take them
+                            // straight to the Screen Recording settings pane.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                if !CGPreflightScreenCaptureAccess() {
+                                    openScreenCaptureSettings()
+                                }
+                            }
+                        } else {
+                            openScreenCaptureSettings()
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     if requested {
                         HStack(spacing: 6) {
                             ProgressView().controlSize(.small)
-                            Text("Waiting for permission…").font(.caption).foregroundColor(.secondary)
+                            Text("Waiting for permission…".local).font(.caption).foregroundColor(.secondary)
                         }
                     }
                 }
@@ -481,6 +493,12 @@ struct ScreenPermissionGuide: View {
         }
         .onReceive(pollTimer) { _ in
             granted = CGPreflightScreenCaptureAccess()
+        }
+    }
+
+    private func openScreenCaptureSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
         }
     }
 
