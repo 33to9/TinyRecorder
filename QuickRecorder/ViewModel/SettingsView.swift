@@ -40,7 +40,8 @@ struct SettingsView: View {
                 default: GeneralView()
                 }
             }
-            .frame(minWidth: 600, minHeight: 512)
+            .frame(width: 600, height: 512)
+            .background(SettingsWindowConfigurator())
         } else {
             NavigationView {
                 List(selection: $selectedItem) {
@@ -63,7 +64,43 @@ struct SettingsView: View {
                 .listStyle(.sidebar)
                 .padding(.top, 9)
             }
-            .frame(minWidth: 600, minHeight: 512)
+            .frame(width: 600, height: 512)
+            .background(SettingsWindowConfigurator())
+        }
+    }
+}
+
+/// 设置窗尺寸固定（600x512）且不可拉伸；启动时把历史上保存的异常窗口 frame
+/// （被拉大或探出屏幕外）拉回屏幕中央，避免顶部内容跑到屏幕外看不见。
+struct SettingsWindowConfigurator: NSViewRepresentable {
+    static let fixedSize = NSSize(width: 600, height: 512)
+
+    func makeNSView(context: Context) -> NSView {
+        let v = NSView()
+        DispatchQueue.main.async { Self.configure(v.window) }
+        return v
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { Self.configure(nsView.window) }
+    }
+
+    static func configure(_ window: NSWindow?) {
+        guard let w = window else { return }
+        w.styleMask.remove(.resizable)
+        let vf = (w.screen ?? NSScreen.main)?.visibleFrame
+        // 异常 frame：尺寸与固定内容不符、大于屏幕或探出屏幕外 → 回到屏幕中央
+        if w.frame.size != fixedSize {
+            w.setContentSize(fixedSize)
+            if let vf = vf {
+                w.setFrameOrigin(NSPoint(x: vf.midX - fixedSize.width / 2,
+                                         y: vf.midY - fixedSize.height / 2))
+            }
+        } else if let vf = vf {
+            let f = w.frame
+            if f.maxX > vf.maxX || f.maxY > vf.maxY || f.minX < vf.minX || f.minY < vf.minY {
+                w.setFrameOrigin(NSPoint(x: vf.midX - fixedSize.width / 2,
+                                         y: vf.midY - fixedSize.height / 2))
+            }
         }
     }
 }

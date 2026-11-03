@@ -480,7 +480,16 @@ struct ScreenPermissionGuide: View {
                     Button(requested ? "Open System Settings" : "Grant Permission") {
                         if !requested {
                             requested = true
+                            // 请求权限前先隐藏引导窗：系统 TCC 授权弹窗出现在屏幕顶部中央，
+                            // 引导窗可能恰好挡住它的按钮（小屏幕 / 远程桌面下尤其明显）。
+                            orderGuidePanel(visible: false)
                             CGRequestScreenCaptureAccess()
+                            // 若 15 秒后仍未授权（用户点了“拒绝”或未处理），重新显示引导窗
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                                if !CGPreflightScreenCaptureAccess() {
+                                    orderGuidePanel(visible: true)
+                                }
+                            }
                         } else {
                             openScreenCaptureSettings()
                         }
@@ -498,7 +507,26 @@ struct ScreenPermissionGuide: View {
             .padding(24)
         }
         .onReceive(pollTimer) { _ in
-            granted = CGPreflightScreenCaptureAccess()
+            let now = CGPreflightScreenCaptureAccess()
+            if now && !granted {
+                // 授权成功：若引导窗处于隐藏状态（请求权限时避让系统弹窗），重新显示让用户点“重启”
+                orderGuidePanel(visible: true)
+            }
+            granted = now
+        }
+    }
+
+    /// 按标题找到引导窗并显示/隐藏
+    private func orderGuidePanel(visible: Bool) {
+        for w in NSApp.windows where w.title == "Screen Recording Permission".local {
+            if visible {
+                if !w.isVisible {
+                    w.makeKeyAndOrderFront(nil)
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            } else if w.isVisible {
+                w.orderOut(nil)
+            }
         }
     }
 

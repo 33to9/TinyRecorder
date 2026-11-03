@@ -75,14 +75,32 @@ jobs:
           # Zip
           ditto -c -k --keepParent "$APP_PATH" "TinyRecorder_v${VERSION}_macOS.zip"
 
-          # DMG (staging dir with Applications symlink => standard drag-to-install window)
+          # DMG (appdmg: app icon left, Applications right, arrow background)
           STAGE=$(mktemp -d)
           cp -R "$APP_PATH" "$STAGE/TinyRecorder.app"
-          ln -s /Applications "$STAGE/Applications"
-          hdiutil create -volname "TinyRecorder" \
-            -srcfolder "$STAGE" \
-            -ov -format UDZO \
-            "TinyRecorder_v${VERSION}.dmg"
+          cp .github/assets/dmg_background.png "$STAGE/background.png"
+          cat > "$STAGE/spec.json" <<'SPEC'
+          {
+            "title": "TinyRecorder",
+            "background": "background.png",
+            "icon-size": 128,
+            "format": "UDZO",
+            "contents": [
+              { "x": 192, "y": 210, "type": "file", "path": "TinyRecorder.app" },
+              { "x": 468, "y": 210, "type": "link", "path": "/Applications" }
+            ]
+          }
+          SPEC
+          if ! npx --yes appdmg@latest "$STAGE/spec.json" "TinyRecorder_v${VERSION}.dmg"; then
+            echo "⚠️ appdmg failed, falling back to plain hdiutil layout"
+            rm -f "TinyRecorder_v${VERSION}.dmg"
+            ln -s /Applications "$STAGE/Applications"
+            rm "$STAGE/spec.json" "$STAGE/background.png"
+            hdiutil create -volname "TinyRecorder" \
+              -srcfolder "$STAGE" \
+              -ov -format UDZO \
+              "TinyRecorder_v${VERSION}.dmg"
+          fi
           rm -rf "$STAGE"
 
           shasum -a 256 TinyRecorder_v${VERSION}.dmg TinyRecorder_v${VERSION}_macOS.zip
