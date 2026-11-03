@@ -28,6 +28,7 @@ struct SettingsView: View {
                 }
                 .listStyle(.sidebar)
                 .padding(.top, 9)
+                .navigationSplitViewColumnWidth(140)
             } detail: {
                 switch selectedItem {
                 case "Recorder": RecorderView()
@@ -37,7 +38,6 @@ struct SettingsView: View {
                 default: GeneralView()
                 }
             }
-            .navigationSplitViewColumnWidth(140, for: .sidebar)
             .frame(width: 600, height: 512)
         } else {
             NavigationView {
