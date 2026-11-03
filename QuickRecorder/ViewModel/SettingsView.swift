@@ -12,21 +12,25 @@ import KeyboardShortcuts
 import MatrixColorSelector
 
 struct SettingsView: View {
-    @State private var selectedItem: String? = "General"
-    
+    /// macOS 13+ sidebar selection. Non-optional on purpose: List(selection: Binding<String>)
+    /// with plain String tags matches row tags exactly on every macOS version. The previous
+    /// String? binding + `as String?` tags stopped matching on macOS 27 — rows rendered
+    /// greyed out (treated as non-selectable), had no highlight and ignored clicks.
+    @State private var selectedItem: String = "General"
+    /// macOS 12 NavigationLink(tag:selection:) needs an Optional binding.
+    @State private var legacySelectedItem: String? = "General"
+
     var body: some View {
         // NavigationView is deprecated since macOS 13 and renders blank windows
         // on recent macOS releases; use NavigationSplitView there instead.
         if #available(macOS 13, *) {
             NavigationSplitView {
                 List(selection: $selectedItem) {
-                    // Tags must be Optional<String> to match the String? selection binding;
-                    // plain String tags break rendering of the selected row on macOS 15.x
-                    Label("General", image: "gear").tag("General" as String?)
-                    Label("Recorder", image: "record").tag("Recorder" as String?)
-                    Label("Output", image: "film").tag("Output" as String?)
-                    Label("Hotkey", image: "hotkey").tag("Hotkey" as String?)
-                    Label("Blocklist", image: "blacklist").tag("Blaoklist" as String?)
+                    Label("General", image: "gear").tag("General")
+                    Label("Recorder", image: "record").tag("Recorder")
+                    Label("Output", image: "film").tag("Output")
+                    Label("Hotkey", image: "hotkey").tag("Hotkey")
+                    Label("Blocklist", image: "blacklist").tag("Blaoklist")
                 }
                 .listStyle(.sidebar)
                 .padding(.top, 9)
@@ -44,20 +48,20 @@ struct SettingsView: View {
             .background(SettingsWindowConfigurator())
         } else {
             NavigationView {
-                List(selection: $selectedItem) {
-                    NavigationLink(destination: GeneralView(), tag: "General", selection: $selectedItem) {
+                List(selection: $legacySelectedItem) {
+                    NavigationLink(destination: GeneralView(), tag: "General", selection: $legacySelectedItem) {
                         Label("General", image: "gear")
                     }
-                    NavigationLink(destination: RecorderView(), tag: "Recorder", selection: $selectedItem) {
+                    NavigationLink(destination: RecorderView(), tag: "Recorder", selection: $legacySelectedItem) {
                         Label("Recorder", image: "record")
                     }
-                    NavigationLink(destination: OutputView(), tag: "Output", selection: $selectedItem) {
+                    NavigationLink(destination: OutputView(), tag: "Output", selection: $legacySelectedItem) {
                         Label("Output", image: "film")
                     }
-                    NavigationLink(destination: HotkeyView(), tag: "Hotkey", selection: $selectedItem) {
+                    NavigationLink(destination: HotkeyView(), tag: "Hotkey", selection: $legacySelectedItem) {
                         Label("Hotkey", image: "hotkey")
                     }
-                    NavigationLink(destination: BlocklistView(), tag: "Blaoklist", selection: $selectedItem) {
+                    NavigationLink(destination: BlocklistView(), tag: "Blaoklist", selection: $legacySelectedItem) {
                         Label("Blocklist", image: "blacklist")
                     }
                 }
