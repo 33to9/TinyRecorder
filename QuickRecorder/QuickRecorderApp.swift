@@ -92,7 +92,8 @@ struct QuickRecorderApp: App {
                                 w.orderFront(nil)
                             }
                         })
-        )
+                )
+        }
         .handlesExternalEvents(matching: [])
         .commands {
             CommandGroup(replacing: .newItem) {}
