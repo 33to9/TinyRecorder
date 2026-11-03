@@ -24,11 +24,26 @@ import AppKit
 /// the real pointer position before AppKit dispatches them. On earlier systems the two
 /// already agree and the event is returned untouched.
 func installStatusBarEventLocationFix() {
-    NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp, .leftMouseDragged]) { event in
-        guard let window = event.window,
+    // Only macOS 27+ is affected; leave older systems completely untouched.
+    guard ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27 else { return }
+    NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp]) { event in
+        guard event.type == .leftMouseDown || event.type == .leftMouseUp,
+              let window = event.window,
               window === statusBarItem?.button?.window else { return event }
 
-        let real = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+        // Real pointer position in Cocoa global coordinates (bottom-left origin).
+        // Prefer the event's own CG location (global, top-left origin of the primary
+        // display) so the position is the one at the time of the click; fall back to
+        // the current mouse location.
+        var screenPoint = NSEvent.mouseLocation
+        if let cgLocation = event.cgEvent?.location,
+           let primaryHeight = NSScreen.screens.first?.frame.height {
+            screenPoint = NSPoint(x: cgLocation.x, y: primaryHeight - cgLocation.y)
+        }
+        // Only rewrite clicks that really happen inside the status item window.
+        guard window.frame.contains(screenPoint) else { return event }
+
+        let real = window.convertPoint(fromScreen: screenPoint)
         let reported = event.locationInWindow
         guard abs(real.x - reported.x) > 0.5 || abs(real.y - reported.y) > 0.5 else { return event }
 
@@ -43,6 +58,11 @@ func installStatusBarEventLocationFix() {
                                   pressure: event.pressure) ?? event
     }
 }
+
+/// Time at which the status item was first seen occluded (nil while visible).
+/// Used to debounce the fallback "Recording Controller" panel so it does not
+/// flicker when the occlusion state toggles briefly.
+private var statusBarOccludedSince: Date?
 
 class PopoverState: ObservableObject {
     static let shared = PopoverState()
@@ -177,11 +197,19 @@ struct StatusBarItem: View {
                     let timePassed = Date.now.timeIntervalSince(SCContext.startTime ?? t)
                     if SCContext.autoStop != 0 && timePassed / 60 >= CGFloat(SCContext.autoStop) { SCContext.stopRecording() }
                     if let visible = statusBarItem.button?.window?.occlusionState.contains(.visible) {
-                        if visible { NSApp.windows.first(where: { $0.title == "Recording Controller".local })?.close(); return }
+                        if visible {
+                            statusBarOccludedSince = nil
+                            NSApp.windows.first(where: { $0.title == "Recording Controller".local })?.close(); return
+                        }
+                        // Debounce: only show the fallback panel after the status item has
+                        // stayed occluded for about a second.
+                        let now = Date()
+                        if statusBarOccludedSince == nil { statusBarOccludedSince = now }
+                        if now.timeIntervalSince(statusBarOccludedSince ?? now) < 0.9 { return }
                         if SCContext.streamType != nil  && !visible && !(NSApp.windows.first(where: { $0.title == "Recording Controller".local })?.isVisible ?? false) {
                             guard let screen = SCContext.getScreenWithMouse() else { return }
                             let width = getStatusBarWidth()
-                            let wX = (screen.frame.width - width) / 2
+                            let wX = (screen.frame.width - width) / 2 + screen.frame.minX
                             let contentView = NSHostingView(rootView: StatusBarItem())
                             contentView.frame = NSRect(x: wX, y: screen.visibleFrame.maxY, width: width, height: 24)
                             controlPanel.setFrame(contentView.frame, display: true)

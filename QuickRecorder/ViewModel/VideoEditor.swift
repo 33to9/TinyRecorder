@@ -9,6 +9,8 @@ class RecorderPlayerModel: NSObject, ObservableObject {
     var fileUrl: URL?
     var playerItem: AVPlayerItem!
     var nsWindow: NSWindow?
+    private var timeJumpObserver: NSObjectProtocol?
+    private var observedItem: AVPlayerItem?
     
     override init() {
         self.playerView = AVPlayerView()
@@ -16,7 +18,24 @@ class RecorderPlayerModel: NSObject, ObservableObject {
         self.playerView.player = AVPlayer()
     }
     
+    deinit {
+        removeObservers()
+    }
+    
+    /// 移除 KVO 与通知观察者（可重复调用）
+    private func removeObservers() {
+        if let item = observedItem {
+            item.removeObserver(self, forKeyPath: #keyPath(AVPlayerItem.status))
+            observedItem = nil
+        }
+        if let token = timeJumpObserver {
+            NotificationCenter.default.removeObserver(token)
+            timeJumpObserver = nil
+        }
+    }
+    
     func loadVideo(fromUrl: URL, completion: @escaping () -> Void) {
+        removeObservers()
         fileUrl = fromUrl
         asset = AVAsset(url: fromUrl)
         guard let asset = asset else { return }
@@ -25,15 +44,13 @@ class RecorderPlayerModel: NSObject, ObservableObject {
         playerView.controlsStyle = .inline
         
         playerItem.addObserver(self, forKeyPath: #keyPath(AVPlayerItem.status), options: [.new], context: nil)
+        observedItem = playerItem
         
-        let checkCanBeginTrimming: () -> Void = {
+        timeJumpObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemTimeJumped, object: playerItem, queue: .main) { [weak self] _ in
+            guard let self = self else { return }
             if self.playerView.canBeginTrimming {
                 completion()
             }
-        }
-        
-        NotificationCenter.default.addObserver(forName: .AVPlayerItemTimeJumped, object: playerItem, queue: nil) { _ in
-            checkCanBeginTrimming()
         }
     }
     
@@ -66,13 +83,20 @@ class RecorderPlayerModel: NSObject, ObservableObject {
                             var path: String?
                             path = fileUrl.deletingPathExtension().path
                             guard let path = path else { return }
-                            let filePath = path.removingPercentEncoding! + " (Cropped in ".local + "\(dateFormatter.string(from: Date())))." + fileEnding
+                            let filePath = (path.removingPercentEncoding ?? path) + " (Cropped in ".local + "\(dateFormatter.string(from: Date())))." + fileEnding
                             exportSession?.outputURL = filePath.url
-                            exportSession?.outputFileType = fileType
+                            exportSession?.outputFileType = fileType ?? .mp4
                             exportSession?.timeRange = timeRange
-                            exportSession?.exportAsynchronously {
-                                if let error = exportSession?.error {
-                                    print("Error: \(error.localizedDescription)")
+                            guard let session = exportSession else {
+                                SCContext.showNotification(title: "Failed to save file".local, body: "Unable to create export session.".local, id: "quickrecorder.error.\(UUID().uuidString)")
+                                self.nsWindow?.close()
+                                return
+                            }
+                            session.exportAsynchronously {
+                                if session.status != .completed {
+                                    let err = session.error?.localizedDescription ?? "Unknown Error".local
+                                    print("Error: \(err)")
+                                    SCContext.showNotification(title: "Failed to save file".local, body: err, id: "quickrecorder.error.\(UUID().uuidString)")
                                 } else {
                                     print("Trimmed video exported successfully.")
                                     let content = UNMutableNotificationContent()
@@ -96,13 +120,16 @@ class RecorderPlayerModel: NSObject, ObservableObject {
             
             checkCanBeginTrimming()
 
-            playerItem.removeObserver(self, forKeyPath: #keyPath(AVPlayerItem.status))
+            if observedItem === playerItem {
+                playerItem.removeObserver(self, forKeyPath: #keyPath(AVPlayerItem.status))
+                observedItem = nil
+            }
         }
     }
     
     func cleanup() {
         // 移除所有观察者
-        playerItem.removeObserver(self, forKeyPath: #keyPath(AVPlayerItem.status))
+        removeObservers()
         playerView.player?.pause()
         playerView.player = nil // 移除 player 对象
     }

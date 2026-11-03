@@ -202,11 +202,8 @@ struct GeneralView: View {
             showRepairFailed = true
             return
         }
-        let relaunch = Process()
-        relaunch.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        relaunch.arguments = ["-n", Bundle.main.bundlePath]
-        try? relaunch.run()
-        NSApp.terminate(nil)
+        // Delayed relaunch so the new instance doesn't see this one still running.
+        relaunchApp()
     }
 }
 
@@ -272,7 +269,7 @@ struct RecorderView: View {
 }
 
 struct OutputView: View {
-    @AppStorage("encoder")          private var encoder: Encoder = .h265
+    @AppStorage("encoder")          private var encoder: Encoder = .h264
     @AppStorage("videoFormat")      private var videoFormat: VideoFormat = .mp4
     @AppStorage("audioFormat")      private var audioFormat: AudioFormat = .aac
     @AppStorage("audioQuality")     private var audioQuality: AudioQuality = .high

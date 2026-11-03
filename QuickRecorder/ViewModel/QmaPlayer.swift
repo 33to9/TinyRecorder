@@ -411,7 +411,10 @@ class AudioPlayerManager: ObservableObject {
     private var playerNode2 = AVAudioPlayerNode()
     private var mixerNode = AVAudioMixerNode()
     private var timer: Timer?
-    private var lastStartFramePosition = AVAudioFramePosition(0.0)
+    /// 当前已调度片段在文件中的起始时间（秒）
+    private var lastStartTime: Double = 0
+    /// 播放节点上是否已有调度好的音频（暂停后继续播放时不应重复调度）
+    private var isScheduled = false
     private var audioFile1: AVAudioFile?
     private var audioFile2: AVAudioFile?
     private var isSeeking = false
@@ -427,9 +430,10 @@ class AudioPlayerManager: ObservableObject {
     }
     
     private func setupAudioEngine() {
-        engine.attach(playerNode1)
-        engine.attach(playerNode2)
-        engine.attach(mixerNode)
+        // 导出后会再次调用本方法，节点已挂载时不能重复 attach
+        if playerNode1.engine == nil { engine.attach(playerNode1) }
+        if playerNode2.engine == nil { engine.attach(playerNode2) }
+        if mixerNode.engine == nil { engine.attach(mixerNode) }
         
         let outputFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 48000, channels: 2, interleaved: false)!
         engine.connect(playerNode1, to: mixerNode, format: outputFormat)
@@ -463,8 +467,14 @@ class AudioPlayerManager: ObservableObject {
     
     func play() {
         guard let audioFile1 = audioFile1, let audioFile2 = audioFile2 else { return }
-        playerNode1.scheduleFile(audioFile1, at: nil, completionHandler: nil)
-        playerNode2.scheduleFile(audioFile2, at: nil, completionHandler: nil)
+        if !isScheduled {
+            // 只有在停止/播放结束后才重新调度整段文件；暂停后继续播放直接 play()
+            playerNode1.scheduleFile(audioFile1, at: nil, completionHandler: nil)
+            playerNode2.scheduleFile(audioFile2, at: nil, completionHandler: nil)
+            lastStartTime = 0
+            isScheduled = true
+        }
+        if !engine.isRunning { try? engine.start() }
         playerNode1.play()
         playerNode2.play()
         stopProgressTimer()
@@ -483,7 +493,8 @@ class AudioPlayerManager: ObservableObject {
         playerNode1.stop()
         playerNode2.stop()
         stopProgressTimer()
-        lastStartFramePosition = AVAudioFramePosition(0.0)
+        lastStartTime = 0
+        isScheduled = false
         progress = 0.0
         isPlaying = false
     }
@@ -494,17 +505,25 @@ class AudioPlayerManager: ObservableObject {
         playerNode2.stop()
         stopProgressTimer()
         
-        seekTime = time
+        seekTime = max(0, time)
         isSeeking = true
+        isScheduled = false
         
-        let startFrame = AVAudioFramePosition(seekTime * audioFile1.processingFormat.sampleRate)
-        let frameCount = AVAudioFrameCount(audioFile1.length - startFrame)
+        // 两个文件的采样率/长度可能不同，分别计算
+        let startFrame1 = AVAudioFramePosition(seekTime * audioFile1.processingFormat.sampleRate)
+        let startFrame2 = AVAudioFramePosition(seekTime * audioFile2.processingFormat.sampleRate)
+        let remaining1 = audioFile1.length - startFrame1
+        let remaining2 = audioFile2.length - startFrame2
+        let maxCount = AVAudioFramePosition(AVAudioFrameCount.max)
         
-        if frameCount > 0 {
-            lastStartFramePosition = startFrame
-            playerNode1.scheduleSegment(audioFile1, startingFrame: startFrame, frameCount: frameCount, at: nil, completionHandler: nil)
-            playerNode2.scheduleSegment(audioFile2, startingFrame: startFrame, frameCount: frameCount, at: nil, completionHandler: nil)
-            progress = time / audioLength
+        if remaining1 > 0 {
+            lastStartTime = seekTime
+            playerNode1.scheduleSegment(audioFile1, startingFrame: startFrame1, frameCount: AVAudioFrameCount(min(remaining1, maxCount)), at: nil, completionHandler: nil)
+            if remaining2 > 0 {
+                playerNode2.scheduleSegment(audioFile2, startingFrame: startFrame2, frameCount: AVAudioFrameCount(min(remaining2, maxCount)), at: nil, completionHandler: nil)
+            }
+            isScheduled = true
+            progress = audioLength > 0 ? seekTime / audioLength : 0
             if isPlaying || shouldPlay {
                 playerNode1.play()
                 playerNode2.play()
@@ -519,10 +538,11 @@ class AudioPlayerManager: ObservableObject {
     }
     
     private func startProgressTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
             if let lastRenderTime = self.playerNode1.lastRenderTime, let playerTime = self.playerNode1.playerTime(forNodeTime: lastRenderTime) {
-                let currentTime = Double(self.lastStartFramePosition + playerTime.sampleTime) / playerTime.sampleRate
-                self.progress = currentTime / self.audioLength
+                let currentTime = self.lastStartTime + Double(playerTime.sampleTime) / playerTime.sampleRate
+                self.progress = self.audioLength > 0 ? currentTime / self.audioLength : 0
                 if currentTime > self.audioLength {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         self.stop()
@@ -567,8 +587,12 @@ class AudioPlayerManager: ObservableObject {
         
         Thread.detachNewThread {
             DispatchQueue.main.async { self.exporting = true }
+            // 无论成功、失败还是提前返回，都要恢复 exporting 状态
+            defer { DispatchQueue.main.async { self.exporting = false } }
             do {
-                guard let audioFile1 = self.audioFile1, let audioFile2 = self.audioFile2 else { return }
+                guard let audioFile1 = self.audioFile1, let audioFile2 = self.audioFile2 else {
+                    throw NSError(domain: "QmaExportError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Audio files are not loaded."])
+                }
                 self.playerNode1.scheduleFile(audioFile1, at: nil, completionHandler: nil)
                 self.playerNode2.scheduleFile(audioFile2, at: nil, completionHandler: nil)
                 
@@ -583,35 +607,31 @@ class AudioPlayerManager: ObservableObject {
                 self.playerNode2.play()
                 
                 let duration = audioFile1.length
-                let buffer = AVAudioPCMBuffer(pcmFormat: self.engine.manualRenderingFormat, frameCapacity: self.engine.manualRenderingMaximumFrameCount)!
+                guard let buffer = AVAudioPCMBuffer(pcmFormat: self.engine.manualRenderingFormat, frameCapacity: self.engine.manualRenderingMaximumFrameCount) else {
+                    throw NSError(domain: "QmaExportError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Unable to create the render buffer."])
+                }
                 
                 while self.engine.manualRenderingSampleTime < duration {
                     let framesToRender = min(UInt32(buffer.frameCapacity), UInt32(duration - self.engine.manualRenderingSampleTime))
                     let status = try self.engine.renderOffline(framesToRender, to: buffer)
-                    switch status {
-                    case .success:
+                    if status == .success {
                         try outputFile.write(from: buffer)
-                    case .insufficientDataFromInputNode, .cannotDoInCurrentContext:
-                        // Handle the cases where rendering cannot proceed
-                        break
-                    default:
-                        // Handle other cases if needed
-                        break
+                    } else {
+                        // 离线渲染无法继续：直接报错退出循环，避免死循环
+                        throw NSError(domain: "QmaExportError", code: status.rawValue, userInfo: [NSLocalizedDescriptionKey: "Offline rendering failed (status \(status.rawValue))."])
                     }
                 }
                 
-                self.engine.disableManualRenderingMode()
-                self.engine.stop()
-                self.setupAudioEngine()
+                self.restoreEngineAfterExport()
                 
                 let title = "Recording Completed".local
-                var body = String(format: "File saved to: %@".local, url.path.removingPercentEncoding!)
+                var body = String(format: "File saved to: %@".local, url.path.removingPercentEncoding ?? url.path)
                 let id = "quickrecorder.completed.\(UUID().uuidString)"
                 
                 if saveAsMP3 {
                     let oldURL = url
                     let newURl = url.deletingLastPathComponent().appendingPathComponent(lastComp).deletingPathExtension().appendingPathExtension("mp3")
-                    body = String(format: "File saved to: %@".local, newURl.path.removingPercentEncoding!)
+                    body = String(format: "File saved to: %@".local, newURl.path.removingPercentEncoding ?? newURl.path)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         Task {
                             do {
@@ -627,10 +647,20 @@ class AudioPlayerManager: ObservableObject {
                 
                 SCContext.showNotification(title: title, body: body, id: id)
             } catch {
+                self.restoreEngineAfterExport()
                 SCContext.showNotification(title: "Failed to save file".local, body: "\(error.localizedDescription)", id: "quickrecorder.error.\(UUID().uuidString)")
             }
-            DispatchQueue.main.async { self.exporting = false }
         }
+    }
+    
+    /// 导出结束（成功或失败）后恢复为实时播放模式
+    private func restoreEngineAfterExport() {
+        playerNode1.stop()
+        playerNode2.stop()
+        if engine.isInManualRenderingMode { engine.disableManualRenderingMode() }
+        engine.stop()
+        setupAudioEngine()
+        DispatchQueue.main.async { self.isScheduled = false }
     }
     
     private func updateSysVol() {
@@ -674,5 +704,5 @@ class AudioPlayerManager: ObservableObject {
 }
 
 extension UTType {
-    static let qma = UTType(exportedAs: "com.lihaoyun6.QuickRecorder.qma")
+    static let qma = UTType(exportedAs: "com.33to9.TinyRecorder.qma")
 }

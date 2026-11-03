@@ -257,8 +257,13 @@ struct WinSelector: View {
 class WindowSelectorViewModel: NSObject, ObservableObject, SCStreamDelegate, SCStreamOutput {
     @Published var windowThumbnails = [SCDisplay:[WindowThumbnail]]()
     @Published var isReady = false
+    // All of the state below is only touched on the main queue (stream output is
+    // delivered on .main and setup runs on the main actor).
     private var allWindows = [SCWindow]()
     private var streams = [SCStream]()
+    /// Streams still waiting for their first frame, mapped to the window they capture.
+    private var streamWindows = [ObjectIdentifier: SCWindow]()
+    private var setupGeneration = 0
     
     override init() {
         super.init()
@@ -267,83 +272,117 @@ class WindowSelectorViewModel: NSObject, ObservableObject, SCStreamDelegate, SCS
         }
     }
     
+    private func addThumbnail(_ thumbnail: WindowThumbnail) {
+        let window = thumbnail.window
+        guard let displays = SCContext.availableContent?.displays.filter({ NSIntersectsRect(window.frame, $0.frame) }) else { return }
+        for d in displays {
+            if self.windowThumbnails[d] != nil {
+                if !self.windowThumbnails[d]!.contains(where: { $0.window == window }) { self.windowThumbnails[d]!.append(thumbnail) }
+            } else {
+                self.windowThumbnails[d] = [thumbnail]
+            }
+        }
+    }
+    
+    /// Marks a stream as done; once every stream delivered (or failed) the view is ready.
+    private func finishStream(_ key: ObjectIdentifier) {
+        streamWindows[key] = nil
+        if streamWindows.isEmpty { isReady = true }
+    }
+    
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         if CMSampleBufferGetImageBuffer(sampleBuffer) == nil { return }
+        let key = ObjectIdentifier(stream)
+        guard let currentWindow = streamWindows[key] else { return }
         let nsImage = sampleBuffer.nsImage ?? NSImage.unknowScreen
-        if let index = self.streams.firstIndex(of: stream), index + 1 <= self.allWindows.count {
-            let currentWindow = self.allWindows[index]
-            let thumbnail = WindowThumbnail(image: nsImage, window: currentWindow)
-            guard let displays = SCContext.availableContent?.displays.filter({ NSIntersectsRect(currentWindow.frame, $0.frame) }) else {
-                self.streams[index].stopCapture()
-                return
-            }
-            for d in displays {
-                DispatchQueue.main.async {
-                    if self.windowThumbnails[d] != nil {
-                        if !self.windowThumbnails[d]!.contains(where: { $0.window == currentWindow }) { self.windowThumbnails[d]!.append(thumbnail) }
-                    } else {
-                        self.windowThumbnails[d] = [thumbnail]
-                    }
-                }
-            }
-            DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { self.streams[index].stopCapture() }
-            if index + 1 == self.streams.count { DispatchQueue.main.async { self.isReady = true }}
+        DispatchQueue.main.async {
+            // Ignore frames from a stream that was dropped by a refresh meanwhile.
+            guard self.streamWindows[key] != nil else { return }
+            self.addThumbnail(WindowThumbnail(image: nsImage, window: currentWindow))
+            self.finishStream(key)
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { stream.stopCapture() }
+    }
+    
+    /// Stops and forgets all thumbnail streams (main queue only).
+    private func stopAllStreams() {
+        for stream in streams { stream.stopCapture() }
+        streams.removeAll()
+        streamWindows.removeAll()
     }
 
     func setupStreams(filter: Bool = true, capture: Bool = true) {
         SCContext.updateAvailableContent {
-            Task {
-                do {
-                    self.streams.removeAll()
-                    DispatchQueue.main.async { self.windowThumbnails.removeAll() }
-                    self.allWindows = SCContext.getWindows().filter({
-                        !($0.title == "" && $0.owningApplication?.bundleIdentifier == "com.apple.finder")
-                        && $0.owningApplication?.bundleIdentifier != Bundle.main.bundleIdentifier
-                        && $0.owningApplication?.applicationName != ""
-                    })
-                    if filter { self.allWindows = self.allWindows.filter({ $0.title != "" }) }
-                    if capture {
-                        let contentFilters = self.allWindows.map { SCContentFilter(desktopIndependentWindow: $0) }
-                        for (index, contentFilter) in contentFilters.enumerated() {
-                            let streamConfiguration = SCStreamConfiguration()
-                            let width = self.allWindows[index].frame.width
-                            let height = self.allWindows[index].frame.height
-                            var factor = 0.5
-                            if width < 200 && height < 200 { factor = 1.0 }
-                            streamConfiguration.width = Int(width * factor)
-                            streamConfiguration.height = Int(height * factor)
-                            streamConfiguration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(1))
-                            streamConfiguration.pixelFormat = kCVPixelFormatType_32BGRA
-                            if #available(macOS 13, *) { streamConfiguration.capturesAudio = false }
-                            streamConfiguration.showsCursor = false
-                            streamConfiguration.scalesToFit = true
-                            streamConfiguration.queueDepth = 3
-                            let stream = SCStream(filter: contentFilter, configuration: streamConfiguration, delegate: self)
+            Task { @MainActor in
+                self.stopAllStreams()
+                self.setupGeneration += 1
+                let generation = self.setupGeneration
+                self.isReady = false
+                self.windowThumbnails.removeAll()
+                self.allWindows = SCContext.getWindows().filter({
+                    !($0.title == "" && $0.owningApplication?.bundleIdentifier == "com.apple.finder")
+                    && $0.owningApplication?.bundleIdentifier != Bundle.main.bundleIdentifier
+                    && $0.owningApplication?.applicationName != ""
+                })
+                if filter { self.allWindows = self.allWindows.filter({ $0.title != "" }) }
+                let windows = self.allWindows
+                if capture && !windows.isEmpty {
+                    var pending = [(SCStream, SCWindow)]()
+                    for window in windows {
+                        let contentFilter = SCContentFilter(desktopIndependentWindow: window)
+                        let streamConfiguration = SCStreamConfiguration()
+                        let width = window.frame.width
+                        let height = window.frame.height
+                        var factor = 0.5
+                        if width < 200 && height < 200 { factor = 1.0 }
+                        streamConfiguration.width = Int(width * factor)
+                        streamConfiguration.height = Int(height * factor)
+                        streamConfiguration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(1))
+                        streamConfiguration.pixelFormat = kCVPixelFormatType_32BGRA
+                        if #available(macOS 13, *) { streamConfiguration.capturesAudio = false }
+                        streamConfiguration.showsCursor = false
+                        streamConfiguration.scalesToFit = true
+                        streamConfiguration.queueDepth = 3
+                        let stream = SCStream(filter: contentFilter, configuration: streamConfiguration, delegate: self)
+                        do {
                             try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .main)
-                            try await stream.startCapture()
-                            self.streams.append(stream)
+                        } catch {
+                            print("Get windowshot error：\(error)")
+                            self.addThumbnail(WindowThumbnail(image: NSImage.unknowScreen, window: window))
+                            continue
                         }
-                    } else {
-                        for w in self.allWindows {
-                            let thumbnail = WindowThumbnail(image: NSImage.unknowScreen, window: w)
-                            guard let displays = SCContext.availableContent?.displays.filter({ NSIntersectsRect(w.frame, $0.frame) }) else { break }
-                            for d in displays {
-                                DispatchQueue.main.async {
-                                    if self.windowThumbnails[d] != nil {
-                                        if !self.windowThumbnails[d]!.contains(where: { $0.window == w }) {
-                                            self.windowThumbnails[d]!.append(thumbnail)
-                                        }
-                                    } else {
-                                        self.windowThumbnails[d] = [thumbnail]
-                                    }
-                                }
+                        // Register every stream before starting any, so "ready" can't fire early.
+                        self.streams.append(stream)
+                        self.streamWindows[ObjectIdentifier(stream)] = window
+                        pending.append((stream, window))
+                    }
+                    if pending.isEmpty { self.isReady = true }
+                    for (stream, window) in pending {
+                        // A newer refresh started meanwhile: abandon this one.
+                        if generation != self.setupGeneration { return }
+                        do {
+                            try await stream.startCapture()
+                        } catch {
+                            // One failing window must not abort the others.
+                            print("Get windowshot error：\(error)")
+                            if generation != self.setupGeneration { return }
+                            if self.streamWindows[ObjectIdentifier(stream)] != nil {
+                                self.addThumbnail(WindowThumbnail(image: NSImage.unknowScreen, window: window))
+                                self.finishStream(ObjectIdentifier(stream))
                             }
                         }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { self.isReady = true }
                     }
-                } catch {
-                    print("Get windowshot error：\(error)")
+                    // Safety net: don't keep the view waiting forever for a silent stream.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        if generation == self.setupGeneration && !self.isReady { self.isReady = true }
+                    }
+                } else {
+                    for w in windows {
+                        self.addThumbnail(WindowThumbnail(image: NSImage.unknowScreen, window: w))
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        if generation == self.setupGeneration { self.isReady = true }
+                    }
                 }
             }
         }

@@ -7,8 +7,8 @@
 import SwiftUI
 
 struct ScreenMagnifier: View {
-    @State var screenShot: NSImage!
-    @State var scaleFactor = SCContext.getScreenWithMouse()?.backingScaleFactor ?? 1.0
+    // Plain property (not @State) so the hosting view's rootView can be updated in place.
+    var screenShot: NSImage!
     var event: NSEvent!
     
     var body: some View {

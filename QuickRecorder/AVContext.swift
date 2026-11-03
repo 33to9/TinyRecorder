@@ -36,7 +36,7 @@ extension AppDelegate {
         if SCContext.isCameraRunning() {
             //SCContext.previewType = nil
             if camWindow.isVisible { camWindow.close() }
-            SCContext.captureSession.stopRunning()
+            SCContext.captureSession?.stopRunning()
         }
     }
     
@@ -118,10 +118,11 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
     }
 
     public func stopRecording() {
-        if SCContext.captureSession.isRunning {
-            output.stopRecording()
-            SCContext.captureSession.stopRunning()
-            SCContext.previewSession.stopRunning()
+        guard let session = SCContext.captureSession else { return }
+        if session.isRunning {
+            output?.stopRecording()
+            session.stopRunning()
+            SCContext.previewSession?.stopRunning()
             SCContext.streamType = nil
             SCContext.startTime = nil
             DispatchQueue.main.async {
@@ -141,14 +142,20 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
     }
 
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        let content = UNMutableNotificationContent()
-        content.title = "Recording Completed".local
-        content.body = String(format: "File saved to: %@".local, outputFileURL.path)
-        content.sound = UNNotificationSound.default
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        let request = UNNotificationRequest(identifier: "quickrecorder.completed.\(UUID().uuidString)", content: content, trigger: trigger)
-        UNUserNotificationCenter.current().add(request) { error in
-            if let error = error { print("Notification failed to send：\(error.localizedDescription)") }
+        // 带 error 回调时文件也可能已完整写入（AVErrorRecordingSuccessfullyFinishedKey 为 true）
+        var succeeded = true
+        if let error = error as NSError? {
+            succeeded = (error.userInfo[AVErrorRecordingSuccessfullyFinishedKey] as? Bool) ?? false
+            print("Device recording finished with error: \(error.localizedDescription)")
+        }
+        if succeeded {
+            SCContext.showNotification(title: "Recording Completed".local,
+                                       body: String(format: "File saved to: %@".local, outputFileURL.path),
+                                       id: "quickrecorder.completed.\(UUID().uuidString)")
+        } else {
+            SCContext.showNotification(title: "Failed to save file".local,
+                                       body: error?.localizedDescription ?? "Unknown Error".local,
+                                       id: "quickrecorder.error.\(UUID().uuidString)")
         }
     }
 }

@@ -11,12 +11,8 @@ import ScreenCaptureKit
 
 struct ContentView: View {
     var fromStatusBar = false
-    @State private var window: NSWindow?
     @State private var xmarkGlowing = false
-    @State private var infoGlowing = false
-    @State private var micGlowing = false
     @State private var isPopoverShowing = false
-    @State private var isPopoverShowing2 = false
     @State private var micList = SCContext.getMicrophone()
     @AppStorage("enableAEC") private var enableAEC: Bool = false
     @AppStorage("recordMic") private var recordMic: Bool = false
@@ -168,16 +164,7 @@ struct ContentView: View {
                         closeMainWindow()
                         SCContext.updateAvailableContent {
                             DispatchQueue.main.async {
-                                appDelegate.showAreaSelector(size: NSSize(width: 600, height: 450))
-                                var currentDisplay = SCContext.getSCDisplayWithMouse()
-                                mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .rightMouseDown, .leftMouseDown, .otherMouseDown]) { event in
-                                    let display = SCContext.getSCDisplayWithMouse()
-                                    if display != currentDisplay {
-                                        currentDisplay = display
-                                        closeAllWindow()
-                                        appDelegate.showAreaSelector(size: NSSize(width: 600, height: 450))
-                                    }
-                                }
+                                appDelegate.startAreaSelection()
                             }
                         }
                     }, label: {
@@ -340,6 +327,44 @@ struct CountdownView: View {
 
 
 extension AppDelegate {
+    /// Shows the area selector on the display under the pointer and keeps it following the
+    /// pointer when it moves to another display. Must be called on the main thread with
+    /// up-to-date `SCContext.availableContent`.
+    func startAreaSelection(size: NSSize = NSSize(width: 600, height: 450)) {
+        stopAreaSelectorScreenMonitor()
+        showAreaSelector(size: size)
+        var currentDisplay = SCContext.getSCDisplayWithMouse()
+        areaSelectorScreenMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .rightMouseDown, .leftMouseDown, .otherMouseDown]) { _ in
+            let display = SCContext.getSCDisplayWithMouse()
+            if display != currentDisplay {
+                currentDisplay = display
+                // The old "Start Recording" panel's close handler checks this flag so it
+                // won't close the new selector / remove the monitors.
+                isSwitchingAreaSelectorScreen = true
+                closeAllWindow()
+                AppDelegate.shared.showAreaSelector(size: size)
+                isSwitchingAreaSelectorScreen = false
+            }
+        }
+    }
+
+    func stopAreaSelectorScreenMonitor() {
+        if let monitor = areaSelectorScreenMonitor {
+            NSEvent.removeMonitor(monitor)
+            areaSelectorScreenMonitor = nil
+        }
+    }
+
+    /// Closes every area selector window and removes the monitors that belong to it.
+    func closeAreaSelection() {
+        for w in NSApp.windows.filter({ $0.isVisible && ($0.title == "Area Selector".local || $0.title == "Start Recording".local) }) { w.close() }
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyMonitor = nil
+        }
+        stopAreaSelectorScreenMonitor()
+    }
+
     func showAreaSelector(size: NSSize, noPanel: Bool = false) {
         guard let scDisplay = SCContext.getSCDisplayWithMouse() else { return }
         guard let screen = scDisplay.nsScreen else { return }

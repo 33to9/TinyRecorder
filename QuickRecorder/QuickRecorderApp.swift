@@ -31,6 +31,12 @@ let ud: UserDefaults = {
 var statusBarItem: NSStatusItem!
 var mouseMonitor: Any?
 var keyMonitor: Any?
+/// Global monitor that follows the pointer across displays while the area selector is shown.
+/// Kept separate from `mouseMonitor` (mouse highlight / magnifier during recording).
+var areaSelectorScreenMonitor: Any?
+/// True while the area selector is being moved to another display. Window-close handlers
+/// of the old "Start Recording" panel check it so they don't tear down the new selector.
+var isSwitchingAreaSelectorScreen = false
 var hideMousePointer = false
 var hideScreenMagnifier = false
 let updateTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
@@ -132,7 +138,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     @AppStorage("remuxAudio")       var remuxAudio: Bool = true
     @AppStorage("recordWinSound")   var recordWinSound: Bool = true
     @AppStorage("recordHDR")        var recordHDR: Bool = false
-    @AppStorage("encoder")          var encoder: Encoder = .h265
+    @AppStorage("encoder")          var encoder: Encoder = .h264
     @AppStorage("highRes")          var highRes: Int = 2
     @AppStorage("AECLevel")         var AECLevel: String = "mid"
     @AppStorage("withAlpha")        var withAlpha: Bool = false
@@ -176,15 +182,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         let mouseLocation = event.locationInWindow
         var windowFrame = screenMagnifier.frame
         windowFrame.origin = NSPoint(x: mouseLocation.x - windowFrame.width / 2, y: mouseLocation.y - windowFrame.height / 2)
-        guard let image = NSImage.createScreenShot() else { return }
+        // Capture only the small area around the cursor (Cocoa global coordinates),
+        // which also works across multiple displays.
         let rect = NSRect(x: mouseLocation.x - 67, y: mouseLocation.y - 58, width: 134, height: 116)
-        let croppedImage = image.trim(rect: rect)
-        screenMagnifier.contentView = NSHostingView(rootView: ScreenMagnifier(screenShot: croppedImage, event: event))
+        guard let croppedImage = NSImage.createScreenShot(cocoaRect: rect) else { return }
+        let magnifierView = ScreenMagnifier(screenShot: croppedImage, event: event)
+        if let host = screenMagnifier.contentView as? NSHostingView<ScreenMagnifier> {
+            host.rootView = magnifierView
+        } else {
+            screenMagnifier.contentView = NSHostingView(rootView: magnifierView)
+        }
         screenMagnifier.setFrameOrigin(windowFrame.origin)
         screenMagnifier.orderFront(nil)
     }
     
     func registerGlobalMouseMonitor() {
+        if let monitor = mouseMonitor { NSEvent.removeMonitor(monitor); mouseMonitor = nil }
         mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.scrollWheel, .mouseMoved, .rightMouseUp, .rightMouseDown, .rightMouseDragged, .leftMouseUp,  .leftMouseDown, .leftMouseDragged, .otherMouseUp, .otherMouseDown, .otherMouseDragged]) { event in
             self.mousePointerReLocation(event: event)
             self.screenMagnifierReLocation(event: event)
@@ -211,13 +224,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     func applicationWillFinishLaunching(_ notification: Notification) {
         scPerm = SCContext.updateAvailableContentSync() != nil
         
-        let process = NSWorkspace.shared.runningApplications.filter({ $0.bundleIdentifier == "com.33to9.TinyRecorder" })
-        if process.count > 1 {
-            DispatchQueue.main.async {
-                let button = createAlert(title: "TinyRecorder is Running".local, message: "Please do not run multiple instances!".local, button1: "Quit".local).runModal()
-                if button == .alertFirstButtonReturn { NSApp.terminate(self) }
-            }
-        }
+        checkDuplicateInstance()
         
         lazy var userDesktop = (NSSearchPathForDirectoriesInDomains(.desktopDirectory, .userDomainMask, true) as [String]).first!
         
@@ -328,29 +335,42 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         KeyboardShortcuts.onKeyDown(for: .screenMagnifier) { if SCContext.stream != nil { SCContext.isMagnifierEnabled.toggle() }}
         KeyboardShortcuts.onKeyDown(for: .stop) { if SCContext.stream != nil { SCContext.stopRecording() }}
         KeyboardShortcuts.onKeyDown(for: .pauseResume) { if SCContext.stream != nil { SCContext.pauseRecording() }}
-        KeyboardShortcuts.onKeyDown(for: .startWithAudio) {[self] in
+        // Recording shortcuts always go through AppDelegate.shared (the instance the rest of
+        // the app uses) and refresh the shareable content first, so they never run on stale
+        // content or crash when screen recording permission is missing.
+        KeyboardShortcuts.onKeyDown(for: .startWithAudio) {
             if SCContext.streamType != nil { return }
-            closeAllWindow()
-            prepRecord(type: "audio", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
+            AppDelegate.shared.withFreshScreenContent {
+                if SCContext.streamType != nil { return }
+                closeAllWindow()
+                AppDelegate.shared.prepRecord(type: "audio", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
+            }
         }
-        KeyboardShortcuts.onKeyDown(for: .startWithScreen) {[self] in
+        KeyboardShortcuts.onKeyDown(for: .startWithScreen) {
             if SCContext.stream != nil { return }
-            closeAllWindow()
-            prepRecord(type: "display", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
+            AppDelegate.shared.withFreshScreenContent {
+                if SCContext.stream != nil { return }
+                closeAllWindow()
+                AppDelegate.shared.prepRecord(type: "display", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
+            }
         }
-        KeyboardShortcuts.onKeyDown(for: .startWithArea) {[self] in
+        KeyboardShortcuts.onKeyDown(for: .startWithArea) {
             if SCContext.stream != nil { return }
-            closeAllWindow()
-            showAreaSelector(size: NSSize(width: 600, height: 450))
+            AppDelegate.shared.withFreshScreenContent {
+                if SCContext.stream != nil { return }
+                closeAllWindow()
+                AppDelegate.shared.startAreaSelection()
+            }
         }
-        KeyboardShortcuts.onKeyDown(for: .startWithWindow) { [self] in
+        KeyboardShortcuts.onKeyDown(for: .startWithWindow) {
             if SCContext.stream != nil { return }
-            closeAllWindow()
             let frontmostApp = NSWorkspace.shared.frontmostApplication
-            if let pid = frontmostApp?.processIdentifier {
+            AppDelegate.shared.withFreshScreenContent {
+                if SCContext.stream != nil { return }
+                closeAllWindow()
+                guard let pid = frontmostApp?.processIdentifier else { return }
                 guard let scWindow = SCContext.getWindows().first(where: { $0.owningApplication?.processID == pid && $0.title != "" && $0.isOnScreen }) else { return }
-                prepRecord(type: "window", screens: SCContext.getSCDisplayWithMouse(), windows: [scWindow], applications: nil, fastStart: true)
-                return
+                AppDelegate.shared.prepRecord(type: "window", screens: SCContext.getSCDisplayWithMouse(), windows: [scWindow], applications: nil, fastStart: true)
             }
         }
         updateStatusBar()
@@ -365,10 +385,47 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         } else if showOnDock {
             _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
-        tips("Would you like to use H.265 format for better video quality and smaller file size?",
-             id: "qr.switch-to-h265.note", buttonTitle: "Use H.265", switchButton: true) {
-            ud.setValue(Encoder.h265.rawValue, forKey: "encoder")
+        // Only suggest H.265 when it isn't already in use and the app can actually record;
+        // once the user accepts, remember it so the tip is not shown again.
+        let h265TipID = "qr.switch-to-h265.note"
+        if scPerm && ud.string(forKey: "encoder") != Encoder.h265.rawValue {
+            tips("Would you like to use H.265 format for better video quality and smaller file size?",
+                 id: h265TipID, buttonTitle: "Use H.265", switchButton: true) {
+                ud.setValue(Encoder.h265.rawValue, forKey: "encoder")
+                let never = (ud.object(forKey: "neverRemindMe") as? [String]) ?? []
+                if !never.contains(h265TipID) { ud.setValue(never + [h265TipID], forKey: "neverRemindMe") }
+            }
         }
+    }
+
+    /// Runs `action` on the main queue with freshly updated shareable content.
+    /// Without screen recording permission the permission guide is shown instead.
+    func withFreshScreenContent(_ action: @escaping () -> Void) {
+        guard CGPreflightScreenCaptureAccess() else {
+            showScreenPermissionGuide()
+            return
+        }
+        SCContext.updateAvailableContent {
+            DispatchQueue.main.async { action() }
+        }
+    }
+
+    /// Quits if another (still running) instance exists. A just-relaunched process may
+    /// briefly see the old instance that is still shutting down, so retry for a few seconds
+    /// before complaining.
+    func checkDuplicateInstance(retries: Int = 6) {
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder"
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        let others = NSWorkspace.shared.runningApplications.filter {
+            $0.bundleIdentifier == bundleID && $0.processIdentifier != myPID && !$0.isTerminated
+        }
+        if others.isEmpty { return }
+        if retries > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.checkDuplicateInstance(retries: retries - 1) }
+            return
+        }
+        let button = createAlert(title: "TinyRecorder is Running".local, message: "Please do not run multiple instances!".local, button1: "Quit".local).runModal()
+        if button == .alertFirstButtonReturn { NSApp.terminate(self) }
     }
 
     /// First-launch friendly guide for the screen recording permission.
@@ -376,7 +433,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     /// so the system prompt appears with proper context instead of confusing users.
     func showScreenPermissionGuide() {
         // 幂等：引导窗已存在时仅激活，避免重复弹出多个
-        if let existing = NSApp.windows.first(where: { $0.isVisible && $0.title == "Screen Recording Permission".local }) {
+        // Don't filter by visibility: the guide may be temporarily hidden while the system
+        // permission prompt is on screen, and must not be duplicated then.
+        if let existing = NSApp.windows.first(where: { $0.title == "Screen Recording Permission".local }) {
             existing.makeKeyAndOrderFront(self)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -427,7 +486,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     func openSettingPanel() {
         NSApp.activate(ignoringOtherApps: true)
         if #available(macOS 14, *) {
-            NSApp.mainMenu?.items.first?.submenu?.item(at: 3)?.performAction()
+            if let item = NSApp.mainMenu?.items.first?.submenu?.items.first(where: { $0.keyEquivalent == "," }) {
+                item.performAction()
+            } else {
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            }
         } else if #available(macOS 13, *) {
             NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
         } else {
@@ -485,14 +548,23 @@ struct ScreenPermissionGuide: View {
                     Button(requested ? "Open System Settings" : "Grant Permission") {
                         if !requested {
                             requested = true
-                            // 请求权限前先隐藏引导窗：系统 TCC 授权弹窗出现在屏幕顶部中央，
-                            // 引导窗可能恰好挡住它的按钮（小屏幕 / 远程桌面下尤其明显）。
-                            orderGuidePanel(visible: false)
-                            CGRequestScreenCaptureAccess()
-                            // 若 15 秒后仍未授权（用户点了“拒绝”或未处理），重新显示引导窗
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
-                                if !CGPreflightScreenCaptureAccess() {
-                                    orderGuidePanel(visible: true)
+                            if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 15 {
+                                // macOS 15+：系统授权框经常不出现（或只出现一次），隐藏引导窗会让
+                                // 屏幕上什么都没有。保持引导窗可见，并直接打开系统设置的录屏页面。
+                                CGRequestScreenCaptureAccess()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    if !CGPreflightScreenCaptureAccess() { openScreenCaptureSettings() }
+                                }
+                            } else {
+                                // 请求权限前先隐藏引导窗：系统 TCC 授权弹窗出现在屏幕顶部中央，
+                                // 引导窗可能恰好挡住它的按钮（小屏幕 / 远程桌面下尤其明显）。
+                                orderGuidePanel(visible: false)
+                                CGRequestScreenCaptureAccess()
+                                // 若 15 秒后仍未授权（用户点了“拒绝”或未处理），重新显示引导窗
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+                                    if !CGPreflightScreenCaptureAccess() {
+                                        orderGuidePanel(visible: true)
+                                    }
                                 }
                             }
                         } else {
@@ -536,25 +608,26 @@ struct ScreenPermissionGuide: View {
     }
 
     private func openScreenCaptureSettings() {
-        // 系统设置的「录屏」列表不会实时刷新：若页面早已打开，新授权的 App 条目不会出现。
-        // 因此先礼貌退出系统设置，再重新打开目标页，确保 TinyRecorder 出现在列表里。
-        for app in NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences") {
-            app.terminate()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                NSWorkspace.shared.open(url)
-            }
+        // 不再强制退出「系统设置」（可能丢失用户在其中的其他操作）；直接打开录屏页面。
+        // 若列表中没有 TinyRecorder，界面上已提示用户手动 ⌘Q 退出系统设置后重开。
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
         }
     }
 
     private func relaunch() {
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        task.arguments = ["-n", Bundle.main.bundlePath]
-        try? task.run()
-        NSApp.terminate(nil)
+        relaunchApp()
     }
+}
+
+/// Relaunches the app: the new instance is started by a detached shell after a short
+/// delay, so it doesn't see this (still terminating) instance and quit as a duplicate.
+func relaunchApp() {
+    let task = Process()
+    task.executableURL = URL(fileURLWithPath: "/bin/sh")
+    task.arguments = ["-c", "sleep 1; /usr/bin/open -n \"$0\"", Bundle.main.bundlePath]
+    try? task.run()
+    NSApp.terminate(nil)
 }
 
 func closeMainWindow() {
@@ -698,7 +771,10 @@ extension NSMenuItem {
 }
 
 extension NSImage {
-    static func createScreenShot() -> NSImage? {
+    /// Captures the screen (all windows except our own).
+    /// - Parameter cocoaRect: area to capture in Cocoa global coordinates (bottom-left origin
+    ///   of the primary display). `nil` captures everything (`CGRect.infinite`).
+    static func createScreenShot(cocoaRect: NSRect? = nil) -> NSImage? {
         let excludedAppBundleIDs = ["com.33to9.TinyRecorder"]
         var exclusionPIDs = [Int]()
         for app in NSWorkspace.shared.runningApplications {
@@ -720,9 +796,19 @@ extension NSImage {
         for (index, window) in windowIDs.enumerated() { pointer[index] = UnsafeRawPointer(bitPattern: UInt(window)) }
         let cWindowIDArray: CFArray = CFArrayCreate(kCFAllocatorDefault, pointer, windowIDs.count, nil)
 
-        guard let imageRef = CGImage(windowListFromArrayScreenBounds: CGRect.infinite, windowArray: cWindowIDArray, imageOption: []) else {
+        pointer.deallocate()
+
+        var bounds = CGRect.infinite
+        if let r = cocoaRect, let primaryHeight = NSScreen.screens.first?.frame.height {
+            // Cocoa (bottom-left origin) -> CG global (top-left origin of the primary display)
+            bounds = CGRect(x: r.origin.x, y: primaryHeight - r.origin.y - r.height, width: r.width, height: r.height)
+        }
+        guard let imageRef = CGImage(windowListFromArrayScreenBounds: bounds, windowArray: cWindowIDArray, imageOption: []) else {
             print("No image available")
             return nil
+        }
+        if let r = cocoaRect {
+            return NSImage(cgImage: imageRef, size: r.size)
         }
         let factor = SCContext.getScreenWithMouse()?.backingScaleFactor ?? 1.0
         return NSImage(cgImage: imageRef, size: NSSize(width: CGFloat(imageRef.width)/factor, height: CGFloat(imageRef.height)/factor))

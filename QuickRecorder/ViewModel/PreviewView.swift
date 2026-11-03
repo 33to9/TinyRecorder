@@ -9,8 +9,12 @@ import SwiftUI
 import Combine
 
 struct PreviewView: View {
+    /// 共享的 previewWindow 每显示一次新预览就递增；旧预览的定时关闭据此失效，避免误关新预览
+    static var activeGeneration = 0
+    
     let frame: NSImage
     let filePath: String
+    var generation: Int = 0
     private let sharingDelegate = SharingServicePickerDelegate()
     @State private var isHovered: Bool = false
     @State private var isHovered2: Bool = false
@@ -75,13 +79,13 @@ struct PreviewView: View {
         .onAppear {
             withAnimation(.easeIn(duration: 0.3)) { opacity = 1.0 }
             DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
-                if !isHovered && !isSharing { closeWindow() }
+                if isCurrent && !isHovered && !isSharing { closeWindow() }
             }
         }
         .onChange(of: isHovered) { newValue in
             if !newValue {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
-                    if !isHovered && !isSharing { closeWindow() }
+                    if isCurrent && !isHovered && !isSharing { closeWindow() }
                 }
             }
         }
@@ -145,10 +149,15 @@ struct PreviewView: View {
         }
     }
     
+    /// 本预览是否仍是共享窗口当前显示的那一个
+    private var isCurrent: Bool { generation == PreviewView.activeGeneration }
+    
     private func closeWindow() {
+        // 已被更新的预览替换：不要关闭共享窗口
+        guard isCurrent else { return }
         withAnimation(.easeIn(duration: 0.2)) { opacity = 0.0 }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            nsWindow?.close()
+            if isCurrent { nsWindow?.close() }
         }
     }
     
@@ -172,7 +181,7 @@ struct PreviewView: View {
                     DispatchQueue.main.async { closeWindow() }
                 } else {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 6) {
-                        if !isHovered && !isSharing { closeWindow() }
+                        if isCurrent && !isHovered && !isSharing { closeWindow() }
                     }
                 }
             }

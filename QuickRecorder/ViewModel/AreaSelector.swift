@@ -63,7 +63,7 @@ struct resizeView: View {
             }
             HStack(spacing: 4) {
                 Text("Output Size:")
-                let scale = Int(screen.nsScreen!.backingScaleFactor)
+                let scale = Int(screen.nsScreen?.backingScaleFactor ?? 2)
                 Text(" \(highRes == 2 ? areaWidth * scale : areaWidth) x \(highRes == 2 ? areaHeight * scale : areaHeight)")
             }
         }.onAppear{ focusedField = .width }
@@ -94,7 +94,7 @@ struct AreaSelector: View {
                     Button(action: {
                         nsWindow?.close()
                         for w in NSApp.windows.filter({$0.title == "Area Selector".local }) { w.close() }
-                        appDelegate.stopGlobalMouseMonitor()
+                        appDelegate.stopAreaSelectorScreenMonitor()
                         WindowHighlighter.shared.registerMouseMonitor(mode: 2)
                     }, label: {
                         VStack(spacing:0){
@@ -207,23 +207,20 @@ struct AreaSelector: View {
         .focusable(false)
         .frame(width: 790, height: 90)
         .background(WindowAccessor(onWindowOpen: { w in nsWindow = w }, onWindowClose: {
+            // The selector is being moved to another display: a new overlay/panel pair
+            // is created right away, so don't tear anything down here.
+            if isSwitchingAreaSelectorScreen { return }
             DispatchQueue.main.async {
-                for w in NSApp.windows.filter({ $0.title == "Area Selector".local }) { w.close() }
-                if let monitor = keyMonitor {
-                    NSEvent.removeMonitor(monitor)
-                    keyMonitor = nil
-                }
-                appDelegate.stopGlobalMouseMonitor()
+                appDelegate.closeAreaSelection()
             }
         }))
     }
     
     func startRecording() {
         closeAllWindow()
-        appDelegate.stopGlobalMouseMonitor()
+        appDelegate.stopAreaSelectorScreenMonitor()
         var window = NSWindow()
-        let area = SCContext.screenArea!
-        guard let nsScreen = screen.nsScreen else { return }
+        guard let area = SCContext.screenArea, let nsScreen = screen.nsScreen else { return }
         let frame = NSRect(x: Int(area.origin.x + nsScreen.frame.minX - 4),
                            y: Int(area.origin.y + nsScreen.frame.minY - 4),
                            width: Int(area.width + 8), height: Int(area.height + 8))
@@ -282,18 +279,29 @@ class ScreenshotOverlayView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         selectionRect = NSRect(x: (self.frame.width - size.width) / 2, y: (self.frame.height - size.height) / 2, width: size.width, height: size.height)
-        if !force {
-            let savedArea = ud.object(forKey: "savedArea") as! [String: [String: CGFloat]]
-            if let name = self.window?.screen?.localizedName {
-                if let area = savedArea[name] {
-                    selectionRect = NSRect(x: area["x"]!, y: area["y"]!, width: area["width"]!, height: area["height"]!)
-                }
+        if !force, let screen = self.window?.screen,
+           let savedArea = ud.object(forKey: "savedArea") as? [String: [String: CGFloat]] {
+            // Prefer the display ID as key (stable when two displays share a name);
+            // fall back to the localized name used by older versions.
+            var area: [String: CGFloat]? = nil
+            if let id = screen.displayID { area = savedArea[String(id)] }
+            if area == nil { area = savedArea[screen.localizedName] }
+            if let area = area,
+               let x = area["x"], let y = area["y"],
+               let width = area["width"], let height = area["height"],
+               width > 0, height > 0 {
+                // Clamp the restored area to the current screen bounds.
+                let w = min(width, self.frame.width)
+                let h = min(height, self.frame.height)
+                let cx = min(max(0, x), self.frame.width - w)
+                let cy = min(max(0, y), self.frame.height - h)
+                selectionRect = NSRect(x: cx, y: cy, width: w, height: h)
             }
         }
-        if self.window != nil {
-            areaWidth = Int(selectionRect!.width)
-            areaHeight = Int(selectionRect!.height)
-            SCContext.screenArea = selectionRect
+        if self.window != nil, let rect = selectionRect {
+            areaWidth = Int(rect.width)
+            areaHeight = Int(rect.height)
+            SCContext.screenArea = rect
         }
         updateMaskLayer()
         updateSelectionLayer()
@@ -516,27 +524,26 @@ class ScreenshotWindow: NSPanel {
         self.isReleasedWhenClosed = false
         self.contentView = overlayView
         
-        if keyMonitor != nil { return }
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown, handler: myKeyDownEvent)
+        // Always (re)install the Esc monitor for the newest selector window. The handler
+        // doesn't capture this window, so it keeps working after the selector is recreated
+        // (screen switch / resize).
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyMonitor = nil
+        }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: NSEvent.EventTypeMask.keyDown) { event in
+            if event.keyCode == 53 && !event.isARepeat {
+                AppDelegate.shared.closeAreaSelection()
+                return nil
+            }
+            return event
+        }
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func myKeyDownEvent(event: NSEvent) -> NSEvent? {
-        if event.keyCode == 53 && !event.isARepeat {
-            self.close()
-            for w in NSApp.windows.filter({ $0.title == "Start Recording".local }) { w.close() }
-            AppDelegate.shared.stopGlobalMouseMonitor()
-            if let monitor = keyMonitor {
-                NSEvent.removeMonitor(monitor)
-                keyMonitor = nil
-            }
-            return nil
-        }
-        return event
-    }
 }
 
 enum ResizeHandle: CaseIterable {

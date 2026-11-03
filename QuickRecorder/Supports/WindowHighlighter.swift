@@ -146,6 +146,7 @@ class WindowHighlighter {
     static let shared = WindowHighlighter()
     var mouseMonitor: Any?
     var mouseMonitorL: Any?
+    var keyMonitorL: Any?
     var targetWindowID: Int?
     var mask: EscPanel?
     var Mode: Int = 1
@@ -189,6 +190,28 @@ class WindowHighlighter {
                 return event
             }
         }
+        // Esc must cancel the selection even when no window is highlighted (no mask panel
+        // to receive cancelOperation): keep a cover panel key and watch for Esc.
+        if keyMonitorL == nil {
+            keyMonitorL = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+                if event.keyCode == 53 && !event.isARepeat {
+                    self.mask?.close()
+                    self.stopMouseMonitor()
+                    return nil
+                }
+                return event
+            }
+        }
+        makeCoverKeyIfNeeded()
+    }
+
+    /// Makes a "Screen Cover" panel key when none of our windows is, so Esc reaches us.
+    private func makeCoverKeyIfNeeded() {
+        if NSApp.keyWindow != nil { return }
+        let covers = NSApp.windows.filter({ $0.title == "Screen Cover" && $0.isVisible })
+        let mouse = NSEvent.mouseLocation
+        let cover = covers.first(where: { $0.frame.contains(mouse) }) ?? covers.first
+        cover?.makeKey()
     }
         
     func stopMouseMonitor() {
@@ -203,12 +226,17 @@ class WindowHighlighter {
             NSEvent.removeMonitor(monitor)
             mouseMonitorL = nil
         }
+        if let monitor = keyMonitorL {
+            NSEvent.removeMonitor(monitor)
+            keyMonitorL = nil
+        }
     }
     
     func updateMask() {
         guard let targetWindow = getWindowUnderMouse() else {
             mask?.close()
             targetWindowID = nil
+            makeCoverKeyIfNeeded()
             return
         }
         
@@ -320,11 +348,28 @@ func CGRectTransform(cgRect: CGRect) -> NSRect {
     return cgRect
 }
 
+/// Calls `perform` once when a press starts (DragGesture.onChanged alone would fire on
+/// every mouse movement while the button is held).
+struct PressGestureModifier: ViewModifier {
+    let perform: () -> Void
+    @State private var isPressed = false
+
+    func body(content: Content) -> some View {
+        content.gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed {
+                        isPressed = true
+                        perform()
+                    }
+                }
+                .onEnded { _ in isPressed = false }
+        )
+    }
+}
+
 extension View {
     func onPressGesture(perform: @escaping () -> Void) -> some View {
-        self.gesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in perform() }
-        )
+        self.modifier(PressGestureModifier(perform: perform))
     }
 }

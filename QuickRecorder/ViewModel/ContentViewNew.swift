@@ -48,16 +48,7 @@ struct ContentViewNew: View {
                         closeMainWindow()
                         SCContext.updateAvailableContent {
                             DispatchQueue.main.async {
-                                appDelegate.showAreaSelector(size: NSSize(width: 600, height: 450))
-                                var currentDisplay = SCContext.getSCDisplayWithMouse()
-                                mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .rightMouseDown, .leftMouseDown, .otherMouseDown]) { event in
-                                    let display = SCContext.getSCDisplayWithMouse()
-                                    if display != currentDisplay {
-                                        currentDisplay = display
-                                        closeAllWindow()
-                                        appDelegate.showAreaSelector(size: NSSize(width: 600, height: 450))
-                                    }
-                                }
+                                appDelegate.startAreaSelection()
                             }
                         }
                     }, label: {
@@ -114,6 +105,8 @@ struct ContentViewNew: View {
                                 }
                                 .buttonStyle(.plain)
                                 .onChange(of: recordMic) { _ in  Task { await SCContext.performMicCheck() }}
+                                .onAppear{ if micList.isEmpty { recordMic = false } }
+                                .disabled(micList.isEmpty)
                                 if micDevice != "default" && enableAEC && recordMic{
                                     Button {
                                         let alert = createAlert(

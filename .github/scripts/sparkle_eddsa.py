@@ -146,6 +146,8 @@ def genkey():
 
 
 def sign(priv_str, path):
+    if priv_str == "-":
+        priv_str = os.environ.get("SPARKLE_PRIVATE_KEY", "")
     raw = base64.b64decode(priv_str)
     assert len(raw) == 64, "private key must be 64 bytes (seed||pub)"
     seed = raw[:32]

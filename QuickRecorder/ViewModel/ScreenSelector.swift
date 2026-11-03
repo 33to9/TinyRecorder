@@ -163,8 +163,12 @@ struct ScreenSelector: View {
 
 class ScreenSelectorViewModel: NSObject, ObservableObject, SCStreamDelegate, SCStreamOutput {
     @Published var screenThumbnails = [ScreenThumbnail]()
+    // All of the state below is only touched on the main queue (stream output is
+    // delivered on .main and setup runs on the main actor).
     private var allScreens = [SCDisplay]()
     private var streams = [SCStream]()
+    private var streamScreens = [ObjectIdentifier: SCDisplay]()
+    private var setupGeneration = 0
     
     override init() {
         super.init()
@@ -175,44 +179,70 @@ class ScreenSelectorViewModel: NSObject, ObservableObject, SCStreamDelegate, SCS
     
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         if CMSampleBufferGetImageBuffer(sampleBuffer) == nil { return }
-        var nsImage = sampleBuffer.nsImage
-        if let index = self.streams.firstIndex(of: stream), index + 1 <= self.allScreens.count {
-            if nsImage == nil { nsImage = SCContext.getWallpaper(self.allScreens[index]) ?? NSImage.unknowScreen }
-            let currentScreen = self.allScreens[index]
-            let thumbnail = ScreenThumbnail(image: nsImage!, screen: currentScreen)
-            DispatchQueue.main.async {
-                if !self.screenThumbnails.contains(where: { $0.screen == currentScreen }) { self.screenThumbnails.append(thumbnail) }
-            }
-            self.streams[index].stopCapture()
+        let key = ObjectIdentifier(stream)
+        guard let currentScreen = streamScreens[key] else { return }
+        // Only the first frame is needed.
+        streamScreens[key] = nil
+        let nsImage = sampleBuffer.nsImage ?? SCContext.getWallpaper(currentScreen) ?? NSImage.unknowScreen
+        let thumbnail = ScreenThumbnail(image: nsImage, screen: currentScreen)
+        DispatchQueue.main.async {
+            if !self.screenThumbnails.contains(where: { $0.screen == currentScreen }) { self.screenThumbnails.append(thumbnail) }
         }
+        stream.stopCapture()
+    }
+    
+    /// Stops and forgets all thumbnail streams (main queue only).
+    private func stopAllStreams() {
+        for stream in streams { stream.stopCapture() }
+        streams.removeAll()
+        streamScreens.removeAll()
     }
 
     func setupStreams() {
         SCContext.updateAvailableContent {
-            Task {
-                do {
-                    self.streams.removeAll()
-                    DispatchQueue.main.async { self.screenThumbnails.removeAll() }
-                    guard let screens = SCContext.availableContent?.displays else { return }
-                    self.allScreens = screens
-                    let qrSelf = SCContext.getSelf()
-                    let contentFilters = self.allScreens.map { SCContentFilter(display: $0, excludingApplications: qrSelf != nil ? [qrSelf!] : [], exceptingWindows: []) }
-                    for (index, contentFilter) in contentFilters.enumerated() {
-                        let streamConfiguration = SCStreamConfiguration()
-                        streamConfiguration.width = Int(self.allScreens[index].frame.width)
-                        streamConfiguration.height = Int(self.allScreens[index].frame.height)
-                        streamConfiguration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(1))
-                        streamConfiguration.pixelFormat = kCVPixelFormatType_32BGRA
-                        if #available(macOS 13, *) { streamConfiguration.capturesAudio = false }
-                        streamConfiguration.showsCursor = false
-                        streamConfiguration.queueDepth = 3
-                        let stream = SCStream(filter: contentFilter, configuration: streamConfiguration, delegate: self)
+            Task { @MainActor in
+                self.stopAllStreams()
+                self.setupGeneration += 1
+                let generation = self.setupGeneration
+                self.screenThumbnails.removeAll()
+                guard let screens = SCContext.availableContent?.displays else { return }
+                self.allScreens = screens
+                let qrSelf = SCContext.getSelf()
+                for screen in screens {
+                    let contentFilter = SCContentFilter(display: screen, excludingApplications: qrSelf != nil ? [qrSelf!] : [], exceptingWindows: [])
+                    let streamConfiguration = SCStreamConfiguration()
+                    streamConfiguration.width = Int(screen.frame.width)
+                    streamConfiguration.height = Int(screen.frame.height)
+                    streamConfiguration.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(1))
+                    streamConfiguration.pixelFormat = kCVPixelFormatType_32BGRA
+                    if #available(macOS 13, *) { streamConfiguration.capturesAudio = false }
+                    streamConfiguration.showsCursor = false
+                    streamConfiguration.queueDepth = 3
+                    let stream = SCStream(filter: contentFilter, configuration: streamConfiguration, delegate: self)
+                    do {
                         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .main)
-                        try await stream.startCapture()
-                        self.streams.append(stream)
+                    } catch {
+                        print("Get screenshot error：\(error)")
+                        continue
                     }
-                } catch {
-                    print("Get screenshot error：\(error)")
+                    // Register before starting so the first frame can't be missed.
+                    self.streams.append(stream)
+                    self.streamScreens[ObjectIdentifier(stream)] = screen
+                    do {
+                        try await stream.startCapture()
+                    } catch {
+                        // One failing display must not abort the others; show its wallpaper.
+                        print("Get screenshot error：\(error)")
+                        self.streamScreens[ObjectIdentifier(stream)] = nil
+                        if generation == self.setupGeneration && !self.screenThumbnails.contains(where: { $0.screen == screen }) {
+                            self.screenThumbnails.append(ScreenThumbnail(image: SCContext.getWallpaper(screen) ?? NSImage.unknowScreen, screen: screen))
+                        }
+                    }
+                    // A newer refresh started meanwhile: abandon this one.
+                    if generation != self.setupGeneration {
+                        stream.stopCapture(completionHandler: nil)
+                        return
+                    }
                 }
             }
         }

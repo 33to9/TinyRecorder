@@ -2,7 +2,7 @@ name: Build TinyRecorder
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'fix/**']
     tags: ['v*']
     paths-ignore: ['**.md', 'appcast.xml', 'img/**']
   workflow_dispatch:
@@ -12,22 +12,34 @@ permissions:
 
 jobs:
   build:
-    strategy:
-      fail-fast: true
-      matrix:  # macos-13 已退役（永久排队），仅用 14/15
-        os: [macos-15, macos-14]
-    runs-on: ${{ matrix.os }}
+    # Build on ONE fixed runner: a matrix would upload two different builds under the
+    # same asset names, and whichever finished last would silently become the release.
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select latest Xcode
+      - name: Select latest stable Xcode
         run: |
-          # Pick newest available Xcode (>= 26 preferred, fallback to default)
-          XC=$(ls -d /Applications/Xcode*.app 2>/dev/null | grep -v "Xcode.app" | sort -V | tail -1)
+          # Newest installed Xcode, excluding beta / RC builds
+          XC=$(ls -d /Applications/Xcode_*.app 2>/dev/null | grep -viE 'beta|rc|release_candidate' | sort -V | tail -1)
           if [ -n "$XC" ]; then sudo xcode-select -s "$XC"; fi
           xcodebuild -version
           sw_vers
+
+      - name: Compute version
+        run: |
+          # CFBundleVersion must grow monotonically for Sparkle.
+          # Old scheme (strip dots) broke on 1.8.0 -> "180" < "1714".
+          # New scheme: major*10000 + minor*100 + patch  (1.7.15 -> 10715, 1.8.0 -> 10800)
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAGV="${GITHUB_REF_NAME#v}"
+            IFS=. read -r MA MI PA <<< "$TAGV"
+            BUILDNUM=$(( 10#${MA:-0} * 10000 + 10#${MI:-0} * 100 + 10#${PA:-0} ))
+            echo "TAGV=$TAGV" >> "$GITHUB_ENV"
+            echo "BUILDNUM=$BUILDNUM" >> "$GITHUB_ENV"
+            echo "tag $TAGV -> CFBundleVersion $BUILDNUM"
+          fi
 
       - name: Build (ad-hoc signed, universal binary)
         run: |
@@ -37,9 +49,8 @@ jobs:
           # and Sparkle compares it against CFBundleVersion — they must stay in sync,
           # otherwise Sparkle offers "updates" between identical versions forever.
           EXTRA=""
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            TAGV="${GITHUB_REF_NAME#v}"
-            EXTRA="MARKETING_VERSION=${TAGV} CURRENT_PROJECT_VERSION=$(echo "$TAGV" | tr -d '.')"
+          if [ -n "$BUILDNUM" ]; then
+            EXTRA="MARKETING_VERSION=${TAGV} CURRENT_PROJECT_VERSION=${BUILDNUM}"
             echo "tag build override: $EXTRA"
           fi
           xcodebuild -project QuickRecorder.xcodeproj \
@@ -58,6 +69,9 @@ jobs:
             clean build -quiet 2>&1 | tail -80
 
       - name: Package app (zip + dmg)
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
         run: |
           APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "TinyRecorder.app" -path "*Release*" | head -1)
           if [ -z "$APP_PATH" ]; then
@@ -69,8 +83,41 @@ jobs:
           VERSION=$(defaults read "$APP_PATH/Contents/Info.plist" CFBundleShortVersionString)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
-          # Ad-hoc sign
-          codesign --force --deep --sign - "$APP_PATH"
+          # Code signing.
+          # If the MACOS_CERT_P12 secret is set, sign with that fixed (self-signed) certificate:
+          # macOS ties Screen Recording / Microphone permission to the signing identity, so a
+          # stable certificate keeps those permissions across updates. Ad-hoc signatures change
+          # on every build, forcing users to re-grant permission after each update.
+          SIGN_ID="-"
+          if [ -n "$MACOS_CERT_P12" ]; then
+            KC="$RUNNER_TEMP/signing.keychain-db"
+            KCPW=$(uuidgen)
+            security create-keychain -p "$KCPW" "$KC"
+            security set-keychain-settings -lut 21600 "$KC"
+            security unlock-keychain -p "$KCPW" "$KC"
+            echo "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+            security import "$RUNNER_TEMP/cert.p12" -k "$KC" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+            rm -f "$RUNNER_TEMP/cert.p12"
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KCPW" "$KC" >/dev/null
+            security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+            # Self-signed certs are "not trusted", so look the identity up without -v
+            SIGN_ID=$(security find-identity -p codesigning "$KC" | awk 'NR==1 && $2 ~ /^[0-9A-F]{40}$/ {print $2}')
+            if [ -z "$SIGN_ID" ]; then
+              SIGN_ID=$(security find-identity "$KC" | awk '$2 ~ /^[0-9A-F]{40}$/ {print $2; exit}')
+            fi
+            [ -z "$SIGN_ID" ] && { echo "❌ MACOS_CERT_P12 set but no signing identity found"; exit 1; }
+            echo "Signing with fixed certificate $SIGN_ID"
+          else
+            echo "⚠️ MACOS_CERT_P12 not set — falling back to ad-hoc signing (permissions reset on every update)"
+          fi
+          # Nested code (Sparkle framework, XPC services) first, then the app with its entitlements.
+          # Previously the entitlements were dropped by the final re-sign.
+          codesign --force --deep --sign "$SIGN_ID" "$APP_PATH"
+          codesign --force --sign "$SIGN_ID" \
+            --entitlements QuickRecorder/QuickRecorder.entitlements "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH" || echo "⚠️ verify reported issues (expected for self-signed trust)"
+          codesign -d --entitlements - "$APP_PATH"
+          codesign -d -r- "$APP_PATH"
 
           # Zip
           ditto -c -k --keepParent "$APP_PATH" "TinyRecorder_v${VERSION}_macOS.zip"
@@ -91,7 +138,7 @@ jobs:
             ]
           }
           SPEC
-          if ! npx --yes appdmg@latest "$STAGE/spec.json" "TinyRecorder_v${VERSION}.dmg"; then
+          if ! npx --yes appdmg@0.6.6 "$STAGE/spec.json" "TinyRecorder_v${VERSION}.dmg"; then
             echo "⚠️ appdmg failed, falling back to plain hdiutil layout"
             rm -f "TinyRecorder_v${VERSION}.dmg"
             ln -s /Applications "$STAGE/Applications"
@@ -158,7 +205,9 @@ jobs:
         run: |
           set -e
           TAG="${GITHUB_REF_NAME#v}"
-          CVERSION=$(echo "$TAG" | tr -d '.')
+          # Must match CFBundleVersion computed in the build job
+          IFS=. read -r MA MI PA <<< "$TAG"
+          CVERSION=$(( 10#${MA:-0} * 10000 + 10#${MI:-0} * 100 + 10#${PA:-0} ))
           REPO="$GITHUB_REPOSITORY"
 
           # Wait for the release assets (needs:build normally guarantees them)
@@ -171,7 +220,8 @@ jobs:
           done
 
           # Sign the dmg exactly as released (EdDSA / Sparkle 2)
-          SIG=$(python3 .github/scripts/sparkle_eddsa.py sign "$SPARKLE_PRIVATE_KEY" "TinyRecorder_v${TAG}.dmg")
+          # "-" = read the key from $SPARKLE_PRIVATE_KEY (keeps it out of the process list)
+          SIG=$(python3 .github/scripts/sparkle_eddsa.py sign - "TinyRecorder_v${TAG}.dmg")
           LENGTH=$(stat -c%s "TinyRecorder_v${TAG}.dmg")
           DATE=$(date -R)
           RELURL="https://github.com/${REPO}/releases/tag/v${TAG}"
@@ -190,7 +240,7 @@ jobs:
                       <link>${RELURL}</link>
                       <sparkle:releaseNotesLink>${RELURL}</sparkle:releaseNotesLink>
                       <pubDate>${DATE}</pubDate>
-                      <enclosure url="${DMGURL}" length="${LENGTH}" type="application/x-bzip2" sparkle:edSignature="${SIG}" />
+                      <enclosure url="${DMGURL}" length="${LENGTH}" type="application/octet-stream" sparkle:edSignature="${SIG}" />
                       <sparkle:version>${CVERSION}</sparkle:version>
                       <sparkle:shortVersionString>${TAG}</sparkle:shortVersionString>
                       <sparkle:minimumSystemVersion>12.3</sparkle:minimumSystemVersion>
