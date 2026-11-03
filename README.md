@@ -16,9 +16,11 @@
 
 ## Install
 
-Download the latest `TinyRecorder_vX.Y.Z.dmg` from [Releases](../../releases/latest).
+Download the latest `TinyRecorder_vX.Y.Z.dmg` from [Releases](../../releases/latest), open it and drag TinyRecorder into your Applications folder.
 
-> The app is ad-hoc signed (no Apple Developer ID / notarization). On first launch: **right-click → Open**.
+> The app is ad-hoc signed (no Apple Developer ID / notarization). On first launch:
+> - **macOS 15 and later**: double-click once (a warning appears), then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** — or run `xattr -cr /Applications/TinyRecorder.app` in Terminal
+> - Older macOS: right-click the app → **Open**
 
 ## Required permissions
 
