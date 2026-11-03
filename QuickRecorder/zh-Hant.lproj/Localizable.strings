@@ -225,3 +225,24 @@
 "audio file writing issue" = "音频文件写入出错";
 "closing stream with error:\n" = "关闭流时发生错误:\n";
 "\nthis might be due to the window closing or the user stopping from the sonoma ui" = "\n这可能是有由于用户关闭了正在录制中的窗口, 或使用窗口上的附加按钮停止了录制.";
+
+/* Permission guide (v1.7.4) */
+"Screen Recording Permission" = "螢幕錄製權限";
+"All Set!" = "一切就緒！";
+"TinyRecorder needs screen recording permission before it can record. This is a one-time setup." = "TinyRecorder 需要螢幕錄製權限才能開始錄製，這只需設定一次。";
+"Permission granted. Restart TinyRecorder to apply it and start recording." = "權限已授予，重新啟動 TinyRecorder 後即可開始錄製。";
+"Restart TinyRecorder Now" = "立即重新啟動 TinyRecorder";
+"Grant Permission" = "開始授權";
+"Waiting for permission…" = "等待授權中…";
+"Click \"Grant Permission\" below; macOS will show a system dialog." = "點擊下方「開始授權」，macOS 會彈出系統授權對話框。";
+"In the dialog, click \"Allow\", or enable TinyRecorder in System Settings." = "在彈窗中點「允許」，或在系統設定中開啟 TinyRecorder。";
+"Return here and restart TinyRecorder when the checkmark turns green." = "看到綠色勾後，回到本視窗重新啟動 TinyRecorder。";
+
+/* Permission repair (v1.7.3) */
+"Permissions" = "權限";
+"Repair Screen Recording Permission" = "修復螢幕錄製權限";
+"If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again." = "如果系統設定裡的螢幕錄製開關無法保持開啟（升級或替換應用後可能出現），可重置權限記錄後重新授權。";
+"Repair & Relaunch" = "修復並重新啟動";
+"Repair Screen Recording Permission?" = "修復螢幕錄製權限？";
+"This resets the screen recording permission record for TinyRecorder and relaunches the app. Grant permission again when prompted." = "將重置 TinyRecorder 的螢幕錄製權限記錄並重新啟動應用，之後按提示重新授權即可。";
+"Repair Failed" = "修復失敗";
