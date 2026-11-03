@@ -80,16 +80,19 @@ struct QuickRecorderApp: App {
                             if let w = w {
                                 //w.level = .floating
                                 w.titlebarSeparatorStyle = .none
-                                guard let nsSplitView = findNSSplitVIew(view: w.contentView),
-                                      let controller = nsSplitView.delegate as? NSSplitViewController else { return }
-                                controller.splitViewItems.first?.canCollapse = false
-                                controller.splitViewItems.first?.minimumThickness = 140
-                                controller.splitViewItems.first?.maximumThickness = 140
+                                if #unavailable(macOS 13) {
+                                    // Legacy NavigationView on macOS 12: pin the sidebar width
+                                    // through the underlying NSSplitViewController.
+                                    guard let nsSplitView = findNSSplitVIew(view: w.contentView),
+                                          let controller = nsSplitView.delegate as? NSSplitViewController else { return }
+                                    controller.splitViewItems.first?.canCollapse = false
+                                    controller.splitViewItems.first?.minimumThickness = 140
+                                    controller.splitViewItems.first?.maximumThickness = 140
+                                }
                                 w.orderFront(nil)
                             }
                         })
-                )
-        }
+        )
         .handlesExternalEvents(matching: [])
         .commands {
             CommandGroup(replacing: .newItem) {}
