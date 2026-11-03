@@ -113,7 +113,7 @@ struct GeneralView: View {
         .alert("Repair Failed", isPresented: $showRepairFailed) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Please run this command in Terminal instead:\ntccutil reset ScreenCapture \(Bundle.main.bundleIdentifier ?? "com.cn33to9.TinyRecorder")")
+            Text("Please run this command in Terminal instead:\ntccutil reset ScreenCapture \(Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder")")
         }
     }
 
@@ -121,7 +121,7 @@ struct GeneralView: View {
     /// e.g. after replacing an ad-hoc signed build with the same bundle ID),
     /// then relaunch the app so the user can re-grant the permission.
     private func resetScreenPermission() {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.cn33to9.TinyRecorder"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder"
         let reset = Process()
         reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
         reset.arguments = ["reset", "ScreenCapture", bundleID]

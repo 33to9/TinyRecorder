@@ -207,7 +207,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     func applicationWillFinishLaunching(_ notification: Notification) {
         scPerm = SCContext.updateAvailableContentSync() != nil
         
-        let process = NSWorkspace.shared.runningApplications.filter({ $0.bundleIdentifier == "com.cn33to9.TinyRecorder" })
+        let process = NSWorkspace.shared.runningApplications.filter({ $0.bundleIdentifier == "com.33to9.TinyRecorder" })
         if process.count > 1 {
             DispatchQueue.main.async {
                 let button = createAlert(title: "TinyRecorder is Running".local, message: "Please do not run multiple instances!".local, button1: "Quit".local).runModal()
@@ -635,7 +635,7 @@ extension NSMenuItem {
 
 extension NSImage {
     static func createScreenShot() -> NSImage? {
-        let excludedAppBundleIDs = ["com.cn33to9.TinyRecorder"]
+        let excludedAppBundleIDs = ["com.33to9.TinyRecorder"]
         var exclusionPIDs = [Int]()
         for app in NSWorkspace.shared.runningApplications {
             if excludedAppBundleIDs.contains(app.bundleIdentifier ?? "") {
