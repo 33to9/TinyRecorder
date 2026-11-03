@@ -63,11 +63,15 @@ jobs:
           # Zip
           ditto -c -k --keepParent "$APP_PATH" "TinyRecorder_v${VERSION}_macOS.zip"
 
-          # DMG
+          # DMG (staging dir with Applications symlink => standard drag-to-install window)
+          STAGE=$(mktemp -d)
+          cp -R "$APP_PATH" "$STAGE/TinyRecorder.app"
+          ln -s /Applications "$STAGE/Applications"
           hdiutil create -volname "TinyRecorder" \
-            -srcfolder "$APP_PATH" \
+            -srcfolder "$STAGE" \
             -ov -format UDZO \
             "TinyRecorder_v${VERSION}.dmg"
+          rm -rf "$STAGE"
 
           shasum -a 256 TinyRecorder_v${VERSION}.dmg TinyRecorder_v${VERSION}_macOS.zip
 
@@ -96,8 +100,10 @@ jobs:
 
             ### Install
             1. Download `TinyRecorder_v${{ env.VERSION }}.dmg`
-            2. Open the dmg, drag TinyRecorder to /Applications
-            3. First launch: right-click → Open (app is ad-hoc signed, not notarized)
+            2. Open the dmg, drag TinyRecorder into the Applications folder
+            3. First launch — app is ad-hoc signed (not notarized):
+               - **macOS 15 and later**: double-click once (a warning appears), then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**; or run `xattr -cr /Applications/TinyRecorder.app` in Terminal
+               - Older macOS: right-click the app → **Open**
             4. Grant Screen Recording / Microphone permissions, then relaunch
 
             Licensed under AGPL-3.0. Original copyright © 2024 lihaoyun6.
