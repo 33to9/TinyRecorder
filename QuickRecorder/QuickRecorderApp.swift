@@ -355,10 +355,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         closeAllWindow()
         if showOnDock { _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true) }
+        if !scPerm { showScreenPermissionGuide() }
         tips("Would you like to use H.265 format for better video quality and smaller file size?",
              id: "qr.switch-to-h265.note", buttonTitle: "Use H.265", switchButton: true) {
             ud.setValue(Encoder.h265.rawValue, forKey: "encoder")
         }
+    }
+
+    /// First-launch friendly guide for the screen recording permission.
+    /// Uses CGPreflightScreenCaptureAccess (silent check) + CGRequestScreenCaptureAccess
+    /// so the system prompt appears with proper context instead of confusing users.
+    func showScreenPermissionGuide() {
+        let guidePanel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 430),
+                                  styleMask: [.titled, .closable, .fullSizeContentView],
+                                  backing: .buffered, defer: false)
+        guidePanel.contentView = NSHostingView(rootView: ScreenPermissionGuide())
+        guidePanel.title = "Screen Recording Permission".local
+        guidePanel.isRestorable = false
+        guidePanel.isReleasedWhenClosed = false
+        guidePanel.center()
+        guidePanel.makeKeyAndOrderFront(self)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -410,6 +427,69 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         override var canBecomeKey: Bool {
             return true
         }
+    }
+}
+
+/// Onboarding view shown at first launch when screen recording permission is missing.
+struct ScreenPermissionGuide: View {
+    @State private var granted = CGPreflightScreenCaptureAccess()
+    @State private var requested = false
+    private let pollTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                Image(systemName: granted ? "checkmark.circle.fill" : "video.badge.waveform")
+                    .font(.system(size: 44))
+                    .foregroundStyle(granted ? Color.green : Color.accentColor)
+                Text((granted ? "All Set!" : "Screen Recording Permission").local)
+                    .font(.title2.bold())
+                Text((granted
+                     ? "Permission granted. Restart TinyRecorder to apply it and start recording."
+                     : "TinyRecorder needs screen recording permission before it can record. This is a one-time setup.").local)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 370)
+                if granted {
+                    Button("Restart TinyRecorder Now") { relaunch() }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label("Click \"Grant Permission\" below; macOS will show a system dialog.".local, systemImage: "1.circle.fill")
+                        Label("In the dialog, click \"Allow\", or enable TinyRecorder in System Settings.".local, systemImage: "2.circle.fill")
+                        Label("Return here and restart TinyRecorder when the checkmark turns green.".local, systemImage: "3.circle.fill")
+                    }
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: 370, alignment: .leading)
+                    Button("Grant Permission") {
+                        requested = true
+                        CGRequestScreenCaptureAccess()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    if requested {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text("Waiting for permission…").font(.caption).foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .padding(24)
+        }
+        .onReceive(pollTimer) { _ in
+            granted = CGPreflightScreenCaptureAccess()
+        }
+    }
+
+    private func relaunch() {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = ["-n", Bundle.main.bundlePath]
+        try? task.run()
+        NSApp.terminate(nil)
     }
 }
 
