@@ -32,18 +32,19 @@ func installStatusBarEventLocationFix() {
               window === statusBarItem?.button?.window else { return event }
 
         // Real pointer position in Cocoa global coordinates (bottom-left origin).
-        // Prefer the event's own CG location (global, top-left origin of the primary
-        // display) so the position is the one at the time of the click; fall back to
-        // the current mouse location.
-        var screenPoint = NSEvent.mouseLocation
-        if let cgLocation = event.cgEvent?.location,
-           let primaryHeight = NSScreen.screens.first?.frame.height {
-            screenPoint = NSPoint(x: cgLocation.x, y: primaryHeight - cgLocation.y)
-        }
-        // Only rewrite clicks that really happen inside the status item window.
-        guard window.frame.contains(screenPoint) else { return event }
+        // Must be NSEvent.mouseLocation: on macOS 27 the event's own position, including
+        // `event.cgEvent?.location`, carries the same bogus window-centre point as
+        // `locationInWindow`. Using it (v1.7.15/v1.7.16) made this fix a no-op and the
+        // stop / pause buttons unclickable again.
+        let screenPoint = NSEvent.mouseLocation
+        // Only rewrite clicks that really happen inside the status item window. Allow 1pt
+        // of slack: a pointer pushed against the top screen edge sits exactly on maxY,
+        // which NSRect.contains excludes.
+        guard window.frame.insetBy(dx: -1, dy: -1).contains(screenPoint) else { return event }
 
-        let real = window.convertPoint(fromScreen: screenPoint)
+        var real = window.convertPoint(fromScreen: screenPoint)
+        real.x = min(max(real.x, 0), window.frame.width - 1)
+        real.y = min(max(real.y, 0), window.frame.height - 1)
         let reported = event.locationInWindow
         guard abs(real.x - reported.x) > 0.5 || abs(real.y - reported.y) > 0.5 else { return event }
 
