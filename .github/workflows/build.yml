@@ -32,6 +32,16 @@ jobs:
       - name: Build (ad-hoc signed, universal binary)
         run: |
           set -o pipefail
+          # On tag builds, force app version & build number to match the tag.
+          # The appcast job derives sparkle:version from the tag (dots stripped)
+          # and Sparkle compares it against CFBundleVersion — they must stay in sync,
+          # otherwise Sparkle offers "updates" between identical versions forever.
+          EXTRA=""
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAGV="${GITHUB_REF_NAME#v}"
+            EXTRA="MARKETING_VERSION=${TAGV} CURRENT_PROJECT_VERSION=$(echo "$TAGV" | tr -d '.')"
+            echo "tag build override: $EXTRA"
+          fi
           xcodebuild -project QuickRecorder.xcodeproj \
             -scheme QuickRecorder \
             -configuration Release \
@@ -44,6 +54,7 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE="" \
+            $EXTRA \
             clean build -quiet 2>&1 | tail -80
 
       - name: Package app (zip + dmg)
