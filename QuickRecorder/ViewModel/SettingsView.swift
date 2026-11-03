@@ -20,11 +20,13 @@ struct SettingsView: View {
         if #available(macOS 13, *) {
             NavigationSplitView {
                 List(selection: $selectedItem) {
-                    Label("General", image: "gear").tag("General")
-                    Label("Recorder", image: "record").tag("Recorder")
-                    Label("Output", image: "film").tag("Output")
-                    Label("Hotkey", image: "hotkey").tag("Hotkey")
-                    Label("Blocklist", image: "blacklist").tag("Blaoklist")
+                    // Tags must be Optional<String> to match the String? selection binding;
+                    // plain String tags break rendering of the selected row on macOS 15.x
+                    Label("General", image: "gear").tag("General" as String?)
+                    Label("Recorder", image: "record").tag("Recorder" as String?)
+                    Label("Output", image: "film").tag("Output" as String?)
+                    Label("Hotkey", image: "hotkey").tag("Hotkey" as String?)
+                    Label("Blocklist", image: "blacklist").tag("Blaoklist" as String?)
                 }
                 .listStyle(.sidebar)
                 .padding(.top, 9)
@@ -38,7 +40,7 @@ struct SettingsView: View {
                 default: GeneralView()
                 }
             }
-            .frame(width: 600, height: 512)
+            .frame(minWidth: 600, minHeight: 512)
         } else {
             NavigationView {
                 List(selection: $selectedItem) {
@@ -61,7 +63,7 @@ struct SettingsView: View {
                 .listStyle(.sidebar)
                 .padding(.top, 9)
             }
-            .frame(width: 600, height: 512)
+            .frame(minWidth: 600, minHeight: 512)
         }
     }
 }
