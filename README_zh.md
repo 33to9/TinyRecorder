@@ -16,9 +16,11 @@
 
 ## 安装
 
-从 [Releases](../../releases/latest) 下载最新的 `TinyRecorder_vX.Y.Z.dmg`。
+从 [Releases](../../releases/latest) 下载最新的 `TinyRecorder_vX.Y.Z.dmg`，打开后拖入「应用程序」文件夹。
 
-> App 为 ad-hoc 签名（无 Developer ID / 公证），首次打开请**右键 → 打开**。
+> App 为 ad-hoc 签名（无 Developer ID / 公证），首次打开：
+> - **macOS 15 及以上**：双击一次（会弹出拦截提示），然后打开 **系统设置 → 隐私与安全性**，下拉点击 **仍要打开**；或在终端执行 `xattr -cr /Applications/TinyRecorder.app`
+> - 旧版 macOS：**右键 → 打开**
 
 ## 所需权限
 
