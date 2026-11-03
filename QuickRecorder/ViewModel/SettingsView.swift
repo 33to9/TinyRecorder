@@ -46,6 +46,8 @@ struct GeneralView: View {
     @AppStorage("showMenubar") private var showMenubar: Bool = true
     
     @State private var launchAtLogin = false
+    @State private var showRepairConfirm = false
+    @State private var showRepairFailed = false
 
     var body: some View {
         SForm {
@@ -72,6 +74,17 @@ struct GeneralView: View {
                     //.disabled(!showOnDock)
             }
             SGroupBox(label: "Update") { UpdaterSettingsView(updater: updaterController.updater) }
+            SGroupBox(label: "Permissions") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button("Repair Screen Recording Permission") {
+                        showRepairConfirm = true
+                    }
+                }
+            }
             VStack(spacing: 8) {
                 CheckForUpdatesView(updater: updaterController.updater)
                 if let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
@@ -91,6 +104,43 @@ struct GeneralView: View {
                 NSApp.setActivationPolicy(.regular)
             }
         }
+        .alert("Repair Screen Recording Permission?", isPresented: $showRepairConfirm) {
+            Button("Repair & Relaunch", role: .destructive) { resetScreenPermission() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This resets the screen recording permission record for TinyRecorder and relaunches the app. Grant permission again when prompted.")
+        }
+        .alert("Repair Failed", isPresented: $showRepairFailed) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please run this command in Terminal instead:\ntccutil reset ScreenCapture \(Bundle.main.bundleIdentifier ?? "com.cn33to9.TinyRecorder")")
+        }
+    }
+
+    /// Reset the app's TCC ScreenCapture record (fixes stale permission entries,
+    /// e.g. after replacing an ad-hoc signed build with the same bundle ID),
+    /// then relaunch the app so the user can re-grant the permission.
+    private func resetScreenPermission() {
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.cn33to9.TinyRecorder"
+        let reset = Process()
+        reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+        reset.arguments = ["reset", "ScreenCapture", bundleID]
+        do {
+            try reset.run()
+            reset.waitUntilExit()
+            guard reset.terminationStatus == 0 else {
+                showRepairFailed = true
+                return
+            }
+        } catch {
+            showRepairFailed = true
+            return
+        }
+        let relaunch = Process()
+        relaunch.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        relaunch.arguments = ["-n", Bundle.main.bundlePath]
+        try? relaunch.run()
+        NSApp.terminate(nil)
     }
 }
 
