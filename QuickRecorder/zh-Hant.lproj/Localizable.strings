@@ -255,3 +255,10 @@
 
 /* Repair warning (v1.7.11) */
 "Warning: this removes the screen recording permission TinyRecorder currently has and relaunches the app. Only use it when the System Settings toggle won't stay enabled — you will need to grant the permission again afterwards." = "警告：此操作會移除 TinyRecorder 已獲得的螢幕錄製權限並重新啟動應用。僅在系統設定中的開關無法保持開啟時才使用——操作後需要重新授權。";
+
+/* Permission guide reset (v1.7.16) */
+"Toggle already on, won't stay on, or still not working? The permission record may belong to an older version of TinyRecorder." = "開關已打開、打不開，或打開後仍無效？系統中的權限記錄可能屬於舊版 TinyRecorder。";
+"Reset Permission & Relaunch" = "重設授權並重新啟動";
+"Reset Screen Recording Permission?" = "重設螢幕錄製權限？";
+"Reset & Relaunch" = "重設並重新啟動";
+"This clears TinyRecorder's old screen recording record and relaunches the app. After relaunch, click \"Grant Permission\" and turn on the toggle again." = "將清除 TinyRecorder 舊的螢幕錄製權限記錄並重新啟動 App。重新啟動後點「開始授權」，再次打開開關即可。";

@@ -18,7 +18,7 @@
 
 Download the latest `TinyRecorder_vX.Y.Z.dmg` from [Releases](../../releases/latest), open it and drag TinyRecorder into your Applications folder.
 
-> The app is ad-hoc signed (no Apple Developer ID / notarization). On first launch:
+> The app is not signed with an Apple Developer ID and is not notarized. On first launch:
 > - **macOS 15 and later**: double-click once (a warning appears), then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway** — or run `xattr -cr /Applications/TinyRecorder.app` in Terminal
 > - Older macOS: right-click the app → **Open**
 
@@ -29,6 +29,22 @@ Download the latest `TinyRecorder_vX.Y.Z.dmg` from [Releases](../../releases/lat
 | Screen Recording (屏幕录制) | Recording screen / window / app / system audio |
 | Microphone (麦克风) | Recording your voice |
 | Camera (摄像头) | Camera overlay / Presenter Overlay |
+
+### Granting Screen Recording
+
+1. Launch TinyRecorder and click **Grant Permission** in the guide window.
+2. In **System Settings → Privacy & Security → Screen & System Audio Recording**, turn on **TinyRecorder**.
+3. When the guide shows a green checkmark, click **Restart TinyRecorder Now**.
+
+### The permission guide keeps appearing after an update
+
+If TinyRecorder's toggle is already on, won't stay on, or every button still opens the permission guide, the permission record in macOS belongs to an older build (macOS ties the permission to the app's code signature, and that signature changed). Fix it in any one of these ways:
+
+- In the permission guide, click **Reset Permission & Relaunch**, then grant the permission again; or
+- **Settings → General → Permissions → Repair Screen Recording Permission**; or
+- Quit TinyRecorder, run `tccutil reset ScreenCapture com.33to9.TinyRecorder` in Terminal, reopen TinyRecorder and grant the permission again.
+
+Tip: update from inside the app (**Check for Updates…**) instead of downloading the DMG again — this avoids the first-launch Gatekeeper warning.
 
 ## Building from source
 

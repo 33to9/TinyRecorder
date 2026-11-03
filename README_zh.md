@@ -18,7 +18,7 @@
 
 从 [Releases](../../releases/latest) 下载最新的 `TinyRecorder_vX.Y.Z.dmg`，打开后拖入「应用程序」文件夹。
 
-> App 为 ad-hoc 签名（无 Developer ID / 公证），首次打开：
+> App 未使用 Apple Developer ID 签名，也未经公证，首次打开：
 > - **macOS 15 及以上**：双击一次（会弹出拦截提示），然后打开 **系统设置 → 隐私与安全性**，下拉点击 **仍要打开**；或在终端执行 `xattr -cr /Applications/TinyRecorder.app`
 > - 旧版 macOS：**右键 → 打开**
 
@@ -29,6 +29,22 @@
 | 屏幕录制 | 录制屏幕 / 窗口 / 应用 / 系统声音 |
 | 麦克风 | 录制人声 |
 | 摄像头 | 摄像头悬浮窗 / 演讲者前置 |
+
+### 授予屏幕录制权限
+
+1. 打开 TinyRecorder，在引导窗中点击 **开始授权**。
+2. 在 **系统设置 → 隐私与安全性 → 录屏与系统录音** 中打开 **TinyRecorder** 的开关。
+3. 引导窗出现绿色对勾后，点击 **立即重启 TinyRecorder**。
+
+### 升级后一直弹出授权窗口
+
+如果 TinyRecorder 的开关已经打开、打不开，或者点任何功能键都弹出授权引导窗，说明系统里的权限记录属于旧版本（macOS 按应用的代码签名记录权限，而签名已经变了）。任选一种方法修复：
+
+- 在授权引导窗中点击 **重置授权并重启**，然后重新授权；或
+- **设置 → 一般设置 → 权限 → 修复屏幕录制权限**；或
+- 退出 TinyRecorder，在终端执行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再打开 TinyRecorder 重新授权。
+
+提示：以后请在应用内 **检查程序更新…** 升级，不要重新下载 DMG，可以避免首次打开时被 Gatekeeper 拦截。
 
 ## 从源码构建
 

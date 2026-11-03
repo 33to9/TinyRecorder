@@ -440,7 +440,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        let guidePanel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 430),
+        let guidePanel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 500),
                                   styleMask: [.titled, .closable, .fullSizeContentView],
                                   backing: .buffered, defer: false)
         guidePanel.contentView = NSHostingView(rootView: ScreenPermissionGuide())
@@ -512,6 +512,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
 struct ScreenPermissionGuide: View {
     @State private var granted = CGPreflightScreenCaptureAccess()
     @State private var requested = false
+    @State private var showResetConfirm = false
+    @State private var showResetFailed = false
     private let pollTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -579,9 +581,35 @@ struct ScreenPermissionGuide: View {
                             Text("Waiting for permission…".local).font(.caption).foregroundColor(.secondary)
                         }
                     }
+                    Divider().frame(maxWidth: 370)
+                    // 升级/替换应用后，系统设置里残留的旧记录属于旧签名，对新程序无效：
+                    // 开关打不开、或打开了这里仍显示未授权。重置记录后重新授权即可。
+                    VStack(spacing: 4) {
+                        Text("Toggle already on, won't stay on, or still not working? The permission record may belong to an older version of TinyRecorder.".local)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: 370)
+                        Button("Reset Permission & Relaunch".local) { showResetConfirm = true }
+                            .buttonStyle(.link)
+                            .font(.callout)
+                    }
                 }
             }
             .padding(24)
+        }
+        .alert("Reset Screen Recording Permission?".local, isPresented: $showResetConfirm) {
+            Button("Reset & Relaunch".local, role: .destructive) {
+                if resetScreenCapturePermission() { relaunchApp() } else { showResetFailed = true }
+            }
+            Button("Cancel".local, role: .cancel) {}
+        } message: {
+            Text("This clears TinyRecorder's old screen recording record and relaunches the app. After relaunch, click \"Grant Permission\" and turn on the toggle again.".local)
+        }
+        .alert("Repair Failed".local, isPresented: $showResetFailed) {
+            Button("OK".local, role: .cancel) {}
+        } message: {
+            Text("Please run this command in Terminal instead:\ntccutil reset ScreenCapture \(Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder")")
         }
         .onReceive(pollTimer) { _ in
             let now = CGPreflightScreenCaptureAccess()
@@ -617,6 +645,25 @@ struct ScreenPermissionGuide: View {
 
     private func relaunch() {
         relaunchApp()
+    }
+}
+
+/// Resets this app's TCC ScreenCapture record via `tccutil` (no admin rights needed for the
+/// app's own bundle ID). Fixes stale permission entries left by a build with a different code
+/// signature (e.g. after updating an ad-hoc signed build): the old entry is shown in System
+/// Settings but doesn't apply to the new binary. Returns false if tccutil failed.
+@discardableResult
+func resetScreenCapturePermission() -> Bool {
+    let bundleID = Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder"
+    let reset = Process()
+    reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+    reset.arguments = ["reset", "ScreenCapture", bundleID]
+    do {
+        try reset.run()
+        reset.waitUntilExit()
+        return reset.terminationStatus == 0
+    } catch {
+        return false
     }
 }
 

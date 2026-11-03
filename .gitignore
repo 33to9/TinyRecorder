@@ -89,3 +89,13 @@ fastlane/test_output
 
 iOSInjectionProject/
 .DS_Store
+
+# Signing material: never commit (private key)
+certs/
+*.p12
+*.pem
+*.key
+*.cer
+
+# Local screenshots / scratch
+erro/

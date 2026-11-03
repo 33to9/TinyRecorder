@@ -183,27 +183,8 @@ struct GeneralView: View {
         }
     }
 
-    /// Reset the app's TCC ScreenCapture record (fixes stale permission entries,
-    /// e.g. after replacing an ad-hoc signed build with the same bundle ID),
-    /// then relaunch the app so the user can re-grant the permission.
     private func resetScreenPermission() {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder"
-        let reset = Process()
-        reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
-        reset.arguments = ["reset", "ScreenCapture", bundleID]
-        do {
-            try reset.run()
-            reset.waitUntilExit()
-            guard reset.terminationStatus == 0 else {
-                showRepairFailed = true
-                return
-            }
-        } catch {
-            showRepairFailed = true
-            return
-        }
-        // Delayed relaunch so the new instance doesn't see this one still running.
-        relaunchApp()
+        if resetScreenCapturePermission() { relaunchApp() } else { showRepairFailed = true }
     }
 }
 
