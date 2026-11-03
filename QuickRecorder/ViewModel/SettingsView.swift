@@ -135,7 +135,7 @@ struct GeneralView: View {
             Button("Repair & Relaunch", role: .destructive) { resetScreenPermission() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This resets the screen recording permission record for TinyRecorder and relaunches the app. Grant permission again when prompted.")
+            Text("Warning: this removes the screen recording permission TinyRecorder currently has and relaunches the app. Only use it when the System Settings toggle won't stay enabled — you will need to grant the permission again afterwards.")
         }
         .alert("Repair Failed", isPresented: $showRepairFailed) {
             Button("OK", role: .cancel) {}

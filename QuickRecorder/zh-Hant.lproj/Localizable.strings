@@ -252,3 +252,6 @@
 
 /* Permission list refresh fallback (v1.7.9) */
 "If TinyRecorder is not in the list, quit System Settings (⌘Q) and reopen this page, or add it with the + button." = "如果列表中沒有 TinyRecorder，請退出系統設定（⌘Q）後重新開啟本頁面，或用 + 按鈕手動新增。";
+
+/* Repair warning (v1.7.11) */
+"Warning: this removes the screen recording permission TinyRecorder currently has and relaunches the app. Only use it when the System Settings toggle won't stay enabled — you will need to grant the permission again afterwards." = "警告：此操作會移除 TinyRecorder 已獲得的螢幕錄製權限並重新啟動應用。僅在系統設定中的開關無法保持開啟時才使用——操作後需要重新授權。";

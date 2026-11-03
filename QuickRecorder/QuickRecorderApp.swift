@@ -125,7 +125,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     var frameQueue = FixedLengthArray<CMTime>(maxLength: 20)
     
     @AppStorage("showOnDock")       var showOnDock: Bool = true
-    @AppStorage("showMenubar")      var showMenubar: Bool = false
+    @AppStorage("showMenubar")      var showMenubar: Bool = true
     @AppStorage("enableAEC")        var enableAEC: Bool = false
     @AppStorage("recordMic")        var recordMic: Bool = false
     @AppStorage("micDevice")        var micDevice: String = "default"
@@ -245,7 +245,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                 "recordWinSound": isMacOS12 ? false : true,
                 "trimAfterRecord": false,
                 "showOnDock": true,
-                "showMenubar": false,
+                "showMenubar": true,
                 "enableAEC": false,
                 "recordHDR": false,
                 "preventSleep": true,
