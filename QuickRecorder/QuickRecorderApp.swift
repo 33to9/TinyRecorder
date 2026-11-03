@@ -457,7 +457,7 @@ struct ScreenPermissionGuide: View {
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Click \"Grant Permission\" below; macOS will show a system dialog.".local, systemImage: "1.circle.fill")
-                        Label("In the dialog, click \"Allow\" — System Settings also opens automatically as a fallback.".local, systemImage: "2.circle.fill")
+                        Label("In the dialog, click \"Open System Settings\" — TinyRecorder will then appear in the list; turn on its toggle and approve the relaunch.".local, systemImage: "2.circle.fill")
                         Label("Return here and restart TinyRecorder when the checkmark turns green.".local, systemImage: "3.circle.fill")
                     }
                     .font(.callout)
@@ -467,14 +467,6 @@ struct ScreenPermissionGuide: View {
                         if !requested {
                             requested = true
                             CGRequestScreenCaptureAccess()
-                            // The system prompt is a transient banner and is only
-                            // shown once per app; if the user missed it, take them
-                            // straight to the Screen Recording settings pane.
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                if !CGPreflightScreenCaptureAccess() {
-                                    openScreenCaptureSettings()
-                                }
-                            }
                         } else {
                             openScreenCaptureSettings()
                         }

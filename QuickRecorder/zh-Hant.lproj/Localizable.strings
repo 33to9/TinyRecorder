@@ -235,7 +235,7 @@
 "Grant Permission" = "開始授權";
 "Waiting for permission…" = "等待授權中…";
 "Click \"Grant Permission\" below; macOS will show a system dialog." = "點擊下方「開始授權」，macOS 會彈出系統授權對話框。";
-"In the dialog, click \"Allow\", or enable TinyRecorder in System Settings." = "在彈窗中點「允許」，或在系統設定中開啟 TinyRecorder。";
+"In the dialog, click \"Open System Settings\" — TinyRecorder will then appear in the list; turn on its toggle and approve the relaunch." = "在弹窗中点「打开系统设置」——TinyRecorder 会出现在列表中，打开它的开关并确认重启。";
 "Return here and restart TinyRecorder when the checkmark turns green." = "看到綠色勾後，回到本視窗重新啟動 TinyRecorder。";
 
 /* Permission repair (v1.7.3) */
@@ -248,5 +248,4 @@
 "Repair Failed" = "修復失敗";
 
 /* Permission guide fallback (v1.7.6) */
-"In the dialog, click \"Allow\" — System Settings also opens automatically as a fallback." = "在彈窗中點「允許」——系統設定也會自動開啟作為備用入口。";
 "Open System Settings" = "開啟系統設定";
