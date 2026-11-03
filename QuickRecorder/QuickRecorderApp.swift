@@ -358,8 +358,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         closeAllWindow()
-        if showOnDock { _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true) }
-        if !scPerm { showScreenPermissionGuide() }
+        if !scPerm {
+            // 无录屏权限时不显示底部工具栏：工具栏在悬浮层，小屏幕上会盖住引导窗的
+            // 「点击授权」按钮。引导完成授权并重启后，下次启动正常显示工具栏。
+            showScreenPermissionGuide()
+        } else if showOnDock {
+            _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
+        }
         tips("Would you like to use H.265 format for better video quality and smaller file size?",
              id: "qr.switch-to-h265.note", buttonTitle: "Use H.265", switchButton: true) {
             ud.setValue(Encoder.h265.rawValue, forKey: "encoder")
