@@ -28,9 +28,14 @@ struct HoverButton<Content: View>: View {
 struct SForm<Content: View>: View {
     var spacing: CGFloat = 30
     var noSpacer: Bool = false
+    /// Wrap the page in a vertical ScrollView. The settings window has a fixed height; a
+    /// page taller than that (e.g. General on macOS 27, whose controls are larger) used to
+    /// overflow and push the whole settings window content out of view, sidebar included.
+    /// Pages that host their own List/ScrollView pass false.
+    var scrollable: Bool = true
     @ViewBuilder let content: () -> Content
-    
-    var body: some View {
+
+    private var form: some View {
         VStack(spacing: spacing) {
             content()
             if !noSpacer {
@@ -40,7 +45,14 @@ struct SForm<Content: View>: View {
         .padding(.bottom, noSpacer ? 0 : -spacing)
         .padding()
         .frame(maxWidth: .infinity)
-        
+    }
+
+    var body: some View {
+        if scrollable {
+            ScrollView(.vertical) { form }
+        } else {
+            form
+        }
     }
 }
 

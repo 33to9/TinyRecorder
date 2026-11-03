@@ -264,3 +264,11 @@
 "Reset Screen Recording Permission?" = "重置屏幕录制权限？";
 "Reset & Relaunch" = "重置并重启";
 "This clears TinyRecorder's old screen recording record and relaunches the app. After relaunch, click \"Grant Permission\" and turn on the toggle again." = "将清除 TinyRecorder 旧的屏幕录制权限记录并重启应用。重启后点“开始授权”，重新打开开关即可。";
+
+/* First-run setup (v1.7.18) */
+"Welcome to TinyRecorder" = "欢迎使用 TinyRecorder";
+"Choose the default format for your recordings. You can change it any time in Preferences → Output." = "选择录制视频的默认格式，之后可随时在「偏好设置 → 输出设置」中修改。";
+"H.265 (Recommended)" = "H.265（推荐）";
+"Better quality and smaller files. Plays on Macs and iPhones; some older players or websites may not support it." = "画质更好、文件更小。Mac 和 iPhone 可直接播放，部分旧播放器或网站可能不支持。";
+"Best compatibility with every player and website, but files are larger." = "兼容所有播放器和网站，但文件更大。";
+"Done" = "完成";

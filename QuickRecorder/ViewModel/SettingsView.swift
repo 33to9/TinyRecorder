@@ -89,7 +89,10 @@ struct SettingsWindowConfigurator: NSViewRepresentable {
         w.styleMask.remove(.resizable)
         let vf = (w.screen ?? NSScreen.main)?.visibleFrame
         // 异常 frame：尺寸与固定内容不符、大于屏幕或探出屏幕外 → 回到屏幕中央
-        if w.frame.size != fixedSize {
+        // 注意比较的是内容区尺寸：w.frame 含标题栏，与 fixedSize 永远不等，
+        // 以前每次刷新都会重设尺寸和位置，与 SwiftUI 自身的窗口尺寸管理互相打架。
+        let contentSize = w.contentRect(forFrameRect: w.frame).size
+        if abs(contentSize.width - fixedSize.width) > 1 || abs(contentSize.height - fixedSize.height) > 1 {
             w.setContentSize(fixedSize)
             if let vf = vf {
                 w.setFrameOrigin(NSPoint(x: vf.midX - fixedSize.width / 2,
@@ -372,7 +375,7 @@ struct HotkeyView: View {
 
 struct BlocklistView: View {
     var body: some View {
-        SForm(spacing: 0, noSpacer: true) {
+        SForm(spacing: 0, noSpacer: true, scrollable: false) {
             SGroupBox(label: "Blocklist") {
                     BundleSelector()
                     Text("These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded.")

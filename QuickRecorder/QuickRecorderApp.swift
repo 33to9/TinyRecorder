@@ -385,17 +385,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         } else if showOnDock {
             _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
-        // Only suggest H.265 when it isn't already in use and the app can actually record;
-        // once the user accepts, remember it so the tip is not shown again.
-        let h265TipID = "qr.switch-to-h265.note"
-        if scPerm && ud.string(forKey: "encoder") != Encoder.h265.rawValue {
-            tips("Would you like to use H.265 format for better video quality and smaller file size?",
-                 id: h265TipID, buttonTitle: "Use H.265", switchButton: true) {
-                ud.setValue(Encoder.h265.rawValue, forKey: "encoder")
-                let never = (ud.object(forKey: "neverRemindMe") as? [String]) ?? []
-                if !never.contains(h265TipID) { ud.setValue(never + [h265TipID], forKey: "neverRemindMe") }
-            }
+        // 首次设置：授权完成后的第一次启动，让用户选择默认编码器与视频格式（只出现一次）。
+        // 无权限时先走授权引导，授权并重启后再出现，避免两个窗口叠在一起。
+        if scPerm && !ud.bool(forKey: firstRunSetupKey) {
+            DispatchQueue.main.async { self.showFirstRunSetup() }
         }
+    }
+
+    /// One-time "choose your recording format" panel, replacing the old H.265 tip.
+    func showFirstRunSetup() {
+        if let existing = NSApp.windows.first(where: { $0.title == "Welcome to TinyRecorder".local }) {
+            existing.makeKeyAndOrderFront(self)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        // Mark as shown right away: however the panel is dismissed, it must not come back.
+        ud.set(true, forKey: firstRunSetupKey)
+        let panel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 400),
+                             styleMask: [.titled, .closable, .fullSizeContentView],
+                             backing: .buffered, defer: false)
+        panel.contentView = NSHostingView(rootView: FirstRunSetupView())
+        panel.title = "Welcome to TinyRecorder".local
+        panel.titlebarAppearsTransparent = true
+        panel.level = .floating
+        panel.isRestorable = false
+        panel.isReleasedWhenClosed = false
+        panel.center()
+        panel.makeKeyAndOrderFront(self)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     /// Runs `action` on the main queue with freshly updated shareable content.
@@ -645,6 +662,66 @@ struct ScreenPermissionGuide: View {
 
     private func relaunch() {
         relaunchApp()
+    }
+}
+
+let firstRunSetupKey = "firstRunSetupDone"
+
+/// First-run setup: pick the default video encoder and container.
+struct FirstRunSetupView: View {
+    @AppStorage("encoder")     private var encoder: Encoder = .h264
+    @AppStorage("videoFormat") private var videoFormat: VideoFormat = .mp4
+    @AppStorage("withAlpha")   private var withAlpha: Bool = false
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "film.stack")
+                .font(.system(size: 40))
+                .foregroundStyle(Color.accentColor)
+            Text("Welcome to TinyRecorder".local).font(.title2.bold())
+            Text("Choose the default format for your recordings. You can change it any time in Preferences → Output.".local)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: 380)
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Encoder".local).font(.headline)
+                    Picker("", selection: $encoder) {
+                        Text("H.265 (Recommended)".local).tag(Encoder.h265)
+                        Text("H.264").tag(Encoder.h264)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    Text((encoder == .h265
+                          ? "Better quality and smaller files. Plays on Macs and iPhones; some older players or websites may not support it."
+                          : "Best compatibility with every player and website, but files are larger.").local)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Format".local).font(.headline)
+                    Picker("", selection: $videoFormat) {
+                        Text("MP4").tag(VideoFormat.mp4)
+                        Text("MOV").tag(VideoFormat.mov)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+            }
+            .disabled(withAlpha)
+            .frame(maxWidth: 380)
+            Button("Done".local) { close() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(28)
+        .frame(width: 460)
+    }
+
+    private func close() {
+        NSApp.windows.first(where: { $0.title == "Welcome to TinyRecorder".local })?.close()
     }
 }
 
