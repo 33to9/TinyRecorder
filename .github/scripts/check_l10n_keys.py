@@ -12,7 +12,7 @@ Prints counts per language and every difference. Exit code 1 if any difference.
 """
 import json, os, re, sys
 
-LANGS = ["en", "zh-Hans", "zh-Hant", "it"]
+LANGS = ["en", "zh-Hans", "zh-Hant", "it", "ja", "de", "es"]
 
 # ---------- .strings parsing ----------
 def read_text(path):
@@ -77,6 +77,7 @@ CALLS = ["Text(", "Button(", "Label(", "Toggle(", "SToggle(", "SPicker(", "SStep
          "SecureField(", "Link(", "ColorPicker(", "MatrixColorSelector(", ".confirmationDialog(",
          "KeyboardShortcuts.Recorder(", "SInfoButton(", "Alert(", "LocalizedStringKey("]
 LABELS = ["label:", "tips:", "title:", "message:", "button1:", "button2:"]
+INDIRECT = ("abortRecording(reason:", "RecordingError(")
 
 def swift_literals(src):
     """Yields (start, end, raw_content, has_interpolation) for each string literal
@@ -182,6 +183,13 @@ def scan_code(root):
             for s, e, raw, interp in swift_literals(src):
                 if raw == "": continue
                 before = src[max(0, s - 40):s].rstrip()
+                # Failure reasons reach createAlert(message:), which looks them up with .local.
+                # Interpolated ones can never match a key, so they are not counted.
+                if before.endswith(INDIRECT):
+                    if not interp:
+                        line = src.count("\n", 0, s) + 1
+                        keys.setdefault(unescape_swift(raw), []).append(os.path.relpath(p, root) + ":%d" % line)
+                    continue
                 localized = (src.startswith(".local", e)
                              or any(before.endswith(c) for c in CALLS)
                              or any(before.endswith(l) for l in LABELS)

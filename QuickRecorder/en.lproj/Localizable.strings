@@ -315,3 +315,16 @@
 "minutes " = "minutes ";
 "unknown audio format while setting audio settings: " = "unknown audio format while setting audio settings: ";
 "⚠️" = "⚠️";
+
+/* Recording failure reasons (shown via abortRecording → createAlert) */
+"Unable to get the list of shareable content. Please check the screen recording permission." = "Unable to get the list of shareable content. Please check the screen recording permission.";
+"Unable to find the display to record." = "Unable to find the display to record.";
+"The selected window is no longer available." = "The selected window is no longer available.";
+"Unable to create the capture filter." = "Unable to create the capture filter.";
+"Unable to get the selected area." = "Unable to get the selected area.";
+"Unable to add the microphone track to the recording." = "Unable to add the microphone track to the recording.";
+"Unable to start writing the microphone track." = "Unable to start writing the microphone track.";
+"Unable to add the video track with the current encoder settings." = "Unable to add the video track with the current encoder settings.";
+"Unable to start writing the video file." = "Unable to start writing the video file.";
+"Unable to access the selected microphone." = "Unable to access the selected microphone.";
+"No available microphone input." = "No available microphone input.";

@@ -1,0 +1,7 @@
+/*
+  InfoPlist.strings (日本語)
+  Same keys as en.lproj/InfoPlist.strings.
+*/
+"NSMicrophoneUsageDescription" = "TinyRecorder はマイクの音声を録音するためにこの権限を必要とします。";
+"NSCameraUsageDescription" = "TinyRecorder はカメラとモバイルデバイスの映像を録画するためにこの権限を必要とします。";
+"NSHumanReadableCopyright" = "Copyright © 2024 lihaoyun6（QuickRecorder）。改変部分 © 2026 33to9（TinyRecorder）。AGPL-3.0。";

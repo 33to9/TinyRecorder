@@ -340,3 +340,16 @@
 "Window Selector" = "Window Selector";
 "iDevice Overlayer" = "iDevice Overlayer";
 "⚠️" = "⚠️";
+
+/* Recording failure reasons (shown via abortRecording → createAlert) */
+"Unable to get the list of shareable content. Please check the screen recording permission." = "无法获取可录制的内容列表，请检查屏幕录制权限。";
+"Unable to find the display to record." = "找不到要录制的显示器。";
+"The selected window is no longer available." = "所选窗口已不可用。";
+"Unable to create the capture filter." = "无法创建捕获过滤器。";
+"Unable to get the selected area." = "无法获取所选区域。";
+"Unable to add the microphone track to the recording." = "无法将麦克风音轨添加到录制中。";
+"Unable to start writing the microphone track." = "无法开始写入麦克风音轨。";
+"Unable to add the video track with the current encoder settings." = "当前编码器设置下无法添加视频轨道。";
+"Unable to start writing the video file." = "无法开始写入视频文件。";
+"Unable to access the selected microphone." = "无法访问所选麦克风。";
+"No available microphone input." = "没有可用的麦克风输入。";
