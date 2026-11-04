@@ -7,4 +7,4 @@
 */
 "NSMicrophoneUsageDescription" = "TinyRecorder 需要此權限以錄製來自麥克風的聲音.";
 "NSCameraUsageDescription" = "TinyRecorder 需要此權限以錄製來自攝像頭或行動裝置的畫面.";
-"NSHumanReadableCopyright" = "版權所有 © 2024 lihaoyun6. 保留所有權利.";
+"NSHumanReadableCopyright" = "版權所有 © 2024 lihaoyun6（QuickRecorder）。修改版權 © 2026 33to9（TinyRecorder）。AGPL-3.0。";

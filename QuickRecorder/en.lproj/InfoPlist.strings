@@ -1,4 +1,7 @@
 /*
   InfoPlist.strings (English)
-  Intentionally empty: Info.plist already holds the English values.
+  Same values as INFOPLIST_KEY_* in the project; listed so every language has the same keys.
 */
+"NSMicrophoneUsageDescription" = "TinyRecorder needs this permission to record your voice.";
+"NSCameraUsageDescription" = "TinyRecorder needs this permission to record your camera and mobile device.";
+"NSHumanReadableCopyright" = "Copyright © 2024 lihaoyun6 (QuickRecorder). Modified © 2026 33to9 (TinyRecorder). AGPL-3.0.";

@@ -6,7 +6,6 @@
 */
 
 "System Audio" = "錄製系統聲音";
-"System Audio " = "系統聲音";
 "Screen Area" = "錄製螢幕區域";
 "Screen" = "錄製整個螢幕";
 "Application" = "錄製應用程式";
@@ -15,13 +14,9 @@
 "Preferences" = "偏好設定";
 "No Title" = "無標題";
 "Display " = "顯示器";
-"Select Applications" = "選擇應用程式";
 "Permission Required" = "需要授權";
 "Compatibility Warning" = "相容性警告";
-"You are using macOS 12.7.4\nOutput files will be randomly corrupted on this version of macOS!\n\nPlease upgrade to 12.7.5 to solve it." = "檢測到當前系統版本為 macOS 12.7.4\nTinyRecorder 在當前系統版本中會\n隨機出現錄影檔案儲存失敗的情況!\n\n請升級至 macOS 12.7.5 以解決此問題.";
-"TinyRecorder needs screen recording permissions, even if you only intend on recording audio." = "TinyRecorder 需要獲取錄影許可權\n(即使只是用來錄製音訊)";
 "TinyRecorder needs permission to record your microphone." = "TinyRecorder 需要獲取麥克風許可權來錄製所需的聲音";
-"Please select a folder to save output files" = "請選擇錄音/錄屏檔案的儲存位置";
 "Open Settings" = "開啟系統設定";
 "Quit" = "退出程式";
 "Cancel" = "取消";
@@ -32,7 +27,6 @@
 "Start" = "開始錄製";
 "Resolution" = "解析度";
 "Frame Rate" = "幀速率";
-"Auto" = "自動";
 "High (auto)" = "高 (自動)";
 "Normal (1x)" = "普通 (1x)";
 //"Low (0.5x)" = "低 (0.5x)";
@@ -44,9 +38,7 @@
 "High" = "高畫質";
 "Save Current Frame" = "儲存當前幀快照";
 "Record Cursor" = "錄製滑鼠游標";
-"System Audio" = "錄製系統聲音";
 "App's Audio" = "錄製App聲音";
-"Microphone" = "錄製麥克風";
 "Background" = "畫面背景";
 "Wallpaper" = "桌面背景";
 "Transparent" = "透明";
@@ -71,25 +63,14 @@
 "Good - 192Kbps" = "優質 - 192Kbps";
 "High - 256Kbps" = "高品質 - 256Kbps";
 "Extreme - 320Kbps" = "極致 - 320Kbps";
-"Other Settings" = "其他設定";
-"Opus doesn't support MP4, it will fall back to AAC" = "同時使用Opus和MP4格式時, 音訊編碼將回落至AAC";
 "Record Microphone to Main Track" = "將麥克風錄製到主音軌";
 "If enabled, all files on the Desktop will be hidden from the video when recording." = "啟用此選項後, 桌面上的所有檔案將會從錄製畫面中被隱藏.";
 "These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded." = "在錄製 \"整個螢幕\" 或 \"螢幕區域\" 的時候將不會錄製這些 App 的畫面\n但如果列表中的 App 在錄影開始後才被啟動, 則無法被排除在錄製畫面之外.";
 "Exclude Files on Desktop" = "隱藏所有桌面圖示";
 "Recording with Alpha Channel" = "在輸出中包含 Alpha 通道";
 "Delay Before Recording" = "開始錄製前倒數 (秒)";
-"s" = "秒";
 "Close" = "關閉";
 "Custom Background Color" = "使用者預設顏色 (錄製背景)";
-"File size: %@" = "檔案大小: %@";
-"Recording: " = "正在錄製: ";
-"Preferences…" = "設定…";
-"Quit TinyRecorder" = "退出TinyRecorder";
-"Multiple Windows" = "多個視窗";
-"Multiple Apps" = "多個應用";
-"Unknown App" = "未知應用";
-"A Window" = "單個視窗";
 "Output Folder" = "檔案儲存位置";
 "Currently set to \"%@\"" = "當前儲存在 \"%@\"";
 "/Recording at " = "/錄製於 ";
@@ -98,11 +79,9 @@
 "Recording Completed" = "錄製結束";
 "Clip Saved" = "剪輯已儲存";
 "File saved to: %@" = "檔案已儲存至: %@";
-"File saved to folder: %@" = "檔案已儲存到: %@ 目錄中";
 "Startup" = "啟動設定";
 "Update" = "更新設定";
 "Launch at Login" = "登入時啟動";
-"Shortcuts Settings" = "快速鍵設定";
 "Pause / Resume" = "暫停/繼續錄製";
 "Stop Recording" = "結束螢幕錄製";
 "Record System Audio" = "立即錄製系統聲音";
@@ -110,11 +89,7 @@
 "Record Topmost Window" = "立即錄製當前視窗";
 "Select Area to Record" = "選擇螢幕區域以錄製";
 "Toggle Screen Magnifier" = "顯示/隱藏螢幕放大鏡";
-"Waiting on update…" = "正在更新, 請稍等…";
 "Include Menu Bar in Recording" = "錄製選單列畫面";
-"Excluded Apps" = "App 排除列表";
-"Record with Camera:" = "錄製攝像頭:";
-"Presenter Overlay Camera:" = "\"發表人置前\"攝像頭:";
 //"Can only be turned off on macOS 14.2 or later!" = "此選項僅 macOS 14.2 或更高版本系統可中可被關閉!";
 "Presenter Overlay Delay" = "發表人置前延遲 (秒)";
 "Open video trimmer after recording" = "錄製結束後自動開啟修剪器";
@@ -127,16 +102,12 @@
 "Preset" = "預設";
 "Mute" = "靜音";
 "Default" = "系統預設";
-"Pixel Format" = "像素格式";
-"Color Space" = "色彩空間";
 "Check for Updates…" = "檢查程式更新…";
-"Update Settings" = "更新設定";
 "Automatically check for updates" = "自動檢查程式更新";
 "Automatically download updates" = "自動下載程式更新";
 "Connect your device via USB" = "請用 USB 傳輸線連接裝置";
 "Show TinyRecorder on Dock" = "在 Dock 中顯示 TinyRecorder";
 "Show TinyRecorder on Menu Bar" = "在選單列中顯示 TinyRecorder";
-"Icon Settings" = "圖示設定";
 "Still Processing" = "仍在處理";
 "Mixing audio track..." = "正在混合音軌...";
 "minutes " = "分鐘後自動停止錄製";
@@ -152,7 +123,6 @@
 "Record HDR" = "錄製HDR影片";
 "Resize" = "編輯選區";
 "Back" = "返回";
-"Unknow Error" = "未知錯誤";
 "The \"Acoustic Echo Cancellation\" is enabled, but it won't work on now.\n\nIf you need to use a specific input with AEC, set it to \"Default\" and select the device you want in System Preferences.\n\nOr you can start recording without AEC." = "您已啟用\"消除麥克風回聲\", 但很可惜程式內自定義麥克風不支援此功能!\n\n如需在特定的麥克風上使用迴音消除功能, 請將麥克風選項設為\"系統預設\", 並在系統偏好設定中選擇您需要使用的輸入裝置.\n\n或者直接開始錄製 (不使用回聲消除功能)";
 "System Preferences" = "系統偏好設定";
 "Export Recording" = "匯出錄音";
@@ -161,12 +131,10 @@
 "Stop Play" = "停止播放";
 "Export" = "匯出";
 "Export as MP3" = "匯出為 MP3";
-"Show Colors..." = "顯示顏色…";
 "Failed to Record" = "錄製失敗";
 "Unable to create output folder!" = "無法建立輸出資料夾!";
 "The output path is a file instead of a folder!"= "所選的儲存位置是一個檔案, 應該是資料夾!";
 "Mini size Menu Bar controller" = "使用迷你選單列控制器";
-"Check for Updates" = "立即檢測程式更新";
 "Error" = "錯誤";
 "Already recording!" = "正在錄製中!";
 "Invalid screen number!" = "無效的螢幕編號!";
@@ -182,7 +150,6 @@
 "Hotkey" = "快速鍵";
 "Blocklist" = "遮蔽列表";
 "Select..." = "選擇...";
-"Go Back" = "返回";
 "If enabling Presenter Overlay causes recording failure, please increase this value." = "如果啟用發表人置前功能後無法保存錄像, 請嘗試增大此值";
 "Open Main Panel" = "開啟主面板";
 "Prevent Mac from sleeping while recording" = "錄製時防止 Mac 進入睡眠";
@@ -190,7 +157,6 @@
 "Show floating preview after recording" = "錄製結束後顯示預覽懸浮窗";
 "Show in Finder" = "在 Finder 中顯示";
 "Copy" = "複製";
-"Delete" = "刪除";
 "Audio Ducking Level" = "音訊閃避級別";
 "Min" = "較小";
 "Mid" = "中等";
@@ -207,21 +173,15 @@
 "VideoToolbox H.264 hardware encoder doesn't support the current resolution.\nContinue with a software encoder will significantly increase the CPU usage.\n\nWould you like to use H.265 instead?" = "內建 H.264 硬體編碼器不支援當前解析度\n繼續使用 H.264 編碼錄製將大量佔用CPU\n\n是否改為使用 H.265 編碼進行錄製?";
 "Use H.265" = "使用 H.265";
 "Continue with H.264" = "繼續使用 H.264";
-"Would you like to use H.265 format for better video quality and smaller file size?" = "是否使用 H.265 編碼以獲得更好的錄影畫質和更小的檔案體積?";
 "TinyRecorder needs this permission to record your camera or mobile device." = "TinyRecorder 需要此權限以錄製來自攝像頭或行動裝置的畫面.";
 "Select Window Directly" = "直接點選視窗";
 
 // Please don't translate the following warning strings, it will make it difficult for me to read the logs
-"failed to fetch file for size indicator: %@" = "获取文件大小失败: ";
-"[err] failed to fetch available content:" = "[错误] 无法获取可用的上下文:";
-"There needs to be at least one display connected" = "至少需要连接一台显示器";
-"capture failed" = "捕获失败";
+"failed to fetch file for size indicator: %@" = "獲取檔案大小失敗: %@";
 "unknown audio format while setting audio settings: " = "更改音频设置时设置了未知的音频格式";
 "[no defaults]" = "[无默认设置]";
 "loaded unknown audio format: " = "加载了未知的音频格式: ";
 "loaded unknown video format" = "加载了未知的视频格式";
-"unknown stream type" = "未知的流类型";
-"audio file writing issue" = "音频文件写入出错";
 "closing stream with error:\n" = "关闭流时发生错误:\n";
 "\nthis might be due to the window closing or the user stopping from the sonoma ui" = "\n这可能是有由于用户关闭了正在录制中的窗口, 或使用窗口上的附加按钮停止了录制.";
 
@@ -243,7 +203,6 @@
 "If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again." = "如果系統設定裡的螢幕錄製開關無法保持開啟（升級或替換應用後可能出現），可重置權限記錄後重新授權。";
 "Repair & Relaunch" = "修復並重新啟動";
 "Repair Screen Recording Permission?" = "修復螢幕錄製權限？";
-"This resets the screen recording permission record for TinyRecorder and relaunches the app. Grant permission again when prompted." = "將重置 TinyRecorder 的螢幕錄製權限記錄並重新啟動應用，之後按提示重新授權即可。";
 "Repair Failed" = "修復失敗";
 
 /* Permission guide fallback (v1.7.6) */
@@ -267,8 +226,6 @@
 "Choose the default format for your recordings. You can change it any time in Preferences → Output." = "選擇錄製影片的預設格式，之後可隨時在「偏好設定 → 輸出設定」中修改。";
 "H.265 (Recommended)" = "H.265（推薦）";
 "Better quality and smaller files. Plays on Macs and iPhones; some older players or websites may not support it." = "畫質更好、檔案更小。Mac 和 iPhone 可直接播放，部分舊播放器或網站可能不支援。";
-"Best compatibility with every player and website, but files are larger." = "相容所有播放器和網站，但檔案較大。";
-"Done" = "完成";
 
 /* First-run onboarding (v1.8.0) */
 "Permission" = "權限";
@@ -343,3 +300,43 @@
 "Discard Recording" = "放棄錄製";
 "Press a recording hotkey again to stop the recording." = "錄製中再按一次錄製快速鍵即可停止錄製。";
 "Position:" = "位置:";
+" %lld x %lld" = " %lld x %lld";
+"%@ - %@" = "%@ - %@";
+"%lld" = "%lld";
+"%lld FPS" = "%lld FPS";
+"%lld%%" = "%lld%%";
+"10 FPS" = "10 FPS";
+"120 FPS" = "120 FPS";
+"144 FPS" = "144 FPS";
+"15 FPS" = "15 FPS";
+"24 FPS" = "24 FPS";
+"240 FPS" = "240 FPS";
+"30 FPS" = "30 FPS";
+"60 FPS" = "60 FPS";
+"90 FPS" = "90 FPS";
+"AAC" = "AAC";
+"App Selector" = "App Selector";
+"Area Overlayer" = "Area Overlayer";
+"Area Selector" = "Area Selector";
+"Camera Overlayer" = "Camera Overlayer";
+"Countdown Panel" = "Countdown Panel";
+"Encoder Warning" = "編碼器警告";
+"Error: failed to fetch available content: " = "錯誤：取得可錄製內容失敗：";
+"H.264" = "H.264";
+"H.265" = "H.265";
+"Low (0.5x)" = "低 (0.5x)";
+"MOV" = "MOV";
+"MP3" = "MP3";
+"MP4" = "MP4";
+"Mouse Pointer" = "Mouse Pointer";
+"Opus" = "Opus";
+"Please run this command in Terminal instead:\ntccutil reset ScreenCapture %@" = "請改為在「終端機」中執行以下指令：\ntccutil reset ScreenCapture %@";
+"Recording Controller" = "Recording Controller";
+"Screen Magnifier" = "Screen Magnifier";
+"Screen Selector" = "Screen Selector";
+"There needs to be at least one display connected!" = "至少需要連接一台顯示器！";
+"TinyRecorder" = "TinyRecorder";
+"TinyRecorder v%@" = "TinyRecorder v%@";
+"Window Selector" = "Window Selector";
+"iDevice Overlayer" = "iDevice Overlayer";
+"⚠️" = "⚠️";
