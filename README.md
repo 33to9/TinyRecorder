@@ -10,6 +10,23 @@
 
 - ✅ **Menu bar recording controls (stop / pause / camera) not responding on macOS 27** — upstream issue [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295) / [#296](https://github.com/lihaoyun6/QuickRecorder/issues/296). Root cause: macOS 27 reports `locationInWindow` as the centre of an `NSStatusItem`'s window regardless of the real pointer position; SwiftUI hit-testing then only ever fires the centred control. Fixed by rebuilding mouse events with the real pointer position via `NSEvent.mouseLocation`.
 
+## What it records
+
+- Full screen, a selected area, one or more windows, or a single app
+- System audio only, with or without the microphone
+- **A connected iPhone or iPad** — see below
+- Camera overlay and Presenter Overlay (macOS 14+) while recording
+
+### Recording an iPhone / iPad
+
+TinyRecorder can record the screen of an iPhone or iPad connected to your Mac. It runs on the Mac; it is not an iOS app.
+
+1. Connect the device with a USB cable, unlock it and tap **Trust** if asked.
+2. In TinyRecorder's recording toolbar, click **Mobile Device**. Connected devices are listed.
+3. Turn on **Mute** if needed and pick a **Preset** (quality), then click the device name to start recording.
+
+The device appears to macOS as an external camera, so this needs the **Camera** permission (not Screen Recording). If no device is listed, reconnect the cable and make sure the device is unlocked.
+
 ## System Requirements
 
 - macOS 12.3 and later
@@ -50,7 +67,7 @@ Use **Check for Updates…** inside the app: no download, no Gatekeeper warning,
 |---|---|
 | Screen Recording | Recording screen / window / app / system audio |
 | Microphone | Recording your voice |
-| Camera | Camera overlay / Presenter Overlay |
+| Camera | Camera overlay / Presenter Overlay / recording an iPhone or iPad |
 
 ### First-launch setup
 

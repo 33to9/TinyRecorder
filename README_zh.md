@@ -10,6 +10,23 @@
 
 - ✅ **macOS 27 下菜单栏录制控制按钮（停止/暂停/摄像头）无法点击** — 上游 issue [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295) / [#296](https://github.com/lihaoyun6/QuickRecorder/issues/296)。根因：macOS 27 起 `NSStatusItem` 窗口内鼠标事件的 `locationInWindow` 一律返回窗口中心点，SwiftUI 命中测试只命中中心控件。已通过 `NSEvent.mouseLocation` 重建事件坐标修复。
 
+## 能录什么
+
+- 全屏、选定区域、一个或多个窗口、单个应用
+- 只录系统声音，可同时录麦克风
+- **连接到 Mac 的 iPhone 或 iPad**，见下文
+- 录制时显示摄像头悬浮窗、演讲者前置（macOS 14 及以上）
+
+### 录制 iPhone / iPad
+
+TinyRecorder 可以录制连接到 Mac 的 iPhone 或 iPad 的屏幕。它运行在 Mac 上，不是 iOS App。
+
+1. 用 USB 数据线连接设备，解锁设备；如果弹出提示，点 **信任**。
+2. 在 TinyRecorder 的录制工具栏中点 **录制移动设备**，会列出已连接的设备。
+3. 按需打开 **静音**、在 **预设** 中选择画质，然后点设备名开始录制。
+
+macOS 把设备当成一个外接摄像头，所以需要的是 **摄像头** 权限，而不是屏幕录制权限。如果列表里没有设备，请重新插拔数据线，并确认设备已解锁。
+
 ## 系统要求
 
 - macOS 12.3 及更高版本
@@ -50,7 +67,7 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 |---|---|
 | 屏幕录制 | 录制屏幕 / 窗口 / 应用 / 系统声音 |
 | 麦克风 | 录制人声 |
-| 摄像头 | 摄像头悬浮窗 / 演讲者前置 |
+| 摄像头 | 摄像头悬浮窗 / 演讲者前置 / 录制 iPhone、iPad |
 
 ### 首次使用引导
 
