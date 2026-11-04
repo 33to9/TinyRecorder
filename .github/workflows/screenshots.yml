@@ -1,0 +1,77 @@
+name: Website screenshots
+
+# Manual only. Installs the latest release on a throwaway macOS runner, opens it in every
+# website language and captures the screens the site shows. Download the "screenshots"
+# artifact from the run; nothing is committed or published by this workflow.
+on:
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: 'Languages (space-separated)'
+        default: 'en zh-Hans zh-Hant it ja de es'
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUNDLE_ID: com.33to9.TinyRecorder
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Environment
+        run: |
+          sw_vers; csrutil status || true
+          system_profiler SPDisplaysDataType | grep -E 'Resolution|Display Type' || true
+
+      - name: Install the latest release
+        run: |
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.dmg' --dir /tmp/dl
+          hdiutil attach /tmp/dl/*.dmg -mountpoint /tmp/dmg -nobrowse -quiet
+          cp -R /tmp/dmg/TinyRecorder.app /Applications/
+          hdiutil detach /tmp/dmg -quiet
+          xattr -dr com.apple.quarantine /Applications/TinyRecorder.app
+          defaults read /Applications/TinyRecorder.app/Contents/Info CFBundleShortVersionString
+
+      - name: Tools
+        run: |
+          brew install cliclick
+          swiftc -O .github/scripts/screenshots/windows.swift -o /tmp/windows
+
+      - name: Grant permissions (CI only)
+        run: |
+          EXE="/Applications/TinyRecorder.app/Contents/MacOS/$(defaults read /Applications/TinyRecorder.app/Contents/Info CFBundleExecutable)"
+          sudo python3 .github/scripts/screenshots/grant_permissions.py "$BUNDLE_ID" "$EXE" \
+            "$(brew --prefix)/bin/cliclick" /usr/bin/osascript /usr/sbin/screencapture /tmp/windows /bin/bash
+          # macOS 15 asks again periodically for screen recording; pre-approve the app.
+          defaults write "$HOME/Library/Group Containers/group.com.apple.replayd/ScreenCaptureApprovals" "$EXE" -date "3000-01-01 00:00:00 +0000" || true
+          sudo killall tccd || true
+
+      - name: Configure the app
+        run: |
+          d() { defaults write "$BUNDLE_ID" "$@"; }
+          d firstRunSetupDone -bool true      # skip the first-launch guide
+          d onboardingStep -int 9
+          d showOnDock -bool true
+          d showMenubar -bool true
+          d SUHasLaunchedBefore -bool true    # no Sparkle "check automatically?" prompt
+          d SUEnableAutomaticChecks -bool false
+
+      - name: Content to record (a few ordinary windows)
+        run: |
+          open -a Calculator; open -a TextEdit; open /Applications; sleep 5
+
+      - name: Capture
+        env:
+          LANGS: ${{ inputs.languages }}
+        run: .github/scripts/screenshots/capture.sh "$RUNNER_TEMP/shots" $LANGS
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: ${{ runner.temp }}/shots
