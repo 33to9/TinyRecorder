@@ -262,9 +262,9 @@ struct StatusBarItem: View {
                 }, label: {
                     ZStack {
                         Color.white.opacity(0.0001)
-                        Image(systemName: "dot.circle.and.hand.point.up.left.fill")
-                            .font(.system(size: 14, weight: .medium))
-                            .offset(y: 1)
+                        Image("TinyRecorderMenuBar")
+                            .renderingMode(.template)
+                            .frame(width: 18, height: 18)
                     }
                 })
                 .buttonStyle(.plain)

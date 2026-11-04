@@ -1017,7 +1017,7 @@ struct OnboardingStartStep: View {
             Text("You're Ready".local).font(.title2.bold())
             VStack(alignment: .leading, spacing: 12) {
                 if showMenubar {
-                    hint(icon: "dot.circle.and.hand.point.up.left.fill",
+                    hint(image: Image("TinyRecorderMenuBar").renderingMode(.template),
                          text: "Click the TinyRecorder icon in the menu bar (top right of the screen) to start a recording.".local)
                 }
                 if showOnDock {
@@ -1045,8 +1045,12 @@ struct OnboardingStartStep: View {
     }
 
     private func hint(icon: String, text: String) -> some View {
+        hint(image: Image(systemName: icon), text: text)
+    }
+
+    private func hint(image: Image, text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
+            image
                 .font(.system(size: 15))
                 .foregroundColor(.accentColor)
                 .frame(width: 22)

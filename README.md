@@ -1,5 +1,7 @@
 <p align="center">
-<h1 align="center">TinyRecorder</h1>
+<img src="img/tinyrecorder-header.png" alt="TinyRecorder" width="800">
+</p>
+<p align="center">
 <h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support<br><a href="README_zh.md">[简体中文]</a>
 </p>
 
