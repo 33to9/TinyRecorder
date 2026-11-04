@@ -460,6 +460,12 @@ class ScreenshotOverlayView: NSView {
             default:
                 break
             }
+            // 拖动边框不能超出本屏幕（拖到相邻屏幕上时，事件仍发给这块屏幕的选择层），
+            // 否则录制区域会超出显示器：录到黑边或启动失败，还会被存成这块屏幕的记忆区域
+            // （用 bounds 而不是 maxFrame：maxFrame 来自 draw 的 dirtyRect，可能只是局部区域）
+            let clamped = newRect.intersection(self.bounds)
+            guard !clamped.isNull, clamped.width >= 20, clamped.height >= 20 else { return }
+            newRect = clamped
             self.selectionRect = newRect
             initialLocation = currentLocation // Update initial location for continuous dragging
             lastMouseLocation = currentLocation // Update last mouse location

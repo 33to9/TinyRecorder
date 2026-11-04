@@ -281,9 +281,13 @@ struct SelectorView: View {
     }
 }
 
+/// Incremented for every countdown shown; a countdown only fires while it is still the latest.
+var countdownGeneration = 0
+
 struct CountdownView: View {
     @State var countdownValue: Int = 00
     @State private var timer: Timer?
+    var generation: Int = 0
     var atEnd: () -> Void
 
     var body: some View {
@@ -313,6 +317,12 @@ struct CountdownView: View {
         .onAppear{
             timer?.invalidate()
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+                // 倒计时窗口被别的操作关掉（点菜单栏图标、快捷键开始了别的录制）、被新的倒计时取代，
+                // 或者已经有录制在进行：取消，不再自动开始录制
+                if generation != countdownGeneration || !countdownPanel.isVisible || SCContext.streamType != nil {
+                    timer.invalidate()
+                    return
+                }
                 if countdownValue > 1 {
                     countdownValue -= 1
                 } else {
@@ -403,7 +413,8 @@ extension AppDelegate {
             let wX = (screen.frame.width - 120) / 2 + screen.frame.minX
             let wY = (screen.frame.height - 120) / 2 + screen.frame.minY
             let frame =  NSRect(x: wX, y: wY, width: 120, height: 120)
-            let contentView = NSHostingView(rootView: CountdownView(countdownValue: countdown, atEnd: action))
+            countdownGeneration += 1
+            let contentView = NSHostingView(rootView: CountdownView(countdownValue: countdown, generation: countdownGeneration, atEnd: action))
             contentView.frame = frame
             countdownPanel.contentView = contentView
             countdownPanel.setFrame(frame, display: true)

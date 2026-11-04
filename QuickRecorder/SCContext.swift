@@ -28,6 +28,9 @@ class SCContext {
     static var saveFrame = false
     static var isPaused = false
     static var isResume = false
+    /// 当前录制所用 SCStream 的标识（只在 streamQueue 上读写）。用来忽略已被放弃的旧 stream 的回调，
+    /// 例如启动过程中就按了停止、之后才启动完成的那个 stream。
+    static var activeStream: ObjectIdentifier?
     static var isSkipFrame = false
     static var lastPTS: CMTime?
     static var timeOffset = CMTime.zero
@@ -44,6 +47,9 @@ class SCContext {
     static var recAudioFormat = ""
     // 实际启动了哪些麦克风采集组件，停止时据此清理
     static var micTapInstalled = false
+    /// 录制开始时麦克风的格式；中途换设备后把新设备的音频转换成这个格式再写入
+    static var micTapFormat: AVAudioFormat?
+    static var micConfigObserver: NSObjectProtocol?
     static var aecStarted = false
     static var screenArea: NSRect?
     static let audioEngine = AVAudioEngine()
@@ -347,8 +353,12 @@ class SCContext {
             return isPaused
         }
         PopoverState.shared.isPaused = paused
-        if !paused {
-            startTime = Date.now.addingTimeInterval(-1) - SCContext.timePassed
+        if paused {
+            // 暂停时精确记下已录时长（界面计时器 0.5 秒刷新一次，不能用它最后一次的值）
+            timePassed = Date.now.timeIntervalSince(startTime ?? Date.now)
+        } else {
+            // 继续时把开始时间后移暂停的时长；不再额外减 1 秒，否则每继续一次计时就多 1 秒
+            startTime = Date.now - timePassed
         }
     }
     
@@ -360,6 +370,7 @@ class SCContext {
             writerFailureReported = false
             isPaused = false
             isResume = false
+            activeStream = nil
             lastPTS = nil
             timeOffset = CMTime.zero
             firstFrame = nil
@@ -394,18 +405,44 @@ class SCContext {
     
     /// 追加一段麦克风音频（须在 streamQueue 上调用）
     static func appendMicSample(_ sample: CMSampleBuffer) {
-        if isStopping || isPaused || isResume || !sessionStarted { return }
+        if isStopping || isPaused || !sessionStarted { return }
         guard let writer = vW, let input = micInput else { return }
         if writer.status == .failed { handleWriterFailure(writer.error); return }
         guard writer.status == .writing else { return }
+        // 继续录制后画面可能一直不变（屏幕帧不来），麦克风样本也要能结算暂停偏移，
+        // 否则在下一帧画面到来前，讲解声音全部被丢弃
+        if !consumeResume(sample) { return }
         var buffer = sample
         if CMTimeCompare(timeOffset, CMTime.zero) > 0 {
             guard let adjusted = adjustTime(sample: sample, by: timeOffset) else { return }
             buffer = adjusted
         }
         if input.isReadyForMoreMediaData {
-            if !input.append(buffer) { handleWriterFailure(writer.error) }
+            if input.append(buffer) {
+                var end = CMSampleBufferGetPresentationTimeStamp(buffer)
+                let dur = CMSampleBufferGetDuration(buffer)
+                if dur.value > 0 { end = CMTimeAdd(end, dur) }
+                updateLastPTS(end)
+            } else {
+                handleWriterFailure(writer.error)
+            }
         }
+    }
+
+    /// 继续录制后到达的第一段样本（屏幕帧、系统声音或麦克风，谁先到都行）用来结算暂停造成的
+    /// 时间偏移，之后所有轨道统一减去 timeOffset。返回 false 表示这段样本应丢弃。
+    /// 须在 streamQueue 上调用。
+    static func consumeResume(_ sample: CMSampleBuffer) -> Bool {
+        guard isResume else { return true }
+        isResume = false
+        guard let last = lastPTS else { return false }
+        if last.flags.contains(CMTimeFlags.valid) {
+            let pts = CMTimeSubtract(CMSampleBufferGetPresentationTimeStamp(sample), timeOffset)
+            let off = CMTimeSubtract(pts, last)
+            if CMTimeCompare(off, CMTime.zero) > 0 { timeOffset = CMTimeAdd(timeOffset, off) }
+        }
+        lastPTS?.flags = []
+        return true
     }
     
     /// 记录已写入媒体的结束时间（须在 streamQueue 上调用）
@@ -417,6 +454,8 @@ class SCContext {
     /// 停止麦克风采集（只清理实际启动过的组件，可重复调用）
     static func stopMicCapture() {
         AudioRecorder.shared.stop()
+        if let o = micConfigObserver { NotificationCenter.default.removeObserver(o); micConfigObserver = nil }
+        micTapFormat = nil
         if micTapInstalled {
             audioEngine.inputNode.removeTap(onBus: 0)
             micTapInstalled = false
@@ -428,6 +467,55 @@ class SCContext {
         }
     }
     
+    /// 在默认麦克风上安装采集 tap 并启动音频引擎。录制开始时调用一次；之后输入设备变化
+    /// （插拔耳机、换默认麦克风）时 AVAudioEngine 会自动停止，这里会自动重新安装并继续采集，
+    /// 新设备的音频被转换成录制开始时的格式，写入器不受影响。
+    static func startMicTap() throws {
+        let input = audioEngine.inputNode
+        let format = input.inputFormat(forBus: 0)
+        guard format.channelCount > 0, format.sampleRate > 0 else {
+            throw RecordingError("No available microphone input.")
+        }
+        if micTapFormat == nil { micTapFormat = format }
+        let target = micTapFormat ?? format
+        let converter: AVAudioConverter? = (format == target) ? nil : AVAudioConverter(from: format, to: target)
+        if micTapInstalled { input.removeTap(onBus: 0) }
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+            var out = buffer
+            if let converter = converter {
+                let capacity = AVAudioFrameCount(Double(buffer.frameLength) * target.sampleRate / format.sampleRate) + 32
+                guard let converted = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: capacity) else { return }
+                var fed = false
+                var error: NSError?
+                _ = converter.convert(to: converted, error: &error) { _, status in
+                    if fed { status.pointee = .noDataNow; return nil }
+                    fed = true
+                    status.pointee = .haveData
+                    return buffer
+                }
+                if error != nil || converted.frameLength == 0 { return }
+                out = converted
+            }
+            // 在回调线程上立即转换（会拷贝数据），再交给串行队列写入
+            guard let sample = out.asSampleBuffer else { return }
+            streamQueue.async { appendMicSample(sample) }
+        }
+        micTapInstalled = true
+        try audioEngine.start()
+        if micConfigObserver == nil {
+            micConfigObserver = NotificationCenter.default.addObserver(forName: .AVAudioEngineConfigurationChange, object: audioEngine, queue: .main) { _ in
+                guard micTapInstalled, streamType != nil else { return }
+                do {
+                    try startMicTap()
+                } catch {
+                    showNotification(title: "Microphone Unavailable".local,
+                                     body: "The microphone changed during recording and could not be resumed. The rest of this recording has no microphone audio.".local,
+                                     id: "quickrecorder.error.\(UUID().uuidString)")
+                }
+            }
+        }
+    }
+
     /// 安全地结束写入器，completion 在后台线程回调，参数表示文件是否成功写完
     static func finishWriter(_ writer: AVAssetWriter, completion: @escaping (Bool) -> Void) {
         guard writer.status == .writing else {

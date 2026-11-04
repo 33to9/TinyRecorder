@@ -11,6 +11,9 @@ import UserNotifications
 
 extension AppDelegate {
     func recordingCamera(with device: AVCaptureDevice) {
+        // 切换摄像头前停掉旧会话（同 AVOutputClass.startRecording），避免指示灯常亮
+        if let old = SCContext.captureSession, old.isRunning { old.stopRunning() }
+        if let old = SCContext.previewSession, old.isRunning { old.stopRunning() }
         SCContext.captureSession = AVCaptureSession()
         
         guard let input = try? AVCaptureDeviceInput(device: device),
@@ -60,6 +63,10 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
     }
     
     public func startRecording(with device: AVCaptureDevice, mute: Bool = false, preset: AVCaptureSession.Preset = .high, didOutput: Bool = true) {
+        // 先停掉上一个会话（例如录制中把摄像头画中画从 FaceTime 摄像头换成 iPhone），
+        // 否则旧会话失去引用后仍在运行，摄像头指示灯会一直亮到退出 App
+        if let old = SCContext.captureSession, old.isRunning { old.stopRunning() }
+        if let old = SCContext.previewSession, old.isRunning { old.stopRunning() }
         output = AVCaptureMovieFileOutput()
         dataOutput = AVCaptureVideoDataOutput()
         dataOutput.setSampleBufferDelegate(self, queue: .global())
@@ -118,18 +125,19 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
     }
 
     public func stopRecording() {
-        guard let session = SCContext.captureSession else { return }
-        if session.isRunning {
+        if let session = SCContext.captureSession, session.isRunning {
             output?.stopRecording()
             session.stopRunning()
-            SCContext.previewSession?.stopRunning()
-            SCContext.streamType = nil
-            SCContext.startTime = nil
-            DispatchQueue.main.async {
-                controlPanel.close()
-                deviceWindow.close()
-                updateStatusBar()
-            }
+        }
+        // 设备被拔掉时会话已自行停止：仍要复位录制状态，否则界面一直停在“录制中”
+        SCContext.previewSession?.stopRunning()
+        guard SCContext.streamType == .idevice else { return }
+        SCContext.streamType = nil
+        SCContext.startTime = nil
+        DispatchQueue.main.async {
+            controlPanel.close()
+            deviceWindow.close()
+            updateStatusBar()
         }
     }
     

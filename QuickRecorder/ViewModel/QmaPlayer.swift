@@ -248,10 +248,10 @@ struct PlayerSlider: View {
         GeometryReader { geometry in
             VStack(spacing: 2) {
                 HStack {
-                    Text("\(String(format: "%.2d:%.2d:%.2d", isDragging ? Int(temporaryPercentage * audioLength) / 3600 : Int(percentage * audioLength) / 3600, isDragging ? Int(temporaryPercentage * audioLength) / 60 : Int(percentage * audioLength) / 60, isDragging ? Int(temporaryPercentage * audioLength) % 60 : Int(percentage * audioLength) % 60))"
-                    ).foregroundColor(.secondary)
+                    Text(hms(Int((isDragging ? temporaryPercentage : percentage) * audioLength)))
+                        .foregroundColor(.secondary)
                     Spacer()
-                    Text("\(String(format: "%.2d:%.2d:%.2d", Int(audioLength) / 3600, Int(audioLength) / 60, Int(audioLength) % 60))")
+                    Text(hms(Int(audioLength)))
                         .foregroundColor(.secondary)
                 }
                 ZStack(alignment: .leading) {
@@ -672,7 +672,8 @@ class AudioPlayerManager: ObservableObject {
     }
     
     private func showSavePanel(defaultFileName: String, exportMP3: Bool, completion: @escaping (URL?, Bool) -> Void) {
-        panel.isReleasedWhenClosed = true
+        // ARC 已持有 panel；设为 true 会在 close() 时被 AppKit 再释放一次（勾选“导出为 MP3”时崩溃）
+        panel.isReleasedWhenClosed = false
         panel.nameFieldStringValue = defaultFileName
         panel.canCreateDirectories = true
         panel.title = "Export Recording".local
@@ -705,4 +706,10 @@ class AudioPlayerManager: ObservableObject {
 
 extension UTType {
     static let qma = UTType(exportedAs: "com.33to9.TinyRecorder.qma")
+}
+
+/// Formats seconds as HH:MM:SS (minutes wrap at 60, so 75 min shows 01:15:00).
+fileprivate func hms(_ seconds: Int) -> String {
+    let s = max(0, seconds)
+    return String(format: "%.2d:%.2d:%.2d", s / 3600, (s / 60) % 60, s % 60)
 }

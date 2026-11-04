@@ -367,6 +367,7 @@ extension AppDelegate {
         
         let stream = SCStream(filter: filter, configuration: conf, delegate: self)
         SCContext.stream = stream
+        SCContext.streamQueue.sync { SCContext.activeStream = ObjectIdentifier(stream) }
         // 先申请防睡眠：失败中止 / 停止时都会无条件调用 allowSleep()，不会泄漏
         if preventSleep { SleepPreventer.shared.preventSleep(reason: "Screen recording in progress") }
         do {
@@ -387,6 +388,9 @@ extension AppDelegate {
         }
         // 启动期间用户可能已经停止了录制
         if SCContext.streamQueue.sync(execute: { SCContext.isStopping }) {
+            // stopRecording() 在 startCapture 完成前就执行了，那时停不掉这个 stream：在这里补停，
+            // 否则它会一直采集（录制指示一直亮），回调还可能写进下一次录制
+            try? await stream.stopCapture()
             SleepPreventer.shared.allowSleep()
             return
         }
@@ -564,18 +568,7 @@ extension AppDelegate {
                 })
                 SCContext.aecStarted = true
             } else {
-                let input = SCContext.audioEngine.inputNode
-                let inputFormat = input.inputFormat(forBus: 0)
-                guard inputFormat.channelCount > 0, inputFormat.sampleRate > 0 else {
-                    throw RecordingError("No available microphone input.")
-                }
-                if SCContext.micTapInstalled { input.removeTap(onBus: 0) }
-                input.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { buffer, time in
-                    guard let sample = buffer.asSampleBuffer else { return }
-                    SCContext.streamQueue.async { SCContext.appendMicSample(sample) }
-                }
-                SCContext.micTapInstalled = true
-                try SCContext.audioEngine.start()
+                try SCContext.startMicTap()
             }
         } else {
             guard AudioRecorder.shared.setupAudioCapture() else {
@@ -605,6 +598,8 @@ extension AppDelegate {
     }
     
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of outputType: SCStreamOutputType) {
+        // 运行在 streamQueue 上：只处理当前录制的 stream，忽略已放弃的旧 stream
+        if SCContext.activeStream != ObjectIdentifier(stream) { return }
         if SCContext.saveFrame, let imageBuffer = sampleBuffer.imageBuffer {
             SCContext.saveFrame = false
             
@@ -671,18 +666,7 @@ extension AppDelegate {
             return
         }
         var SampleBuffer = sampleBuffer
-        if SCContext.isResume {
-            SCContext.isResume = false
-            var pts = CMSampleBufferGetPresentationTimeStamp(SampleBuffer)
-            guard let last = SCContext.lastPTS else { return }
-            if last.flags.contains(CMTimeFlags.valid) {
-                pts = CMTimeSubtract(pts, SCContext.timeOffset)
-                let off = CMTimeSubtract(pts, last)
-                print("adding \(CMTimeGetSeconds(off)) to \(CMTimeGetSeconds(SCContext.timeOffset))")
-                if CMTimeCompare(off, CMTime.zero) > 0 { SCContext.timeOffset = CMTimeAdd(SCContext.timeOffset, off) }
-            }
-            SCContext.lastPTS?.flags = []
-        }
+        if !SCContext.consumeResume(SampleBuffer) { return }
         // 暂停产生的时间偏移对所有写入同一写入器的轨道（视频、系统声音、麦克风）一致生效
         let hasOffset = CMTimeCompare(SCContext.timeOffset, CMTime.zero) > 0
         switch outputType {
@@ -783,7 +767,10 @@ extension AppDelegate {
     func stream(_ stream: SCStream, didStopWithError error: Error) { // stream error
         print("closing stream with error:\n".local, error,
               "\nthis might be due to the window closing or the user stopping from the sonoma ui".local)
+        let id = ObjectIdentifier(stream)
         DispatchQueue.main.async {
+            // 旧 stream 迟到的错误不能停掉新的录制
+            guard SCContext.streamQueue.sync(execute: { SCContext.activeStream == id }) else { return }
             SCContext.stream = nil
             SCContext.stopRecording()
         }

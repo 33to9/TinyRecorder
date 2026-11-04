@@ -114,7 +114,12 @@ struct HighlightMask: View {
             var dashWindow = NSWindow()
             guard let screen = display, let nsScreen = display?.nsScreen, var area = window?.frame else { return }
             area = CGRectTransform(cgRect: area)
-            SCContext.screenArea = NSRect(x: area.origin.x - nsScreen.frame.minX, y: area.origin.y - nsScreen.frame.minY, width:area.width, height: area.height)
+            // 窗口跨屏或部分在屏幕外时，只录它在这块屏幕上的部分（超出显示器的区域无法录制）
+            let local = NSRect(x: area.origin.x - nsScreen.frame.minX, y: area.origin.y - nsScreen.frame.minY, width: area.width, height: area.height)
+                .intersection(NSRect(origin: .zero, size: nsScreen.frame.size))
+            guard !local.isNull, local.width >= 2, local.height >= 2 else { return }
+            SCContext.screenArea = local
+            area = NSRect(x: local.origin.x + nsScreen.frame.minX, y: local.origin.y + nsScreen.frame.minY, width: local.width, height: local.height)
             let frame = NSRect(x: Int(area.origin.x - 3),
                                y: Int(area.origin.y - 3),
                                width: Int(area.width + 6), height: Int(area.height + 6))

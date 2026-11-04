@@ -34,7 +34,8 @@ struct WinSelector: View {
                         Text("Please select the window(s) to record")
                         Spacer()
                         HoverButton(action: {
-                            WindowHighlighter.shared.registerMouseMonitor(mode: 2)
+                            // 与工具栏按钮一致：录制所选窗口本身（mode 2 是录一块固定屏幕区域）
+                            WindowHighlighter.shared.registerMouseMonitor()
                         }, label: {
                             ZStack {
                                 Color.white.opacity(0.0001)

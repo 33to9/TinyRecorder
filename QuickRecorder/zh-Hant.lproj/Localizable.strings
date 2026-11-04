@@ -11,7 +11,6 @@
 "Screen" = "錄製整個螢幕";
 "Application" = "錄製應用程式";
 "Window" = "錄製視窗內容";
-//"Camera" = "網路攝影機";
 "Mobile Device" = "錄製行動裝置";
 "Preferences" = "偏好設定";
 "No Title" = "無標題";
@@ -296,3 +295,22 @@
 
 /* Preview menu (v1.8.1) */
 "Share…" = "分享…";
+
+/* Previously untranslated UI text (v1.8.2) */
+"Camera" = "錄製攝影機";
+"Lossless" = "無損";
+"ALAC (Lossless)" = "ALAC（無損）";
+"FLAC (Lossless)" = "FLAC（無損）";
+"No Audio Connection" = "無法取得音訊";
+"Unable to get audio stream on this device, only screen content will be recorded!" = "無法取得此裝置的音訊，將只錄製畫面！";
+"No content was captured." = "沒有錄到任何內容。";
+"Recording Failed" = "錄製失敗";
+"Unknown" = "未知";
+"Unknown Error" = "未知錯誤";
+"Failed to mix audio tracks" = "混合音軌失敗";
+"Unable to create export session." = "無法建立匯出工作。";
+" Tips" = " 小提示";
+"Move to Trash" = "丟到垃圾桶";
+"Move this recording to the Trash?" = "要將這段錄影丟到垃圾桶嗎？";
+"Microphone Unavailable" = "麥克風無法使用";
+"The microphone changed during recording and could not be resumed. The rest of this recording has no microphone audio." = "錄製中麥克風發生了變化且無法恢復，本次錄製之後的部分沒有麥克風聲音。";

@@ -195,8 +195,8 @@ struct StatusBarItem: View {
                 }
                 .onReceive(updateTimer) { t in
                     recordingLength = SCContext.getRecordingLength()
-                    let timePassed = Date.now.timeIntervalSince(SCContext.startTime ?? t)
-                    if SCContext.autoStop != 0 && timePassed / 60 >= CGFloat(SCContext.autoStop) { SCContext.stopRecording() }
+                    // 按实际录制时长（不含暂停）判断自动停止；暂停期间不会触发
+                    if SCContext.autoStop != 0 && !SCContext.isPaused && SCContext.timePassed / 60 >= CGFloat(SCContext.autoStop) { SCContext.stopRecording() }
                     if let visible = statusBarItem.button?.window?.occlusionState.contains(.visible) {
                         if visible {
                             statusBarOccludedSince = nil

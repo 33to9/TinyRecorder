@@ -11,7 +11,6 @@
 "Screen" = "录制全屏画面";
 "Application" = "录制应用程序";
 "Window" = "录制窗口内容";
-//"Camera" = "录制摄像头";
 "Mobile Device" = "录制移动设备";
 "Preferences" = "偏好设置";
 "No Title" = "无标题";
@@ -298,3 +297,21 @@
 
 /* Preview menu (v1.8.1) */
 "Share…" = "共享…";
+
+/* Previously untranslated UI text (v1.8.2) */
+"Camera" = "录制摄像头";
+"Lossless" = "无损";
+"ALAC (Lossless)" = "ALAC（无损）";
+"FLAC (Lossless)" = "FLAC（无损）";
+"No Audio Connection" = "无法获取音频";
+"Unable to get audio stream on this device, only screen content will be recorded!" = "无法获取此设备的音频，将只录制画面！";
+"No content was captured." = "没有录到任何内容。";
+"Recording Failed" = "录制失败";
+"Unknown" = "未知";
+"Unknown Error" = "未知错误";
+"Failed to mix audio tracks" = "混合音轨失败";
+"Unable to create export session." = "无法创建导出任务。";
+"Move to Trash" = "移到废纸篓";
+"Move this recording to the Trash?" = "将这段录像移到废纸篓？";
+"Microphone Unavailable" = "麦克风不可用";
+"The microphone changed during recording and could not be resumed. The rest of this recording has no microphone audio." = "录制中麦克风发生了变化且无法恢复，本次录制之后的部分没有麦克风声音。";

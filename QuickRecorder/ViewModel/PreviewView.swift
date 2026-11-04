@@ -96,11 +96,16 @@ struct PreviewView: View {
                 }
                 closeWindow()
             }
-            Button("Delete") {
+            Button("Move to Trash") {
+                // 先确认，再移到废纸篓（可在访达中恢复），不再直接永久删除
+                let alert = createAlert(level: .warning, title: "Move this recording to the Trash?",
+                                        message: filePath.lastPathComponent,
+                                        button1: "Move to Trash", button2: "Cancel")
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
                 do {
-                    try fd.removeItem(atPath: filePath)
+                    try fd.trashItem(at: filePath.url, resultingItemURL: nil)
                 } catch {
-                    print("Failed to delete file: \(error.localizedDescription)")
+                    print("Failed to move file to Trash: \(error.localizedDescription)")
                 }
                 closeWindow()
             }

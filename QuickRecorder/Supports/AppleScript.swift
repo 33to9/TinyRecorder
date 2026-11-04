@@ -28,7 +28,8 @@ extension NSScriptCommand {
     /// Common precondition for the recording commands. Returns an error message if the
     /// command can't run now, nil otherwise.
     func scriptRecordingPrecondition() -> String? {
-        if SCContext.stream != nil { return "Already recording!".local }
+        // streamType 覆盖 iPhone/iPad 录制（没有 SCStream）和正在启动中的录制
+        if SCContext.streamType != nil { return "Already recording!".local }
         if !CGPreflightScreenCaptureAccess() {
             DispatchQueue.main.async { AppDelegate.shared.showScreenPermissionGuide() }
             return "Screen Recording Permission".local
@@ -210,7 +211,7 @@ class recordAudio: NSScriptCommand {
 @objc(setPreferences)
 class setPreferences: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if SCContext.stream != nil { return scriptFail("Already recording!".local) }
+        if SCContext.streamType != nil { return scriptFail("Already recording!".local) }
         let args = scriptArgs
         if let fps = args["fps"] as? Int, ![240, 144, 120, 90, 60, 30, 24, 15, 10].contains(fps) {
             return scriptFail("Invalid frame rate! Allowed values: 240, 144, 120, 90, 60, 30, 24, 15, 10")

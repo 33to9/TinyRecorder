@@ -210,7 +210,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {
-        if SCContext.stream != nil { SCContext.stopRecording() }
+        if SCContext.streamType == .idevice { AVOutputClass.shared.stopRecording() }
+        else if SCContext.stream != nil { SCContext.stopRecording() }
     }
     
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -333,7 +334,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         }
         KeyboardShortcuts.onKeyDown(for: .saveFrame) { if SCContext.stream != nil { SCContext.saveFrame = true }}
         KeyboardShortcuts.onKeyDown(for: .screenMagnifier) { if SCContext.stream != nil { SCContext.isMagnifierEnabled.toggle() }}
-        KeyboardShortcuts.onKeyDown(for: .stop) { if SCContext.stream != nil { SCContext.stopRecording() }}
+        KeyboardShortcuts.onKeyDown(for: .stop) {
+            // iPhone/iPad 录制走 AVCaptureSession，没有 SCStream，要单独停止
+            if SCContext.streamType == .idevice { AVOutputClass.shared.stopRecording() }
+            else if SCContext.stream != nil { SCContext.stopRecording() }
+        }
         KeyboardShortcuts.onKeyDown(for: .pauseResume) { if SCContext.stream != nil { SCContext.pauseRecording() }}
         // Recording shortcuts always go through AppDelegate.shared (the instance the rest of
         // the app uses) and refresh the shareable content first, so they never run on stale
@@ -347,26 +352,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             }
         }
         KeyboardShortcuts.onKeyDown(for: .startWithScreen) {
-            if SCContext.stream != nil { return }
+            if SCContext.streamType != nil { return }
             AppDelegate.shared.withFreshScreenContent {
-                if SCContext.stream != nil { return }
+                if SCContext.streamType != nil { return }
                 closeAllWindow()
                 AppDelegate.shared.prepRecord(type: "display", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
             }
         }
         KeyboardShortcuts.onKeyDown(for: .startWithArea) {
-            if SCContext.stream != nil { return }
+            if SCContext.streamType != nil { return }
             AppDelegate.shared.withFreshScreenContent {
-                if SCContext.stream != nil { return }
+                if SCContext.streamType != nil { return }
                 closeAllWindow()
                 AppDelegate.shared.startAreaSelection()
             }
         }
         KeyboardShortcuts.onKeyDown(for: .startWithWindow) {
-            if SCContext.stream != nil { return }
+            if SCContext.streamType != nil { return }
             let frontmostApp = NSWorkspace.shared.frontmostApplication
             AppDelegate.shared.withFreshScreenContent {
-                if SCContext.stream != nil { return }
+                if SCContext.streamType != nil { return }
                 closeAllWindow()
                 guard let pid = frontmostApp?.processIdentifier else { return }
                 guard let scWindow = SCContext.getWindows().first(where: { $0.owningApplication?.processID == pid && $0.title != "" && $0.isOnScreen }) else { return }
@@ -387,7 +392,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             // 无录屏权限时不显示底部工具栏：工具栏在悬浮层，小屏幕上会盖住引导窗的
             // 「点击授权」按钮。引导完成授权并重启后，下次启动正常显示工具栏。
             showScreenPermissionGuide()
-        } else if showOnDock {
+        } else if showOnDock || !showMenubar {
+            // Dock 图标和菜单栏图标都关掉时，启动后也要显示录制工具栏，否则看起来像没打开
             _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
     }
@@ -405,6 +411,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                              backing: .buffered, defer: false)
         panel.contentView = NSHostingView(rootView: OnboardingView())
         panel.title = onboardingTitle
+        // NSPanel 默认在 App 失去焦点时隐藏；权限这一步需要切到系统设置，引导窗必须留在屏幕上
+        panel.hidesOnDeactivate = false
         // 关闭窗口 = 跳过剩余步骤；但还没拿到录屏权限时，下次启动继续引导
         var closeObserver: NSObjectProtocol?
         closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: panel, queue: .main) { _ in
@@ -475,6 +483,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                                   backing: .buffered, defer: false)
         guidePanel.contentView = NSHostingView(rootView: ScreenPermissionGuide())
         guidePanel.title = "Screen Recording Permission".local
+        guidePanel.hidesOnDeactivate = false
         guidePanel.isRestorable = false
         guidePanel.isReleasedWhenClosed = false
         guidePanel.center()
@@ -797,8 +806,10 @@ struct OnboardingView: View {
     private func finish() {
         ud.set(true, forKey: firstRunSetupKey)
         NSApp.windows.first(where: { $0.title == onboardingTitle })?.close()
-        // 打开录制工具栏，让用户马上能开始第一次录制
+        // 打开录制工具栏，让用户马上能开始第一次录制。先关掉其他窗口（例如刚打开的偏好设置），
+        // 否则“已有可见窗口”时工具栏不会弹出
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            closeAllWindow()
             _ = AppDelegate.shared.applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
     }
@@ -1047,7 +1058,8 @@ func closeMainWindow() {
 
 func closeAllWindow(except: String = "") {
     for w in NSApp.windows.filter({
-        $0.title != "Item-0" && $0.title != ""
+        // 首次引导不随其他窗口一起关闭：点菜单栏图标或按录制快捷键不应跳过剩下的引导步骤
+        $0.title != "Item-0" && $0.title != "" && $0.title != onboardingTitle
         && !$0.title.lowercased().contains(".qma")
         && !$0.title.contains(except) }) { w.close() }
 }
@@ -1134,6 +1146,11 @@ func createAlert(level: NSAlert.Style = .warning, title: String, message: String
 }
 
 func showAlertSyncOnMainThread(level: NSAlert.Style = .warning, title: String, message: String, button1: String, button2: String = "", width: Int? = nil) -> NSApplication.ModalResponse {
+    // 已在主线程（例如 AppDelegate 是 @MainActor，record() 就跑在主线程）时直接弹窗：
+    // 否则 main.async + 等待信号量会让主线程等自己，整个 App 卡死。
+    if Thread.isMainThread {
+        return createAlert(level: level, title: title, message: message, button1: button1, button2: button2, width: width).runModal()
+    }
     var response: NSApplication.ModalResponse = .abort
     let semaphore = DispatchSemaphore(value: 0)
     
