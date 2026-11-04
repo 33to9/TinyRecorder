@@ -14,7 +14,9 @@ jobs:
   build:
     # Build on ONE fixed runner: a matrix would upload two different builds under the
     # same asset names, and whichever finished last would silently become the release.
-    runs-on: macos-15
+    # Intel image: the arm64 macos-15 pool kept dropping jobs ("not acquired by Runner ...
+    # due to capacity constraints"). Same macOS 15 image and Xcode; ARCHS builds universal.
+    runs-on: macos-15-intel
     steps:
       - name: Checkout
         uses: actions/checkout@v4
