@@ -1,8 +1,12 @@
 <p align="center">
 <img src="img/tinyrecorder-header.png" alt="TinyRecorder" width="800">
 </p>
+<h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support</h3>
 <p align="center">
-<h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support<br><a href="README_zh.md">[简体中文]</a>
+<a href="https://www.tinyrecorder.app/en/"><b>Website: www.tinyrecorder.app</b></a>
+</p>
+<p align="center">
+<b>English</b> · <a href="README_zh.md">简体中文</a> · <a href="README_zh-Hant.md">繁體中文</a> · <a href="README_it.md">Italiano</a> · <a href="README_ja.md">日本語</a> · <a href="README_de.md">Deutsch</a> · <a href="README_es.md">Español</a>
 </p>
 
 > **TinyRecorder** is a community fork of [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) by [lihaoyun6](https://github.com/lihaoyun6), which has been inactive since mid-2025.

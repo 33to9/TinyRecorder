@@ -1,8 +1,12 @@
 <p align="center">
 <img src="img/tinyrecorder-header.png" alt="TinyRecorder" width="800">
 </p>
+<h3 align="center">轻量化、高性能的 macOS 录屏工具（支持 macOS 27）</h3>
 <p align="center">
-<h3 align="center">轻量化、高性能的 macOS 录屏工具（支持 macOS 27）<br><a href="README.md">[English Version]</a>
+<a href="https://www.tinyrecorder.app/zh-Hans/"><b>官网：www.tinyrecorder.app</b></a>
+</p>
+<p align="center">
+<a href="README.md">English</a> · <b>简体中文</b> · <a href="README_zh-Hant.md">繁體中文</a> · <a href="README_it.md">Italiano</a> · <a href="README_ja.md">日本語</a> · <a href="README_de.md">Deutsch</a> · <a href="README_es.md">Español</a>
 </p>
 
 > **TinyRecorder** 是 [lihaoyun6](https://github.com/lihaoyun6) 的 [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) 的社区分支（原项目自 2025 年中起停止维护）。
