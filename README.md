@@ -1,6 +1,6 @@
 <p align="center">
 <h1 align="center">TinyRecorder</h1>
-<h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support<br>轻量化多功能 macOS 录屏工具（支持 macOS 27）<br><a href="README_zh.md">[中文版本]</a>
+<h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support<br><a href="README_zh.md">[简体中文]</a>
 </p>
 
 > **TinyRecorder** is a community fork of [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) by [lihaoyun6](https://github.com/lihaoyun6), which has been inactive since mid-2025.
@@ -48,9 +48,9 @@ Use **Check for Updates…** inside the app: no download, no Gatekeeper warning,
 
 | Permission | Needed for |
 |---|---|
-| Screen Recording (屏幕录制) | Recording screen / window / app / system audio |
-| Microphone (麦克风) | Recording your voice |
-| Camera (摄像头) | Camera overlay / Presenter Overlay |
+| Screen Recording | Recording screen / window / app / system audio |
+| Microphone | Recording your voice |
+| Camera | Camera overlay / Presenter Overlay |
 
 ### First-launch setup
 

@@ -19,6 +19,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check for hardcoded non-English UI text
+        # Each language must show only its own text: write UI strings in English and
+        # translate them in <lang>.lproj/Localizable.strings.
+        run: perl .github/scripts/check_hardcoded_strings.pl QuickRecorder
+
       - name: Select latest stable Xcode
         run: |
           # Newest installed Xcode, excluding beta / RC builds

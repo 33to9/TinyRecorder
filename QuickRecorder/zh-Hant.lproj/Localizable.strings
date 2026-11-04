@@ -293,3 +293,6 @@
 "Open Preferences" = "打開偏好設定";
 "Start Recording" = "開始錄製";
 "System Settings → Privacy & Security → Screen & System Audio Recording" = "系統設定 → 隱私權與安全性 → 螢幕與系統錄音";
+
+/* Preview menu (v1.8.1) */
+"Share…" = "分享…";

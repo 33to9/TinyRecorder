@@ -113,7 +113,7 @@ struct PreviewView: View {
                 }
                 closeWindow()
             }
-            Button("共享...") { showSharingServicePicker(for: filePath.url) }
+            Button("Share…") { showSharingServicePicker(for: filePath.url) }
             Divider()
             if !trimAfterRecord {
                 Button("Trim") {
