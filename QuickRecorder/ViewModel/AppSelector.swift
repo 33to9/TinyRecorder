@@ -222,7 +222,7 @@ struct OptionsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Resolution")
                     Text("Frame Rate")
-                }
+                }.fixedSize()
                 VStack(alignment: .leading, spacing: 10) {
                     Picker("", selection: $highRes) {
                         Text("High (auto)").tag(2)
@@ -252,7 +252,7 @@ struct OptionsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Quality")
                     Text("Background")
-                }.padding(.leading, isMacOS12 ? 0 : 8)
+                }.fixedSize().padding(.leading, isMacOS12 ? 0 : 8)
                 VStack(alignment: .leading, spacing: 10) {
                     Picker("", selection: $videoQuality) {
                         Text("High").tag(1.0)

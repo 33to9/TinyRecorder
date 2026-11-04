@@ -524,7 +524,7 @@
 				INFOPLIST_FILE = QuickRecorder/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tiny Recorder";
+				INFOPLIST_KEY_CFBundleDisplayName = TinyRecorder;
 				INFOPLIST_KEY_NSCameraUsageDescription = "TinyRecorder needs this permission to record your camera and mobile device.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 lihaoyun6 (QuickRecorder). Modified © 2026 33to9 (TinyRecorder). AGPL-3.0.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "TinyRecorder needs this permission to record your voice.";
@@ -562,7 +562,7 @@
 				INFOPLIST_FILE = QuickRecorder/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tiny Recorder";
+				INFOPLIST_KEY_CFBundleDisplayName = TinyRecorder;
 				INFOPLIST_KEY_NSCameraUsageDescription = "TinyRecorder needs this permission to record your camera and mobile device.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 lihaoyun6 (QuickRecorder). Modified © 2026 33to9 (TinyRecorder). AGPL-3.0.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "TinyRecorder needs this permission to record your voice.";
