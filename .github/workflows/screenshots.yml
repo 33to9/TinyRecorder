@@ -1,6 +1,6 @@
 name: Website screenshots
 
-# Manual only. Installs the latest release on a throwaway macOS runner, opens it in every
+# Manual only. Installs the latest release (or a given build run's DMG) on a throwaway macOS runner, opens it in every
 # website language and captures the screens the site shows. Download the "screenshots"
 # artifact from the run; nothing is committed or published by this workflow.
 on:
@@ -9,9 +9,13 @@ on:
       languages:
         description: 'Languages (space-separated)'
         default: 'en zh-Hans zh-Hant it ja de es'
+      build_run:
+        description: 'Optional: ID of a "Build TinyRecorder" run whose DMG to use instead of the latest release'
+        default: ''
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   capture:
@@ -28,9 +32,16 @@ jobs:
           sw_vers; csrutil status || true
           system_profiler SPDisplaysDataType | grep -E 'Resolution|Display Type' || true
 
-      - name: Install the latest release
+      - name: Install the app
+        env:
+          BUILD_RUN: ${{ inputs.build_run }}
         run: |
-          gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.dmg' --dir /tmp/dl
+          if [ -n "$BUILD_RUN" ]; then
+            gh run download "$BUILD_RUN" --repo "$GITHUB_REPOSITORY" --pattern 'TinyRecorder-*' --dir /tmp/art
+            mkdir -p /tmp/dl && find /tmp/art -name '*.dmg' -exec mv {} /tmp/dl/ \;
+          else
+            gh release download --repo "$GITHUB_REPOSITORY" --pattern '*.dmg' --dir /tmp/dl
+          fi
           hdiutil attach /tmp/dl/*.dmg -mountpoint /tmp/dmg -nobrowse -quiet
           cp -R /tmp/dmg/TinyRecorder.app /Applications/
           hdiutil detach /tmp/dmg -quiet
