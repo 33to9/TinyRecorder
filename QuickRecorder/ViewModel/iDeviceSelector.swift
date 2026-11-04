@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import Combine
 
 extension AppDelegate {
     func startDeviceOverlayer(size: NSSize = NSSize(width: 200, height: 200)){
@@ -54,10 +55,13 @@ struct iDevicePopoverView: View {
             } else {
                 ForEach(devices.indices, id: \.self) { index in
                     Button(action: {
+                        let device = devices[index], mute = mute, preset = preset
                         closePopover()
-                        closeAllWindow()
-                        DispatchQueue.global().async {
-                            AVOutputClass.shared.startRecording(with: devices[index], mute: mute, preset: preset)
+                        SCContext.withCameraAccess {
+                            closeAllWindow()
+                            DispatchQueue.global().async {
+                                AVOutputClass.shared.startRecording(with: device, mute: mute, preset: preset)
+                            }
                         }
                     }, label: {
                         HStack {
@@ -109,6 +113,14 @@ struct iDevicePopoverView: View {
                     .padding(.bottom, 1)
             }
         }.padding(5)
+        // Keep the list current when a device is plugged in or removed while the popover is open.
+        // Notification names as strings: their Swift spellings differ between SDK versions.
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("AVCaptureDeviceWasConnectedNotification"))) { _ in
+            devices = SCContext.getiDevice()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("AVCaptureDeviceWasDisconnectedNotification"))) { _ in
+            devices = SCContext.getiDevice()
+        }
     }
 }
 

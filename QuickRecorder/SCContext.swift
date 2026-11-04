@@ -805,8 +805,28 @@ class SCContext {
     }
     
     static func getiDevice() -> [AVCaptureDevice] {
-        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.externalUnknown], mediaType: .muxed, position: .unspecified)
+        // `.externalUnknown` is deprecated since macOS 14 in favour of `.external`; query both
+        // so connected iPhones/iPads are found whichever type the running macOS reports.
+        var types: [AVCaptureDevice.DeviceType] = [.externalUnknown]
+        if #available(macOS 14.0, *) { types.insert(.external, at: 0) }
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .muxed, position: .unspecified)
         return discoverySession.devices
+    }
+
+    /// Runs `granted` on the main thread once camera access is available. Asks first when the
+    /// user hasn't decided yet, so a recording never starts while the system prompt is still
+    /// open (which used to record black frames); shows the Open Settings alert when denied.
+    static func withCameraAccess(_ granted: @escaping () -> Void) {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            DispatchQueue.main.async(execute: granted)
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { ok in
+                if ok { DispatchQueue.main.async(execute: granted) }
+            }
+        default:
+            requestCameraPermission()
+        }
     }
     
     static func getCurrentMic() -> AVCaptureDevice? {
