@@ -101,8 +101,8 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 ```bash
 git clone https://github.com/33to9/TinyRecorder.git
 cd TinyRecorder
-open QuickRecorder.xcodeproj
-# 选择 QuickRecorder scheme 后构建（⌘B / ⌘R）
+open TinyRecorder.xcodeproj
+# 选择 TinyRecorder scheme 后构建（⌘B / ⌘R）
 ```
 
 CI 通过 GitHub Actions 构建（`.github/workflows/build.yml`）——推送 `v*` 标签即可发布 Release。

@@ -101,8 +101,8 @@ Voraussetzungen: Xcode 15 oder neuer mit macOS SDK.
 ```bash
 git clone https://github.com/33to9/TinyRecorder.git
 cd TinyRecorder
-open QuickRecorder.xcodeproj
-# Schema „QuickRecorder“ auswählen, dann bauen (⌘B / ⌘R)
+open TinyRecorder.xcodeproj
+# Schema „TinyRecorder“ auswählen, dann bauen (⌘B / ⌘R)
 ```
 
 Die CI kompiliert über GitHub Actions (`.github/workflows/build.yml`) – pushe ein Tag `v*`, um ein Release zu veröffentlichen.

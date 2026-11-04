@@ -1,6 +1,6 @@
 //
 //  Sparkle.swift
-//  QuickRecorder
+//  TinyRecorder
 //
 //  Created by apple on 2024/5/2.
 //

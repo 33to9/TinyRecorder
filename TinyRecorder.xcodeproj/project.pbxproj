@@ -31,7 +31,7 @@
 		18A551FC2D0749C3008FC5F6 /* Scriptable.sdef in Resources */ = {isa = PBXBuildFile; fileRef = 18A551F02D0749C3008FC5F6 /* Scriptable.sdef */; };
 		18AFF77B2D5F91F800C795A1 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 18AFF77A2D5F91F800C795A1 /* KeyboardShortcuts */; };
 		18CEED922D08312C00FBC4BF /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CEED912D08312C00FBC4BF /* PreviewView.swift */; };
-		18D3BDEB2BCE5DC1006CFFC0 /* QuickRecorderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D3BDEA2BCE5DC1006CFFC0 /* QuickRecorderApp.swift */; };
+		18D3BDEB2BCE5DC1006CFFC0 /* TinyRecorderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D3BDEA2BCE5DC1006CFFC0 /* TinyRecorderApp.swift */; };
 		18D3BDED2BCE5DC1006CFFC0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D3BDEC2BCE5DC1006CFFC0 /* ContentView.swift */; };
 		18D3BDEF2BCE5DC2006CFFC0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 18D3BDEE2BCE5DC2006CFFC0 /* Assets.xcassets */; };
 		18D3BDF22BCE5DC2006CFFC0 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 18D3BDF12BCE5DC2006CFFC0 /* Preview Assets.xcassets */; };
@@ -77,12 +77,12 @@
 		18CEEE182D097CBF00FBC4BF /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = "zh-Hant"; path = "zh-Hant.lproj/Credits.rtf"; sourceTree = "<group>"; };
 		18CEEE192D097CC500FBC4BF /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		18CEEE1A2D097D6800FBC4BF /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
-		18D3BDE72BCE5DC1006CFFC0 /* QuickRecorder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickRecorder.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		18D3BDEA2BCE5DC1006CFFC0 /* QuickRecorderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickRecorderApp.swift; sourceTree = "<group>"; };
+		18D3BDE72BCE5DC1006CFFC0 /* TinyRecorder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TinyRecorder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		18D3BDEA2BCE5DC1006CFFC0 /* TinyRecorderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinyRecorderApp.swift; sourceTree = "<group>"; };
 		18D3BDEC2BCE5DC1006CFFC0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		18D3BDEE2BCE5DC2006CFFC0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		18D3BDF12BCE5DC2006CFFC0 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		18D3BDF32BCE5DC2006CFFC0 /* QuickRecorder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QuickRecorder.entitlements; sourceTree = "<group>"; };
+		18D3BDF32BCE5DC2006CFFC0 /* TinyRecorder.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TinyRecorder.entitlements; sourceTree = "<group>"; };
 		18E0A1012E00000000ABC001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		18E0A1012E00000000ABC002 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		18E0A1012E00000000ABC101 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -149,7 +149,7 @@
 		18D3BDDE2BCE5DC1006CFFC0 = {
 			isa = PBXGroup;
 			children = (
-				18D3BDE92BCE5DC1006CFFC0 /* QuickRecorder */,
+				18D3BDE92BCE5DC1006CFFC0 /* TinyRecorder */,
 				18D3BDE82BCE5DC1006CFFC0 /* Products */,
 				181724062BE3BF2000F5F539 /* Frameworks */,
 			);
@@ -158,17 +158,17 @@
 		18D3BDE82BCE5DC1006CFFC0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				18D3BDE72BCE5DC1006CFFC0 /* QuickRecorder.app */,
+				18D3BDE72BCE5DC1006CFFC0 /* TinyRecorder.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		18D3BDE92BCE5DC1006CFFC0 /* QuickRecorder */ = {
+		18D3BDE92BCE5DC1006CFFC0 /* TinyRecorder */ = {
 			isa = PBXGroup;
 			children = (
 				189BD5E82BDE34B80056D06C /* InfoPlist.strings */,
 				189BD5F62BDFDF200056D06C /* Info.plist */,
-				18D3BDEA2BCE5DC1006CFFC0 /* QuickRecorderApp.swift */,
+				18D3BDEA2BCE5DC1006CFFC0 /* TinyRecorderApp.swift */,
 				18FEBDA92BCF8200003F09BC /* RecordEngine.swift */,
 				18D3BE032BCEC847006CFFC0 /* SCContext.swift */,
 				184CAEC62BDCCC2300D61D57 /* AVContext.swift */,
@@ -177,10 +177,10 @@
 				18D3BDFD2BCE5DF5006CFFC0 /* Localizable.strings */,
 				1862BF8F2BD5494E003ED522 /* Credits.rtf */,
 				18D3BDEE2BCE5DC2006CFFC0 /* Assets.xcassets */,
-				18D3BDF32BCE5DC2006CFFC0 /* QuickRecorder.entitlements */,
+				18D3BDF32BCE5DC2006CFFC0 /* TinyRecorder.entitlements */,
 				18D3BDF02BCE5DC2006CFFC0 /* Preview Content */,
 			);
-			path = QuickRecorder;
+			path = TinyRecorder;
 			sourceTree = "<group>";
 		};
 		18D3BDF02BCE5DC2006CFFC0 /* Preview Content */ = {
@@ -218,9 +218,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		18D3BDE62BCE5DC1006CFFC0 /* QuickRecorder */ = {
+		18D3BDE62BCE5DC1006CFFC0 /* TinyRecorder */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 18D3BDF62BCE5DC2006CFFC0 /* Build configuration list for PBXNativeTarget "QuickRecorder" */;
+			buildConfigurationList = 18D3BDF62BCE5DC2006CFFC0 /* Build configuration list for PBXNativeTarget "TinyRecorder" */;
 			buildPhases = (
 				18D3BDE32BCE5DC1006CFFC0 /* Sources */,
 				18D3BDE42BCE5DC1006CFFC0 /* Frameworks */,
@@ -230,7 +230,7 @@
 			);
 			dependencies = (
 			);
-			name = QuickRecorder;
+			name = TinyRecorder;
 			packageProductDependencies = (
 				181724042BE3BEA600F5F539 /* Sparkle */,
 				18F40B482BFB988A00F0AC70 /* SwiftLAME */,
@@ -239,8 +239,8 @@
 				18AFF77A2D5F91F800C795A1 /* KeyboardShortcuts */,
 				A7E1C0DE2E00000000000004 /* TelemetryDeck */,
 			);
-			productName = QuickRecorder;
-			productReference = 18D3BDE72BCE5DC1006CFFC0 /* QuickRecorder.app */;
+			productName = TinyRecorder;
+			productReference = 18D3BDE72BCE5DC1006CFFC0 /* TinyRecorder.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -258,7 +258,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 18D3BDE22BCE5DC1006CFFC0 /* Build configuration list for PBXProject "QuickRecorder" */;
+			buildConfigurationList = 18D3BDE22BCE5DC1006CFFC0 /* Build configuration list for PBXProject "TinyRecorder" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -285,7 +285,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				18D3BDE62BCE5DC1006CFFC0 /* QuickRecorder */,
+				18D3BDE62BCE5DC1006CFFC0 /* TinyRecorder */,
 			);
 		};
 /* End PBXProject section */
@@ -337,7 +337,7 @@
 				18FEBDAA2BCF8200003F09BC /* RecordEngine.swift in Sources */,
 				18FEBDB02BD2C0D1003F09BC /* SettingsView.swift in Sources */,
 				18E6F11A2C2E74DF00249DB1 /* QmaPlayer.swift in Sources */,
-				18D3BDEB2BCE5DC1006CFFC0 /* QuickRecorderApp.swift in Sources */,
+				18D3BDEB2BCE5DC1006CFFC0 /* TinyRecorderApp.swift in Sources */,
 				18FEBDAC2BD01E82003F09BC /* WinSelector.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -517,19 +517,19 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = QuickRecorder/QuickRecorder.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TinyRecorder/TinyRecorder.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 10811;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"QuickRecorder/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"TinyRecorder/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = QuickRecorder/Info.plist;
+				INFOPLIST_FILE = TinyRecorder/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = TinyRecorder;
@@ -555,19 +555,19 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = QuickRecorder/QuickRecorder.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TinyRecorder/TinyRecorder.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 10811;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_ASSET_PATHS = "\"QuickRecorder/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"TinyRecorder/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = QuickRecorder/Info.plist;
+				INFOPLIST_FILE = TinyRecorder/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = TinyRecorder;
@@ -591,7 +591,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		18D3BDE22BCE5DC1006CFFC0 /* Build configuration list for PBXProject "QuickRecorder" */ = {
+		18D3BDE22BCE5DC1006CFFC0 /* Build configuration list for PBXProject "TinyRecorder" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				18D3BDF42BCE5DC2006CFFC0 /* Debug */,
@@ -600,7 +600,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		18D3BDF62BCE5DC2006CFFC0 /* Build configuration list for PBXNativeTarget "QuickRecorder" */ = {
+		18D3BDF62BCE5DC2006CFFC0 /* Build configuration list for PBXNativeTarget "TinyRecorder" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				18D3BDF72BCE5DC2006CFFC0 /* Debug */,

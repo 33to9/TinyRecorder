@@ -20,6 +20,6 @@ find(sub {
             }
         }
     }
-}, $ARGV[0] // 'QuickRecorder');
+}, $ARGV[0] // 'TinyRecorder');
 print "No hardcoded CJK strings in Swift code.\n" unless $bad;
 exit $bad;

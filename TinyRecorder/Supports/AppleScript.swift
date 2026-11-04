@@ -1,6 +1,6 @@
 //
 //  AppleScript.swift
-//  QuickRecorder
+//  TinyRecorder
 //
 //  Created by apple on 2024/9/23.
 //
@@ -11,7 +11,7 @@ import ScreenCaptureKit
 
 // The classes below are referenced by name from Scriptable.sdef (<cocoa class="..."/>).
 // @objc(...) gives them stable, module-independent Objective-C names, so scripting keeps
-// working regardless of the Swift module name (TinyRecorder vs. QuickRecorder).
+// working regardless of the Swift module name.
 
 extension NSScriptCommand {
     /// Arguments of the command (empty when none were evaluated).

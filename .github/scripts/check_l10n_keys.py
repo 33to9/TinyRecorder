@@ -175,7 +175,7 @@ def first_arg_of_call(src, pos):
 
 def scan_code(root):
     keys, interpolated, where = {}, {}, {}
-    for d, _, files in os.walk(os.path.join(root, "QuickRecorder")):
+    for d, _, files in os.walk(os.path.join(root, "TinyRecorder")):
         for f in files:
             if not f.endswith(".swift"): continue
             p = os.path.join(d, f)
@@ -212,7 +212,7 @@ def scan_code(root):
 # ---------- report ----------
 def main():
     root = sys.argv[1]
-    lp = lambda l, f: os.path.join(root, "QuickRecorder", l + ".lproj", f)
+    lp = lambda l, f: os.path.join(root, "TinyRecorder", l + ".lproj", f)
     loc, info, problems = {}, {}, []
     for l in LANGS:
         pairs, dups = parse_strings(lp(l, "Localizable.strings"))

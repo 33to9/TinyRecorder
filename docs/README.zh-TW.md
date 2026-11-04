@@ -101,8 +101,8 @@ brew install --cask 33to9/tap/tinyrecorder
 ```bash
 git clone https://github.com/33to9/TinyRecorder.git
 cd TinyRecorder
-open QuickRecorder.xcodeproj
-# 選擇 QuickRecorder scheme 後建置（⌘B / ⌘R）
+open TinyRecorder.xcodeproj
+# 選擇 TinyRecorder scheme 後建置（⌘B / ⌘R）
 ```
 
 CI 透過 GitHub Actions（`.github/workflows/build.yml`）建置：推送 `v*` 標籤即可發佈 Release。

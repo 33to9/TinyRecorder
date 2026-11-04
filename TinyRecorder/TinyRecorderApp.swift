@@ -1,6 +1,6 @@
 //
-//  QuickRecorderApp.swift
-//  QuickRecorder
+//  TinyRecorderApp.swift
+//  TinyRecorder
 //
 //  Created by apple on 2024/4/16.
 //
@@ -51,7 +51,7 @@ let previewWindow = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 266, height:
 var updaterController: SPUStandardUpdaterController!
 
 @main
-struct QuickRecorderApp: App {
+struct TinyRecorderApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     //private let updaterController: SPUStandardUpdaterController
         

@@ -101,8 +101,8 @@ Requisitos: Xcode 15 o posterior con el SDK de macOS.
 ```bash
 git clone https://github.com/33to9/TinyRecorder.git
 cd TinyRecorder
-open QuickRecorder.xcodeproj
-# Selecciona el esquema QuickRecorder y compila (⌘B / ⌘R)
+open TinyRecorder.xcodeproj
+# Selecciona el esquema TinyRecorder y compila (⌘B / ⌘R)
 ```
 
 La integración continua compila con GitHub Actions (`.github/workflows/build.yml`): sube una etiqueta `v*` para publicar una versión.

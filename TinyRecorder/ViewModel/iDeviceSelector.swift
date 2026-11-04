@@ -1,6 +1,6 @@
 //
 //  iDeviceSelector.swift
-//  QuickRecorder
+//  TinyRecorder
 //
 //  Created by apple on 2024/5/1.
 //

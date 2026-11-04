@@ -24,7 +24,7 @@ jobs:
       - name: Check for hardcoded non-English UI text
         # Each language must show only its own text: write UI strings in English and
         # translate them in <lang>.lproj/Localizable.strings.
-        run: perl .github/scripts/check_hardcoded_strings.pl QuickRecorder
+        run: perl .github/scripts/check_hardcoded_strings.pl TinyRecorder
 
       - name: Check localization keys are aligned
         # en / zh-Hans / zh-Hant / it must have the same Localizable and InfoPlist keys, and
@@ -65,8 +65,8 @@ jobs:
             EXTRA="MARKETING_VERSION=${TAGV} CURRENT_PROJECT_VERSION=${BUILDNUM}"
             echo "tag build override: $EXTRA"
           fi
-          xcodebuild -project QuickRecorder.xcodeproj \
-            -scheme QuickRecorder \
+          xcodebuild -project TinyRecorder.xcodeproj \
+            -scheme TinyRecorder \
             -configuration Release \
             -destination 'generic/platform=macOS' \
             ARCHS="x86_64 arm64" \
@@ -126,7 +126,7 @@ jobs:
           # Previously the entitlements were dropped by the final re-sign.
           codesign --force --deep --sign "$SIGN_ID" "$APP_PATH"
           codesign --force --sign "$SIGN_ID" \
-            --entitlements QuickRecorder/QuickRecorder.entitlements "$APP_PATH"
+            --entitlements TinyRecorder/TinyRecorder.entitlements "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH" || echo "⚠️ verify reported issues (expected for self-signed trust)"
           codesign -d --entitlements - "$APP_PATH"
           codesign -d -r- "$APP_PATH"

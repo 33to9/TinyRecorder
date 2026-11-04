@@ -101,8 +101,8 @@ TinyRecorder のスイッチがすでにオンになっている、オンのま�
 ```bash
 git clone https://github.com/33to9/TinyRecorder.git
 cd TinyRecorder
-open QuickRecorder.xcodeproj
-# QuickRecorder スキームを選択してビルド（⌘B / ⌘R）
+open TinyRecorder.xcodeproj
+# TinyRecorder スキームを選択してビルド（⌘B / ⌘R）
 ```
 
 CI では GitHub Actions（`.github/workflows/build.yml`）でビルドします。`v*` タグをプッシュすると リリースが公開されます。
