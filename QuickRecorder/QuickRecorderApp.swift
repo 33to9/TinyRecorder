@@ -15,6 +15,7 @@ import KeyboardShortcuts
 import ServiceManagement
 import CoreMediaIO
 import Sparkle
+import VideoToolbox
 
 let isMacOS12 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion == 12
 let isMacOS14 = ProcessInfo.processInfo.operatingSystemVersion.majorVersion == 14
@@ -383,6 +384,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         closeAllWindow()
+        // 测试用：带 `-resetOnboarding YES` 启动时按新用户重新走引导（不清权限）
+        if ud.bool(forKey: "resetOnboarding") {
+            ud.removeObject(forKey: firstRunSetupKey)
+            ud.removeObject(forKey: onboardingStepKey)
+        }
         if !ud.bool(forKey: firstRunSetupKey) {
             // 首次使用：一个分步引导窗完成 权限 → 麦克风 → 格式 → 怎么开始录。
             // 授权后需要重启，重启后引导窗会从下一步继续（见 OnboardingView.init）。
@@ -400,7 +406,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
 
     /// First-run onboarding: permission → microphone → format → how to start.
     func showOnboarding() {
-        if let existing = NSApp.windows.first(where: { $0.title == onboardingTitle }) {
+        // 只复用还显示着的引导窗；关掉的窗口可能仍在 NSApp.windows 里，但状态停在旧步骤
+        if let existing = NSApp.windows.first(where: { $0.title == onboardingTitle && $0.isVisible }) {
             existing.makeKeyAndOrderFront(self)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -419,6 +426,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             // 权限步骤里授权后会重启（窗口也可能随之关闭），那时还停在第 0 步，不能算完成
             if ud.integer(forKey: onboardingStepKey) >= OnboardingView.Step.microphone.rawValue {
                 ud.set(true, forKey: firstRunSetupKey)
+                // 引导结束后不留进度，以后从偏好设置重新打开时从头开始
+                ud.removeObject(forKey: onboardingStepKey)
             }
             if let o = closeObserver { NotificationCenter.default.removeObserver(o) }
         }
@@ -428,6 +437,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         panel.center()
         panel.makeKeyAndOrderFront(self)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Reopens the onboarding from its first step (Preferences → General).
+    /// With screen recording already granted it starts at the microphone step.
+    func replayOnboarding() {
+        // 引导窗正开着就直接带到前面，不打断当前进度
+        if !NSApp.windows.contains(where: { $0.title == onboardingTitle && $0.isVisible }) {
+            ud.removeObject(forKey: onboardingStepKey)
+        }
+        showOnboarding()
     }
 
     /// Runs `action` on the main queue with freshly updated shareable content.
@@ -465,7 +484,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     /// so the system prompt appears with proper context instead of confusing users.
     func showScreenPermissionGuide() {
         // 首次引导窗还开着时，权限这一步就在里面，不要再弹一个独立的授权窗
-        if let onboarding = NSApp.windows.first(where: { $0.title == onboardingTitle }) {
+        if let onboarding = NSApp.windows.first(where: { $0.title == onboardingTitle && $0.isVisible }) {
             onboarding.makeKeyAndOrderFront(self)
             NSApp.activate(ignoringOtherApps: true)
             return
@@ -880,6 +899,8 @@ struct OnboardingFormatStep: View {
     @AppStorage("encoder")     private var encoder: Encoder = .h264
     @AppStorage("videoFormat") private var videoFormat: VideoFormat = .mp4
     @AppStorage("withAlpha")   private var withAlpha: Bool = false
+    private let hevcHardware = hevcHardwareEncoderAvailable
+    private var recommended: Encoder { hevcHardware ? .h265 : .h264 }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -895,8 +916,8 @@ struct OnboardingFormatStep: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Encoder".local).font(.headline)
                     Picker("", selection: $encoder) {
-                        Text("H.265 (Recommended)".local).tag(Encoder.h265)
-                        Text("H.264").tag(Encoder.h264)
+                        Text((recommended == .h265 ? "H.265 (Recommended)" : "H.265").local).tag(Encoder.h265)
+                        Text((recommended == .h264 ? "H.264 (Recommended)" : "H.264").local).tag(Encoder.h264)
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
@@ -906,6 +927,13 @@ struct OnboardingFormatStep: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if encoder == .h265 && !hevcHardware {
+                        Label("This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU.".local,
+                              systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Format".local).font(.headline)
@@ -930,8 +958,29 @@ struct OnboardingFormatStep: View {
             .frame(maxWidth: 380)
         }
         .padding(24)
+        .onAppear {
+            // 用户从没自己选过编码器时，预选本机推荐的那个；选过的保留
+            let bundleID = Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder"
+            if !withAlpha && ud.persistentDomain(forName: bundleID)?["encoder"] == nil {
+                encoder = recommended
+            }
+        }
     }
 }
+
+/// Whether this Mac can encode HEVC in hardware (Apple silicon and most Intel Macs from
+/// 2017 on). Without it H.265 recording falls back to a slow, CPU-heavy software encoder.
+let hevcHardwareEncoderAvailable: Bool = {
+    var session: VTCompressionSession?
+    let status = VTCompressionSessionCreate(
+        allocator: nil, width: 1920, height: 1080,
+        codecType: kCMVideoCodecType_HEVC,
+        encoderSpecification: [kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder as String: true] as CFDictionary,
+        imageBufferAttributes: nil, compressedDataAllocator: nil,
+        outputCallback: nil, refcon: nil, compressionSessionOut: &session)
+    if let session { VTCompressionSessionInvalidate(session) }
+    return status == noErr
+}()
 
 /// Step 4: show where recording starts (menu bar icon / Dock), then open the toolbar.
 struct OnboardingStartStep: View {

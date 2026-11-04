@@ -314,3 +314,9 @@
 "Move this recording to the Trash?" = "要將這段錄影丟到垃圾桶嗎？";
 "Microphone Unavailable" = "麥克風無法使用";
 "The microphone changed during recording and could not be resumed. The rest of this recording has no microphone audio." = "錄製中麥克風發生了變化且無法恢復，本次錄製之後的部分沒有麥克風聲音。";
+
+/* Onboarding replay / encoder recommendation (v1.8.3) */
+"Welcome Guide" = "歡迎引導";
+"Show Again" = "重新顯示";
+"H.264 (Recommended)" = "H.264（推薦）";
+"This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU." = "這台 Mac 沒有 H.265 硬體編碼器，用 H.265 錄製會佔用大量 CPU。";

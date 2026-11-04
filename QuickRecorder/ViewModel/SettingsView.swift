@@ -145,6 +145,10 @@ struct GeneralView: View {
                 SDivider()
                 SToggle("Show TinyRecorder on Menu Bar", isOn: $showMenubar)
                     //.disabled(!showOnDock)
+                SDivider()
+                SItem(label: "Welcome Guide") {
+                    Button("Show Again") { AppDelegate.shared.replayOnboarding() }
+                }
             }
             SGroupBox(label: "Update") { UpdaterSettingsView(updater: updaterController.updater) }
             SGroupBox(label: "Permissions") {
