@@ -104,10 +104,11 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
         }
         
         if didOutput {
-            // Setting a codec the output doesn't offer raises an Objective-C exception (crash),
-            // e.g. H.265 chosen on a Mac without a hardware HEVC encoder: fall back to H.264.
+            // AVCaptureMovieFileOutput raises an Objective-C exception (crash) for a codec it
+            // can't use; without a hardware HEVC encoder fall back to H.264. (The output's
+            // availableVideoCodecTypes is iOS-only, so check the encoder via VideoToolbox.)
             let wantsH265 = ud.string(forKey: "encoder") == Encoder.h265.rawValue
-            let codec: AVVideoCodecType = wantsH265 && output.availableVideoCodecTypes.contains(.hevc) ? .hevc : .h264
+            let codec: AVVideoCodecType = wantsH265 && hevcHardwareEncoderAvailable ? .hevc : .h264
             let videoSettings: [String: Any] = [ AVVideoCodecKey: codec ]
             guard let connection = output.connection(with: .video) else { return }
             output.setOutputSettings(videoSettings, for: connection)
