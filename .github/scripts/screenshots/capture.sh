@@ -10,9 +10,11 @@ APP=/Applications/TinyRecorder.app
 WINDOWS=/tmp/windows   # compiled from windows.swift
 
 log()  { printf '\n==> %s\n' "$*"; }
-snap() { screencapture -x "$OUT/$lang/debug-$1.png"; "$WINDOWS" TinyRecorder > "$OUT/$lang/debug-$1.txt"; }
+app_pid() { pgrep -n -f "$APP/Contents/MacOS/"; }
+# Debug: full screen + every window on screen (all apps), to diagnose a failed step.
+snap() { screencapture -x "$OUT/$lang/debug-$1.png"; "$WINDOWS" > "$OUT/$lang/debug-$1.txt" 2>&1; }
 # First TinyRecorder window whose size matches the awk condition; prints "id x y w h".
-find_win() { "$WINDOWS" TinyRecorder | awk -F'\t' "$1 { print \$1, \$2, \$3, \$4, \$5; exit }"; }
+find_win() { "$WINDOWS" "$(app_pid)" 2>/dev/null | awk -F'\t' "$1 { print \$1, \$2, \$3, \$4, \$5; exit }"; }
 grab() {   # grab <name> <awk-condition>
   read -r id x y w h <<<"$(find_win "$2")"
   if [ -n "${id:-}" ]; then screencapture -x -o -l "$id" "$OUT/$lang/$1.png" && echo "saved $1 (${w}x${h})"
@@ -22,7 +24,7 @@ grab() {   # grab <name> <awk-condition>
 for lang in "$@"; do
   mkdir -p "$OUT/$lang"
   log "$lang: launch"
-  pkill -x TinyRecorder; sleep 2
+  pkill -f "$APP/Contents/MacOS/"; sleep 2
   open -n "$APP" --args -AppleLanguages "($lang)"
   sleep 10; snap 1-launch
 
@@ -44,5 +46,8 @@ for lang in "$@"; do
             -e 'delay 1' \
             -e 'tell application "System Events" to keystroke "," using command down'
   sleep 5; snap 4-settings
+  # Open the third sidebar page (Output: format, encoder, audio); rows are ~31 pt apart.
+  read -r _ sx sy sw sh <<<"$(find_win '$5 > 300')"
+  if [ -n "${sx:-}" ]; then cliclick "c:$((sx + 60)),$((sy + 166))"; sleep 3; snap 5-settings-output; fi
   grab settings '$5 > 300'
 done
