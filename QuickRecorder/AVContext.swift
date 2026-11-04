@@ -118,6 +118,7 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
             output.startRecording(to: SCContext.filePath.url, recordingDelegate: self)
             SCContext.streamType = StreamType.idevice
             SCContext.startTime = Date.now
+            Analytics.recordingStarted(.idevice)
         }
         
         SCContext.previewSession.startRunning()
@@ -136,6 +137,7 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
         // 设备被拔掉时会话已自行停止：仍要复位录制状态，否则界面一直停在“录制中”
         SCContext.previewSession?.stopRunning()
         guard SCContext.streamType == .idevice else { return }
+        Analytics.recordingFinished(.idevice, startedAt: SCContext.startTime)
         SCContext.streamType = nil
         SCContext.startTime = nil
         DispatchQueue.main.async {

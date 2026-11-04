@@ -405,6 +405,7 @@ class SCContext {
     static func handleWriterFailure(_ error: Error?) {
         if writerFailureReported || isStopping { return }
         writerFailureReported = true
+        Analytics.recordingFailed(stage: "writing", type: streamType, error: error)
         let err = error?.localizedDescription ?? "Unknown Error".local
         print("Writer failed during recording: \(err)")
         showNotification(title: "Recording Failed".local, body: err, id: "quickrecorder.error.\(UUID().uuidString)")
@@ -562,9 +563,10 @@ class SCContext {
         return [date, software]
     }
 
-    static func reportSaveFailure(_ error: Error?) {
+    static func reportSaveFailure(_ error: Error?, type: StreamType? = nil) {
         let err = error?.localizedDescription ?? "No content was captured.".local
         print("Failed to save recording: \(err)")
+        Analytics.recordingFailed(stage: "saving", type: type ?? streamType, error: error)
         showNotification(title: "Failed to save file".local, body: err, id: "quickrecorder.error.\(UUID().uuidString)")
     }
     
@@ -628,6 +630,7 @@ class SCContext {
         
         let currentType = streamType
         if discardRequested {
+            Analytics.recordingDiscarded(currentType)
             discardRequested = false
             if let writer = vW, writer.status == .writing { writer.cancelWriting() }
             audioFile = nil
@@ -657,6 +660,7 @@ class SCContext {
             showNotification(title: "Recording Discarded".local, body: "The recording was moved to the Trash.".local, id: "quickrecorder.completed.\(UUID().uuidString)")
             return
         }
+        Analytics.recordingFinished(currentType, startedAt: startTime)
         let path: String = filePath ?? ""
         let remuxVideo = recMic && recWinSound && recRemuxAudio
         let remuxQma = recMic && recRemuxAudio
@@ -671,7 +675,7 @@ class SCContext {
                     videoSaved = ok
                     if !ok {
                         print("Video writing failed with status: \(writer.status.rawValue), error: \(String(describing: writer.error))")
-                        reportSaveFailure(writer.error)
+                        reportSaveFailure(writer.error, type: currentType)
                     } else if remuxVideo {
                         mixAudioTracks(videoURL: path.url) { result in
                             let finalURL: URL
@@ -703,7 +707,7 @@ class SCContext {
                 // finishWriting 的回调不会回到主线程同步执行，这里等待不会死锁
                 dispatchGroup.wait()
             } else {
-                reportSaveFailure(nil)
+                reportSaveFailure(nil, type: currentType)
             }
         }
         

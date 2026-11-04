@@ -328,3 +328,6 @@
 "Unable to start writing the video file." = "Unable to start writing the video file.";
 "Unable to access the selected microphone." = "Unable to access the selected microphone.";
 "No available microphone input." = "No available microphone input.";
+"Privacy" = "Privacy";
+"Share Anonymous Usage Data" = "Share Anonymous Usage Data";
+"Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles.";

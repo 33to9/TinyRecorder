@@ -24,6 +24,7 @@ extension AppDelegate {
     /// 中止一次尚未成功开始（或启动失败）的录制：清理资源、重置状态并提示用户。可在任意线程调用。
     func abortRecording(reason: String) {
         print("Recording aborted: \(reason)")
+        Analytics.recordingFailed(stage: "start", type: SCContext.streamType, error: nil)
         SCContext.streamQueue.sync { SCContext.isStopping = true }
         SCContext.stopMicCapture()
         if let stream = SCContext.stream { stream.stopCapture() }
@@ -424,6 +425,7 @@ extension AppDelegate {
             return
         }
         if !audioOnly { registerGlobalMouseMonitor() }
+        Analytics.recordingStarted(SCContext.streamType)
         DispatchQueue.main.async { updateStatusBar() }
     }
 

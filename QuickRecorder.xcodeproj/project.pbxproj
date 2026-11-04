@@ -24,6 +24,8 @@
 		18A551F72D0749C3008FC5F6 /* GroupForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551EF2D0749C3008FC5F6 /* GroupForm.swift */; };
 		18A551F82D0749C3008FC5F6 /* SleepPreventer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551F12D0749C3008FC5F6 /* SleepPreventer.swift */; };
 		18A551F92D0749C3008FC5F6 /* Sparkle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551F22D0749C3008FC5F6 /* Sparkle.swift */; };
+		A7E1C0DE2E00000000000002 /* Analytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E1C0DE2E00000000000001 /* Analytics.swift */; };
+		A7E1C0DE2E00000000000005 /* TelemetryDeck in Frameworks */ = {isa = PBXBuildFile; productRef = A7E1C0DE2E00000000000004 /* TelemetryDeck */; };
 		18A551FA2D0749C3008FC5F6 /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551F32D0749C3008FC5F6 /* WindowAccessor.swift */; };
 		18A551FB2D0749C3008FC5F6 /* WindowHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551F42D0749C3008FC5F6 /* WindowHighlighter.swift */; };
 		18A551FC2D0749C3008FC5F6 /* Scriptable.sdef in Resources */ = {isa = PBXBuildFile; fileRef = 18A551F02D0749C3008FC5F6 /* Scriptable.sdef */; };
@@ -65,6 +67,7 @@
 		18A551F02D0749C3008FC5F6 /* Scriptable.sdef */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Scriptable.sdef; sourceTree = "<group>"; };
 		18A551F12D0749C3008FC5F6 /* SleepPreventer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepPreventer.swift; sourceTree = "<group>"; };
 		18A551F22D0749C3008FC5F6 /* Sparkle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkle.swift; sourceTree = "<group>"; };
+		A7E1C0DE2E00000000000001 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
 		18A551F32D0749C3008FC5F6 /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
 		18A551F42D0749C3008FC5F6 /* WindowHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowHighlighter.swift; sourceTree = "<group>"; };
 		18A735972BFBA12F002314AF /* it */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; name = it; path = it.lproj/Credits.rtf; sourceTree = "<group>"; };
@@ -114,6 +117,7 @@
 				18AFF77B2D5F91F800C795A1 /* KeyboardShortcuts in Frameworks */,
 				18F40B492BFB988A00F0AC70 /* SwiftLAME in Frameworks */,
 				185582A62D1D1CC100F0CF47 /* AECAudioStream in Frameworks */,
+				A7E1C0DE2E00000000000005 /* TelemetryDeck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,6 +134,7 @@
 		18A551F52D0749C3008FC5F6 /* Supports */ = {
 			isa = PBXGroup;
 			children = (
+				A7E1C0DE2E00000000000001 /* Analytics.swift */,
 				18A551EE2D0749C3008FC5F6 /* AppleScript.swift */,
 				18A551EF2D0749C3008FC5F6 /* GroupForm.swift */,
 				18A551F02D0749C3008FC5F6 /* Scriptable.sdef */,
@@ -232,6 +237,7 @@
 				184506CD2C69213400AFDA45 /* MatrixColorSelector */,
 				185582A52D1D1CC100F0CF47 /* AECAudioStream */,
 				18AFF77A2D5F91F800C795A1 /* KeyboardShortcuts */,
+				A7E1C0DE2E00000000000004 /* TelemetryDeck */,
 			);
 			productName = QuickRecorder;
 			productReference = 18D3BDE72BCE5DC1006CFFC0 /* QuickRecorder.app */;
@@ -273,6 +279,7 @@
 				184506CC2C69213400AFDA45 /* XCRemoteSwiftPackageReference "MatrixColorSelector" */,
 				185582A42D1D1CC100F0CF47 /* XCRemoteSwiftPackageReference "AECAudioStream" */,
 				18AFF7792D5F91F800C795A1 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				A7E1C0DE2E00000000000003 /* XCRemoteSwiftPackageReference "SwiftSDK" */,
 			);
 			productRefGroup = 18D3BDE82BCE5DC1006CFFC0 /* Products */;
 			projectDirPath = "";
@@ -320,6 +327,7 @@
 				18A551F82D0749C3008FC5F6 /* SleepPreventer.swift in Sources */,
 				18CEED922D08312C00FBC4BF /* PreviewView.swift in Sources */,
 				18A551F92D0749C3008FC5F6 /* Sparkle.swift in Sources */,
+				A7E1C0DE2E00000000000002 /* Analytics.swift in Sources */,
 				18A551FA2D0749C3008FC5F6 /* WindowAccessor.swift in Sources */,
 				18A551FB2D0749C3008FC5F6 /* WindowHighlighter.swift in Sources */,
 				18D3BE042BCEC847006CFFC0 /* SCContext.swift in Sources */,
@@ -644,6 +652,14 @@
 				revision = e8256a8151594f47f103c742f684253c6c44871d;
 			};
 		};
+		A7E1C0DE2E00000000000003 /* XCRemoteSwiftPackageReference "SwiftSDK" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TelemetryDeck/SwiftSDK";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.14.2;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -671,6 +687,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 18F40B472BFB988A00F0AC70 /* XCRemoteSwiftPackageReference "SwiftLAME" */;
 			productName = SwiftLAME;
+		};
+		A7E1C0DE2E00000000000004 /* TelemetryDeck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A7E1C0DE2E00000000000003 /* XCRemoteSwiftPackageReference "SwiftSDK" */;
+			productName = TelemetryDeck;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

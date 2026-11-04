@@ -119,6 +119,7 @@ struct GeneralView: View {
     @AppStorage("poSafeDelay") private var poSafeDelay: Int = 1
     @AppStorage("showOnDock") private var showOnDock: Bool = true
     @AppStorage("showMenubar") private var showMenubar: Bool = true
+    @AppStorage(Analytics.enabledKey) private var shareUsageData: Bool = true
     
     @State private var launchAtLogin = false
     @State private var showRepairConfirm = false
@@ -171,6 +172,10 @@ struct GeneralView: View {
                 }
             }
             SGroupBox(label: "Update") { UpdaterSettingsView(updater: updaterController.updater) }
+            SGroupBox(label: "Privacy") {
+                SToggle("Share Anonymous Usage Data", isOn: $shareUsageData, tips: "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles.")
+                    .onChange(of: shareUsageData) { Analytics.setEnabled($0) }
+            }
             SGroupBox(label: "Permissions") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again.")

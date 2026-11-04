@@ -353,3 +353,6 @@
 "Unable to start writing the video file." = "无法开始写入视频文件。";
 "Unable to access the selected microphone." = "无法访问所选麦克风。";
 "No available microphone input." = "没有可用的麦克风输入。";
+"Privacy" = "隐私";
+"Share Anonymous Usage Data" = "共享匿名使用数据";
+"Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "帮助改进 TinyRecorder。会发送 App 和 macOS 版本、语言，以及录制的类型、格式和时长。绝不包含录制内容、文件名或窗口标题。";
