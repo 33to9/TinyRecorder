@@ -24,6 +24,11 @@ jobs:
         # translate them in <lang>.lproj/Localizable.strings.
         run: perl .github/scripts/check_hardcoded_strings.pl QuickRecorder
 
+      - name: Check localization keys are aligned
+        # en / zh-Hans / zh-Hant / it must have the same Localizable and InfoPlist keys, and
+        # every key used in code must be translated (missing ones silently fall back to English).
+        run: python3 -I .github/scripts/check_l10n_keys.py .
+
       - name: Select latest stable Xcode
         run: |
           # Newest installed Xcode, excluding beta / RC builds
