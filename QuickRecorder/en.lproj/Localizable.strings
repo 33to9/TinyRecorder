@@ -1,0 +1,6 @@
+/*
+  Localizable.strings (English)
+  Intentionally empty: the English text is the key used in code.
+  This file exists so macOS treats English as a supported language: without an
+  en.lproj, a user whose languages are [English, Chinese] would get Chinese.
+*/

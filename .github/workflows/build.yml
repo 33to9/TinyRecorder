@@ -126,6 +126,8 @@ jobs:
           STAGE=$(mktemp -d)
           cp -R "$APP_PATH" "$STAGE/TinyRecorder.app"
           cp .github/assets/dmg_background.png "$STAGE/background.png"
+          # appdmg merges background@2x.png into a Retina background automatically
+          cp .github/assets/dmg_background@2x.png "$STAGE/background@2x.png"
           cat > "$STAGE/spec.json" <<'SPEC'
           {
             "title": "TinyRecorder",
@@ -142,7 +144,7 @@ jobs:
             echo "⚠️ appdmg failed, falling back to plain hdiutil layout"
             rm -f "TinyRecorder_v${VERSION}.dmg"
             ln -s /Applications "$STAGE/Applications"
-            rm "$STAGE/spec.json" "$STAGE/background.png"
+            rm -f "$STAGE/spec.json" "$STAGE/background.png" "$STAGE/background@2x.png"
             hdiutil create -volname "TinyRecorder" \
               -srcfolder "$STAGE" \
               -ov -format UDZO \
@@ -176,12 +178,20 @@ jobs:
             - Changed: menu bar icon is now shown by default (new-user friendly; can be disabled in Settings)
 
             ### Install
-            1. Download `TinyRecorder_v${{ env.VERSION }}.dmg`
-            2. Open the dmg, drag TinyRecorder into the Applications folder
-            3. First launch — app is ad-hoc signed (not notarized):
-               - **macOS 15 and later**: double-click once (a warning appears), then open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**; or run `xattr -cr /Applications/TinyRecorder.app` in Terminal
-               - Older macOS: right-click the app → **Open**
-            4. Grant Screen Recording / Microphone permissions, then relaunch
+            **Already installed?** Use **Check for Updates…** inside the app — no download, no Gatekeeper warning, permissions are kept.
+
+            **One-line install (no Gatekeeper warning)** — paste into Terminal:
+            ```
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
+            ```
+
+            **Homebrew:** `brew install --cask 33to9/tap/tinyrecorder`
+
+            **DMG:** download `TinyRecorder_v${{ env.VERSION }}.dmg`, drag TinyRecorder into Applications. The app is not notarized by Apple, so the first launch is blocked once:
+            - **macOS 15 and later**: double-click (a warning appears), then **System Settings → Privacy & Security** → scroll down → **Open Anyway**
+            - **macOS 12–14**: right-click the app → **Open**
+
+            On first launch a short setup guide walks you through the Screen Recording permission (one automatic restart), the optional microphone and the default format.
 
             Licensed under AGPL-3.0. Original copyright © 2024 lihaoyun6.
           files: |
@@ -258,3 +268,35 @@ jobs:
             -f message="chore: update appcast.xml for v${TAG}" \
             -f content="${CONTENT}" -f sha="${SHA}" --jq '.commit.sha'
           echo "appcast.xml updated for v${TAG}"
+  homebrew:
+    # After a tag release: bump version + sha256 of the cask in 33to9/homebrew-tap.
+    # Needs secret HOMEBREW_TAP_TOKEN (fine-grained PAT, Contents: read & write on the tap
+    # repo only). Skipped without it, so releases never fail because of the tap.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Update cask in homebrew-tap
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_REPO: 33to9/homebrew-tap
+        run: |
+          set -e
+          if [ -z "$GH_TOKEN" ]; then echo "HOMEBREW_TAP_TOKEN not set — skipping tap update"; exit 0; fi
+          TAG="${GITHUB_REF_NAME#v}"
+          DMG="TinyRecorder_v${TAG}.dmg"
+          curl -fsSL -o "$DMG" "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${TAG}/${DMG}"
+          SHA=$(sha256sum "$DMG" | cut -d' ' -f1)
+          sed -e "s/^  version \".*\"/  version \"${TAG}\"/" \
+              -e "s/^  sha256 \".*\"/  sha256 \"${SHA}\"/" \
+              packaging/homebrew/tinyrecorder.rb > tinyrecorder.rb
+          grep -q "version \"${TAG}\"" tinyrecorder.rb && grep -q "sha256 \"${SHA}\"" tinyrecorder.rb
+          FILE_SHA=$(gh api "repos/${TAP_REPO}/contents/Casks/tinyrecorder.rb" --jq .sha 2>/dev/null || true)
+          gh api -X PUT "repos/${TAP_REPO}/contents/Casks/tinyrecorder.rb" \
+            -f message="tinyrecorder ${TAG}" \
+            -f content="$(base64 -w0 tinyrecorder.rb)" \
+            ${FILE_SHA:+-f sha="$FILE_SHA"} --jq '.commit.sha'
+          echo "Cask updated to ${TAG}"

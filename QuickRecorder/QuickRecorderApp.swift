@@ -378,36 +378,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         closeAllWindow()
-        if !scPerm {
+        if !ud.bool(forKey: firstRunSetupKey) {
+            // 首次使用：一个分步引导窗完成 权限 → 麦克风 → 格式 → 怎么开始录。
+            // 授权后需要重启，重启后引导窗会从下一步继续（见 OnboardingView.init）。
+            // 引导期间不显示底部工具栏，最后一步「开始使用」再打开它。
+            showOnboarding()
+        } else if !scPerm {
             // 无录屏权限时不显示底部工具栏：工具栏在悬浮层，小屏幕上会盖住引导窗的
             // 「点击授权」按钮。引导完成授权并重启后，下次启动正常显示工具栏。
             showScreenPermissionGuide()
         } else if showOnDock {
             _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
-        // 首次设置：授权完成后的第一次启动，让用户选择默认编码器与视频格式（只出现一次）。
-        // 无权限时先走授权引导，授权并重启后再出现，避免两个窗口叠在一起。
-        if scPerm && !ud.bool(forKey: firstRunSetupKey) {
-            DispatchQueue.main.async { self.showFirstRunSetup() }
-        }
     }
 
-    /// One-time "choose your recording format" panel, replacing the old H.265 tip.
-    func showFirstRunSetup() {
-        if let existing = NSApp.windows.first(where: { $0.title == "Welcome to TinyRecorder".local }) {
+    /// First-run onboarding: permission → microphone → format → how to start.
+    func showOnboarding() {
+        if let existing = NSApp.windows.first(where: { $0.title == onboardingTitle }) {
             existing.makeKeyAndOrderFront(self)
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        // Mark as shown right away: however the panel is dismissed, it must not come back.
-        ud.set(true, forKey: firstRunSetupKey)
-        let panel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 400),
+        // 不设为 .floating：权限这一步要去系统设置里打开开关，浮动窗会挡住系统设置。
+        let panel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
                              styleMask: [.titled, .closable, .fullSizeContentView],
                              backing: .buffered, defer: false)
-        panel.contentView = NSHostingView(rootView: FirstRunSetupView())
-        panel.title = "Welcome to TinyRecorder".local
+        panel.contentView = NSHostingView(rootView: OnboardingView())
+        panel.title = onboardingTitle
+        // 关闭窗口 = 跳过剩余步骤；但还没拿到录屏权限时，下次启动继续引导
+        var closeObserver: NSObjectProtocol?
+        closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: panel, queue: .main) { _ in
+            // 权限步骤里授权后会重启（窗口也可能随之关闭），那时还停在第 0 步，不能算完成
+            if ud.integer(forKey: onboardingStepKey) >= OnboardingView.Step.microphone.rawValue {
+                ud.set(true, forKey: firstRunSetupKey)
+            }
+            if let o = closeObserver { NotificationCenter.default.removeObserver(o) }
+        }
         panel.titlebarAppearsTransparent = true
-        panel.level = .floating
         panel.isRestorable = false
         panel.isReleasedWhenClosed = false
         panel.center()
@@ -449,6 +456,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     /// Uses CGPreflightScreenCaptureAccess (silent check) + CGRequestScreenCaptureAccess
     /// so the system prompt appears with proper context instead of confusing users.
     func showScreenPermissionGuide() {
+        // 首次引导窗还开着时，权限这一步就在里面，不要再弹一个独立的授权窗
+        if let onboarding = NSApp.windows.first(where: { $0.title == onboardingTitle }) {
+            onboarding.makeKeyAndOrderFront(self)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
         // 幂等：引导窗已存在时仅激活，避免重复弹出多个
         // Don't filter by visibility: the guide may be temporarily hidden while the system
         // permission prompt is on screen, and must not be duplicated then.
@@ -531,13 +544,25 @@ struct ScreenPermissionGuide: View {
     @State private var requested = false
     @State private var showResetConfirm = false
     @State private var showResetFailed = false
+    /// Seconds left before the automatic relaunch after permission is granted; nil = no countdown.
+    @State private var countdown: Int? = nil
     private let pollTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+    /// Title of the window hosting this view (standalone guide or the onboarding window),
+    /// used to hide/show it around the system prompt.
+    private let panelTitle: String
+    /// Compact layout when embedded in the onboarding window (it shows its own header).
+    private let embedded: Bool
+
+    init(panelTitle: String = "Screen Recording Permission".local, embedded: Bool = false) {
+        self.panelTitle = panelTitle
+        self.embedded = embedded
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
                 Image(systemName: granted ? "checkmark.circle.fill" : "video.badge.waveform")
-                    .font(.system(size: 44))
+                    .font(.system(size: embedded ? 36 : 44))
                     .foregroundStyle(granted ? Color.green : Color.accentColor)
                 Text((granted ? "All Set!" : "Screen Recording Permission").local)
                     .font(.title2.bold())
@@ -551,6 +576,16 @@ struct ScreenPermissionGuide: View {
                     Button("Restart TinyRecorder Now") { relaunch() }
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
+                    if let left = countdown {
+                        HStack(spacing: 6) {
+                            Text(String(format: "Restarting automatically in %d s…".local, left))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Button("Cancel".local) { countdown = nil }
+                                .buttonStyle(.link)
+                                .font(.caption)
+                        }
+                    }
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Click \"Grant Permission\" below; macOS will show a system dialog.".local, systemImage: "1.circle.fill")
@@ -560,6 +595,8 @@ struct ScreenPermissionGuide: View {
                     .font(.callout)
                     .foregroundColor(.secondary)
                     .frame(maxWidth: 370, alignment: .leading)
+                    PermissionToggleIllustration()
+                        .frame(maxWidth: 370)
                     Text("If TinyRecorder is not in the list, quit System Settings (⌘Q) and reopen this page, or add it with the + button.".local)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -629,10 +666,17 @@ struct ScreenPermissionGuide: View {
             Text("Please run this command in Terminal instead:\ntccutil reset ScreenCapture \(Bundle.main.bundleIdentifier ?? "com.33to9.TinyRecorder")")
         }
         .onReceive(pollTimer) { _ in
+            if let left = countdown {
+                // 授权成功后的自动重启倒计时（用户可取消，改为手动点“立即重启”）
+                if left <= 1 { countdown = nil; relaunch(); return }
+                countdown = left - 1
+            }
             let now = CGPreflightScreenCaptureAccess()
             if now && !granted {
-                // 授权成功：若引导窗处于隐藏状态（请求权限时避让系统弹窗），重新显示让用户点“重启”
+                // 授权成功：若引导窗处于隐藏状态（请求权限时避让系统弹窗），重新显示，
+                // 并开始 3 秒自动重启倒计时，省去用户再点一次。
                 orderGuidePanel(visible: true)
+                countdown = 3
             }
             granted = now
         }
@@ -640,7 +684,7 @@ struct ScreenPermissionGuide: View {
 
     /// 按标题找到引导窗并显示/隐藏
     private func orderGuidePanel(visible: Bool) {
-        for w in NSApp.windows where w.title == "Screen Recording Permission".local {
+        for w in NSApp.windows where w.title == panelTitle {
             if visible {
                 if !w.isVisible {
                     w.makeKeyAndOrderFront(nil)
@@ -666,9 +710,162 @@ struct ScreenPermissionGuide: View {
 }
 
 let firstRunSetupKey = "firstRunSetupDone"
+/// Last onboarding step reached, so the onboarding resumes there after the permission relaunch.
+let onboardingStepKey = "onboardingStep"
+var onboardingTitle: String { "Welcome to TinyRecorder".local }
 
-/// First-run setup: pick the default video encoder and container.
-struct FirstRunSetupView: View {
+/// First-run onboarding in one window: screen recording permission → microphone (optional)
+/// → default format → where to start recording. Granting the screen permission needs a
+/// relaunch; on the next launch the window comes back at the step after it.
+struct OnboardingView: View {
+    enum Step: Int, CaseIterable {
+        case permission, microphone, format, start
+        var title: String {
+            switch self {
+            case .permission: return "Permission".local
+            case .microphone: return "Voice".local
+            case .format: return "Format".local
+            case .start: return "Get Started".local
+            }
+        }
+    }
+
+    @State private var step: Step
+
+    init() {
+        let saved = Step(rawValue: ud.integer(forKey: onboardingStepKey)) ?? .permission
+        // 有录屏权限就跳过权限这一步（授权后重启回来，或老用户首次看到引导）
+        let granted = CGPreflightScreenCaptureAccess()
+        let initial: Step = granted ? Step(rawValue: max(saved.rawValue, Step.microphone.rawValue))! : .permission
+        _step = State(initialValue: initial)
+        ud.set(initial.rawValue, forKey: onboardingStepKey)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            stepIndicator
+                .padding(.top, 34)
+                .padding(.bottom, 4)
+            Group {
+                switch step {
+                case .permission:
+                    ScreenPermissionGuide(panelTitle: onboardingTitle, embedded: true)
+                case .microphone:
+                    OnboardingMicrophoneStep(next: { go(.format) })
+                case .format:
+                    OnboardingFormatStep(back: { go(.microphone) }, next: { go(.start) })
+                case .start:
+                    OnboardingStartStep(back: { go(.format) }, finish: finish)
+                }
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+        }
+        .frame(width: 480, height: 600)
+    }
+
+    private var stepIndicator: some View {
+        HStack(spacing: 6) {
+            ForEach(Step.allCases, id: \.rawValue) { s in
+                HStack(spacing: 4) {
+                    ZStack {
+                        Circle()
+                            .fill(s.rawValue <= step.rawValue ? Color.accentColor : Color.secondary.opacity(0.25))
+                            .frame(width: 18, height: 18)
+                        if s.rawValue < step.rawValue {
+                            Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundColor(.white)
+                        } else {
+                            Text("\(s.rawValue + 1)").font(.system(size: 10, weight: .bold))
+                                .foregroundColor(s.rawValue <= step.rawValue ? .white : .secondary)
+                        }
+                    }
+                    Text(s.title)
+                        .font(.caption)
+                        .foregroundColor(s == step ? .primary : .secondary)
+                }
+                if s != Step.allCases.last {
+                    Rectangle().fill(Color.secondary.opacity(0.25)).frame(width: 14, height: 1)
+                }
+            }
+        }
+    }
+
+    private func go(_ s: Step) {
+        step = s
+        ud.set(s.rawValue, forKey: onboardingStepKey)
+    }
+
+    private func finish() {
+        ud.set(true, forKey: firstRunSetupKey)
+        NSApp.windows.first(where: { $0.title == onboardingTitle })?.close()
+        // 打开录制工具栏，让用户马上能开始第一次录制
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            _ = AppDelegate.shared.applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
+        }
+    }
+}
+
+/// Step 2: optional microphone permission, so the first recording with voice isn't interrupted.
+struct OnboardingMicrophoneStep: View {
+    var next: () -> Void
+    @AppStorage("recordMic") private var recordMic: Bool = false
+    @State private var status = AVCaptureDevice.authorizationStatus(for: .audio)
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: status == .authorized ? "mic.circle.fill" : "mic.circle")
+                .font(.system(size: 36))
+                .foregroundStyle(status == .authorized ? Color.green : Color.accentColor)
+            Text("Record Your Voice?".local).font(.title2.bold())
+            Text("Narrating a tutorial or a bug report? Allow the microphone now so your first recording isn't interrupted by a system prompt. You can skip this and turn it on later.".local)
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: 380)
+            switch status {
+            case .authorized:
+                Label("Microphone allowed".local, systemImage: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Toggle("Record microphone by default".local, isOn: $recordMic)
+                    .toggleStyle(.checkbox)
+                Button("Next".local) { next() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
+            case .denied, .restricted:
+                Text("Microphone access was denied. You can allow it in System Settings → Privacy & Security → Microphone.".local)
+                    .font(.callout)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 380)
+                Button("Open System Settings".local) {
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")!)
+                }
+                Button("Next".local) { next() }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
+            default:
+                Button("Allow Microphone".local) {
+                    AVCaptureDevice.requestAccess(for: .audio) { ok in
+                        DispatchQueue.main.async {
+                            status = AVCaptureDevice.authorizationStatus(for: .audio)
+                            if ok { recordMic = true }
+                        }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                Button("Not Now".local) { next() }
+                    .buttonStyle(.link)
+            }
+        }
+        .padding(24)
+    }
+}
+
+/// Step 3: default video encoder and container (was the v1.7.18 first-run panel).
+struct OnboardingFormatStep: View {
+    var back: () -> Void
+    var next: () -> Void
     @AppStorage("encoder")     private var encoder: Encoder = .h264
     @AppStorage("videoFormat") private var videoFormat: VideoFormat = .mp4
     @AppStorage("withAlpha")   private var withAlpha: Bool = false
@@ -676,9 +873,9 @@ struct FirstRunSetupView: View {
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "film.stack")
-                .font(.system(size: 40))
+                .font(.system(size: 36))
                 .foregroundStyle(Color.accentColor)
-            Text("Welcome to TinyRecorder".local).font(.title2.bold())
+            Text("Recording Format".local).font(.title2.bold())
             Text("Choose the default format for your recordings. You can change it any time in Preferences → Output.".local)
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
@@ -711,17 +908,105 @@ struct FirstRunSetupView: View {
             }
             .disabled(withAlpha)
             .frame(maxWidth: 380)
-            Button("Done".local) { close() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .keyboardShortcut(.defaultAction)
+            HStack {
+                Button("Back".local) { back() }
+                Spacer()
+                Button("Next".local) { next() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+            .controlSize(.large)
+            .frame(maxWidth: 380)
         }
-        .padding(28)
-        .frame(width: 460)
+        .padding(24)
+    }
+}
+
+/// Step 4: show where recording starts (menu bar icon / Dock), then open the toolbar.
+struct OnboardingStartStep: View {
+    var back: () -> Void
+    var finish: () -> Void
+    @AppStorage("showMenubar") private var showMenubar: Bool = true
+    @AppStorage("showOnDock")  private var showOnDock: Bool = true
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "record.circle")
+                .font(.system(size: 36))
+                .foregroundStyle(Color.accentColor)
+            Text("You're Ready".local).font(.title2.bold())
+            VStack(alignment: .leading, spacing: 12) {
+                if showMenubar {
+                    hint(icon: "dot.circle.and.hand.point.up.left.fill",
+                         text: "Click the TinyRecorder icon in the menu bar (top right of the screen) to start a recording.".local)
+                }
+                if showOnDock {
+                    hint(icon: "dock.rectangle",
+                         text: "Or click TinyRecorder in the Dock to open the recording toolbar.".local)
+                }
+                hint(icon: "keyboard",
+                     text: "Tip: set global shortcuts in Preferences → Hotkey to start recording a screen, window or area with one key press.".local)
+                hint(icon: "stop.circle",
+                     text: "While recording, click the stop button in the menu bar to finish. Recordings are saved to your Desktop by default.".local)
+            }
+            .frame(maxWidth: 380, alignment: .leading)
+            HStack {
+                Button("Back".local) { back() }
+                Spacer()
+                Button("Open Preferences".local) { AppDelegate.shared.openSettingPanel() }
+                Button("Start Recording".local) { finish() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+            .controlSize(.large)
+            .frame(maxWidth: 380)
+        }
+        .padding(24)
     }
 
-    private func close() {
-        NSApp.windows.first(where: { $0.title == "Welcome to TinyRecorder".local })?.close()
+    private func hint(icon: String, text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 15))
+                .foregroundColor(.accentColor)
+                .frame(width: 22)
+            Text(text)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+/// Sketch of the System Settings row the user has to switch on, so they know what to look for.
+struct PermissionToggleIllustration: View {
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 24, height: 24)
+                Text("TinyRecorder").font(.callout)
+                Spacer()
+                // 仿系统开关（已打开），只是示意，不可点击
+                ZStack(alignment: .trailing) {
+                    Capsule().fill(Color.accentColor).frame(width: 34, height: 20)
+                    Circle().fill(Color.white).frame(width: 16, height: 16)
+                        .shadow(color: .black.opacity(0.2), radius: 1)
+                        .padding(.trailing, 2)
+                }
+                Image(systemName: "arrow.left")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.orange)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.1)))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.6), lineWidth: 1))
+            Text("System Settings → Privacy & Security → Screen & System Audio Recording".local)
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .accessibilityHidden(true)
     }
 }
 

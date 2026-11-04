@@ -270,3 +270,26 @@
 "Better quality and smaller files. Plays on Macs and iPhones; some older players or websites may not support it." = "畫質更好、檔案更小。Mac 和 iPhone 可直接播放，部分舊播放器或網站可能不支援。";
 "Best compatibility with every player and website, but files are larger." = "相容所有播放器和網站，但檔案較大。";
 "Done" = "完成";
+
+/* First-run onboarding (v1.8.0) */
+"Permission" = "權限";
+"Voice" = "聲音";
+"Get Started" = "開始";
+"Restarting automatically in %d s…" = "%d 秒後自動重新啟動…";
+"Record Your Voice?" = "要錄製你的聲音嗎？";
+"Narrating a tutorial or a bug report? Allow the microphone now so your first recording isn't interrupted by a system prompt. You can skip this and turn it on later." = "需要邊錄邊講解（教學、問題回報）？現在允許使用麥克風，第一次錄製時就不會被系統彈窗打斷。也可以略過，之後再開啟。";
+"Microphone allowed" = "已允許使用麥克風";
+"Record microphone by default" = "預設錄製麥克風";
+"Next" = "下一步";
+"Microphone access was denied. You can allow it in System Settings → Privacy & Security → Microphone." = "麥克風權限已被拒絕，可以在「系統設定 → 隱私權與安全性 → 麥克風」中重新允許。";
+"Allow Microphone" = "允許使用麥克風";
+"Not Now" = "暫不需要";
+"Recording Format" = "錄製格式";
+"You're Ready" = "準備就緒";
+"Click the TinyRecorder icon in the menu bar (top right of the screen) to start a recording." = "點擊螢幕右上角選單列中的 TinyRecorder 圖像，即可開始錄製。";
+"Or click TinyRecorder in the Dock to open the recording toolbar." = "也可以點擊 Dock 中的 TinyRecorder，打開錄製工具列。";
+"Tip: set global shortcuts in Preferences → Hotkey to start recording a screen, window or area with one key press." = "小技巧：在「偏好設定 → 快捷鍵」中設定全域快捷鍵，一鍵錄製螢幕、視窗或區域。";
+"While recording, click the stop button in the menu bar to finish. Recordings are saved to your Desktop by default." = "錄製中點擊選單列裡的停止按鈕即可結束，影片預設儲存在桌面。";
+"Open Preferences" = "打開偏好設定";
+"Start Recording" = "開始錄製";
+"System Settings → Privacy & Security → Screen & System Audio Recording" = "系統設定 → 隱私權與安全性 → 螢幕與系統錄音";
