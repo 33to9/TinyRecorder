@@ -281,7 +281,8 @@ jobs:
   homebrew:
     # After a tag release: bump version + sha256 of the cask in 33to9/homebrew-tap.
     # Needs secret HOMEBREW_TAP_TOKEN (fine-grained PAT, Contents: read & write on the tap
-    # repo only). Skipped without it, so releases never fail because of the tap.
+    # repo only). Without it the step is skipped with a warning annotation on the run,
+    # so releases never fail because of the tap.
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
@@ -295,7 +296,7 @@ jobs:
           TAP_REPO: 33to9/homebrew-tap
         run: |
           set -e
-          if [ -z "$GH_TOKEN" ]; then echo "HOMEBREW_TAP_TOKEN not set — skipping tap update"; exit 0; fi
+          if [ -z "$GH_TOKEN" ]; then echo "::warning title=Homebrew cask not updated::HOMEBREW_TAP_TOKEN is not set, so 33to9/homebrew-tap still points at the previous version. Add the secret or update Casks/tinyrecorder.rb by hand."; exit 0; fi
           TAG="${GITHUB_REF_NAME#v}"
           DMG="TinyRecorder_v${TAG}.dmg"
           curl -fsSL -o "$DMG" "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${TAG}/${DMG}"
