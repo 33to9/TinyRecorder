@@ -121,10 +121,28 @@ struct GeneralView: View {
     @State private var launchAtLogin = false
     @State private var showRepairConfirm = false
     @State private var showRepairFailed = false
+    @State private var language: String = AppLanguage.current
+    @State private var showLanguageRestart = false
 
     var body: some View {
         SForm {
             SGroupBox(label: "Startup") {
+                SPicker("Language", selection: $language) {
+                    Text("Follow System").tag(AppLanguage.system)
+                    Divider()
+                    ForEach(AppLanguage.available, id: \.self) { code in
+                        // Each language is shown in its own script so people who can't read
+                        // the current UI language can still find theirs (deliberate exception
+                        // to the one-language-per-surface rule).
+                        Text(verbatim: AppLanguage.nativeName(code)).tag(code)
+                    }
+                }
+                .onChange(of: language) { newValue in
+                    guard newValue != AppLanguage.current else { return }
+                    AppLanguage.current = newValue
+                    showLanguageRestart = true
+                }
+                SDivider()
                 if #available(macOS 13, *) {
                     SToggle("Launch at Login", isOn: $launchAtLogin)
                         .onChange(of: launchAtLogin) { newValue in
@@ -187,6 +205,20 @@ struct GeneralView: View {
         } message: {
             Text("Warning: this removes the screen recording permission TinyRecorder currently has and relaunches the app. Only use it when the System Settings toggle won't stay enabled — you will need to grant the permission again afterwards.")
         }
+        .alert("Restart to Change Language", isPresented: $showLanguageRestart) {
+            if AppLanguage.isRecording {
+                Button("OK", role: .cancel) {}
+            } else {
+                Button("Restart Now") { relaunchApp() }
+                Button("Later", role: .cancel) {}
+            }
+        } message: {
+            if AppLanguage.isRecording {
+                Text("A recording is in progress. The new language will take effect the next time TinyRecorder starts.")
+            } else {
+                Text("The new language will take effect after TinyRecorder restarts.")
+            }
+        }
         .alert("Repair Failed", isPresented: $showRepairFailed) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -197,6 +229,54 @@ struct GeneralView: View {
     private func resetScreenPermission() {
         if resetScreenCapturePermission() { relaunchApp() } else { showRepairFailed = true }
     }
+}
+
+/// Per-app language override. Stored as `AppleLanguages` in the app's own defaults domain —
+/// the same key macOS 13+ writes from System Settings → General → Language & Region →
+/// Applications, so the two stay in sync. Read by the system at launch, so a change needs
+/// a restart; switching live would leave SwiftUI literals, open menus, Sparkle and system
+/// alerts in the old language.
+enum AppLanguage {
+    static let system = "system"
+    private static let key = "AppleLanguages"
+
+    /// Languages the app ships, from its .lproj folders; English first, then by native name.
+    static var available: [String] {
+        Bundle.main.localizations
+            .filter { $0 != "Base" }
+            .sorted { a, b in
+                if a == "en" { return true }
+                if b == "en" { return false }
+                return nativeName(a) < nativeName(b)
+            }
+    }
+
+    /// The name of a language written in that language, e.g. "Italiano", "简体中文".
+    static func nativeName(_ code: String) -> String {
+        let locale = Locale(identifier: code)
+        let name = locale.localizedString(forIdentifier: code) ?? code
+        return name.prefix(1).uppercased(with: locale) + name.dropFirst()
+    }
+
+    /// The override set for this app only, or `system`. Reads the app's own domain:
+    /// `ud.array(forKey:)` would also return the global system language list.
+    static var current: String {
+        get {
+            guard let id = Bundle.main.bundleIdentifier,
+                  let langs = ud.persistentDomain(forName: id)?[key] as? [String],
+                  let first = langs.first else { return system }
+            let shipped = Bundle.main.localizations
+            if shipped.contains(first) { return first }
+            // Values written by System Settings may carry a region, e.g. "zh-Hans-CN".
+            return shipped.first { first.hasPrefix($0 + "-") } ?? system
+        }
+        set {
+            if newValue == system { ud.removeObject(forKey: key) }
+            else { ud.set([newValue], forKey: key) }
+        }
+    }
+
+    static var isRecording: Bool { SCContext.streamType != nil || SCContext.stream != nil }
 }
 
 struct RecorderView: View {

@@ -321,3 +321,10 @@
 "Show Again" = "重新显示";
 "H.264 (Recommended)" = "H.264（推荐）";
 "This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU." = "这台 Mac 没有 H.265 硬件编码器，用 H.265 录制会占用很多 CPU。";
+"Language" = "语言";
+"Follow System" = "跟随系统";
+"Restart to Change Language" = "重启以切换语言";
+"Restart Now" = "立即重启";
+"Later" = "稍后";
+"The new language will take effect after TinyRecorder restarts." = "新语言将在 TinyRecorder 重启后生效。";
+"A recording is in progress. The new language will take effect the next time TinyRecorder starts." = "正在录制中。新语言将在下次启动 TinyRecorder 时生效。";
