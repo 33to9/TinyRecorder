@@ -63,6 +63,9 @@ extension AppDelegate {
         SCContext.recWinSound = recordWinSound
         SCContext.recRemuxAudio = remuxAudio
         SCContext.recAudioFormat = audioFormat.rawValue
+        // HDR needs a 10-bit HEVC hardware encoder; without one the writer produces an empty
+        // file (#144, #94). The toggle is disabled in that case, this covers old settings.
+        if recordHDR && !hevcHardwareEncoderAvailable { recordHDR = false }
         var isDirectory: ObjCBool = false
         let outputPath = saveDirectory!
         if fd.fileExists(atPath: outputPath, isDirectory: &isDirectory) {
@@ -174,6 +177,22 @@ extension AppDelegate {
             if SCContext.streamType == .application {
                 var includ = SCContext.application ?? []
                 var except = [SCWindow]()
+                // Audio is often played by another process than the selected app: browser web
+                // apps (com.google.Chrome.app.<id>) play through the browser's helpers, and
+                // many apps (e.g. meeting apps) through their own helper processes. Include
+                // those processes too, but hide their windows so only the selected app shows.
+                for app in includ {
+                    let id = app.bundleIdentifier
+                    var related = content.applications.filter { $0.bundleIdentifier.hasPrefix(id + ".") }
+                    if let r = id.range(of: ".app.") {
+                        let parent = String(id[..<r.lowerBound])
+                        related += content.applications.filter { $0.bundleIdentifier == parent || $0.bundleIdentifier.hasPrefix(parent + ".helper") }
+                    }
+                    for extra in related where !includ.contains(extra) {
+                        includ.append(extra)
+                        except += content.windows.filter { $0.owningApplication == extra }
+                    }
+                }
                 if let qrSelf = qrSelf { includ.append(qrSelf) }
                 let withFinder = includ.map{ $0.bundleIdentifier }.contains("com.apple.finder")
                 if withFinder && hideDesktopFiles { except += desktopFiles }
@@ -365,6 +384,16 @@ extension AppDelegate {
             }
         }
         
+        // Open the chosen camera overlay automatically when recording starts (#119). Not for a
+        // single window (the overlay can't be captured there) or several windows (the filter
+        // was built without it).
+        if !audioOnly, SCContext.streamType != .window, SCContext.streamType != .windows, SCContext.recordCam.isEmpty,
+           let name = ud.string(forKey: "autoCamera"), !name.isEmpty,
+           AVCaptureDevice.authorizationStatus(for: .video) == .authorized,
+           let camera = SCContext.getCameras().first(where: { $0.localizedName == name }) {
+            SCContext.recordCam = name
+            recordingCamera(with: camera)
+        }
         let stream = SCStream(filter: filter, configuration: conf, delegate: self)
         SCContext.stream = stream
         SCContext.streamQueue.sync { SCContext.activeStream = ObjectIdentifier(stream) }
@@ -486,6 +515,11 @@ extension AppDelegate {
             SCContext.filePath = "\(SCContext.getFilePath()).\(fileEnding)"
         }
         let writer = try AVAssetWriter(outputURL: SCContext.filePath.url, fileType: videoFileType)
+        // Write the movie in 10-second fragments: if the app crashes, is killed or the Mac
+        // loses power, everything up to the last fragment stays playable instead of the
+        // whole file being lost ("moov atom not found", #129 #120 #256 ...).
+        writer.movieFragmentInterval = CMTime(seconds: 10, preferredTimescale: 600)
+        writer.metadata = SCContext.recordingMetadata()
         SCContext.vW = writer
         let encoderIsH265 = (encoder.rawValue == Encoder.h265.rawValue) || recordHDR
         let fpsMultiplier: Double = Double(frameRate)/8
@@ -513,10 +547,20 @@ extension AppDelegate {
                 AVVideoProfileLevelKey: encoderIsH265 ? h265Level : h264Level,
                 AVVideoAverageBitRateKey: max(200000, Int(targetBitrate)),
                 AVVideoExpectedSourceFrameRateKey: frameRate,
+                // No B-frames: ScreenCaptureKit only delivers frames when the screen changes, and
+                // with frame reordering a long still period produced huge composition offsets
+                // that make ffmpeg-based players (IINA, mpv, LosslessCut) drop all audio (#291).
+                AVVideoAllowFrameReorderingKey: false,
             ] as [String : Any]
         ]
         
-        if !recordHDR {
+        if recordHDR {
+            // Tag HDR files as BT.2020 / PQ; untagged files were reported as incompatible (#149)
+            videoSettings[AVVideoColorPropertiesKey] = [
+                AVVideoTransferFunctionKey: AVVideoTransferFunction_SMPTE_ST_2084_PQ,
+                AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_2020,
+                AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_2020] as [String : Any]
+        } else {
             videoSettings[AVVideoColorPropertiesKey] = [
                 AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
                 AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
@@ -529,7 +573,9 @@ extension AppDelegate {
         writer.add(videoInput)
         SCContext.vwInput = videoInput
 
-        if #available(macOS 13, *) {
+        // Only add the system audio track when system audio is captured; otherwise the file
+        // got an empty audio track (#51)
+        if #available(macOS 13, *), conf.capturesAudio {
             let audioInput = AVAssetWriterInput(mediaType: AVMediaType.audio, outputSettings: SCContext.updateAudioSettings())
             audioInput.expectsMediaDataInRealTime = true
             if writer.canAdd(audioInput) { writer.add(audioInput) }
@@ -563,7 +609,7 @@ extension AppDelegate {
                 }
                 try SCContext.AECEngine.startAudioStream(enableAEC: enableAEC, duckingLevel: level, audioBufferHandler: { pcmBuffer in
                     // 在回调线程上立即转换（会拷贝数据），再交给串行队列写入
-                    guard let sample = pcmBuffer.asSampleBuffer else { return }
+                    guard let sample = pcmBuffer.sampleBuffer(hostTime: nil) else { return }
                     SCContext.streamQueue.async { SCContext.appendMicSample(sample) }
                 })
                 SCContext.aecStarted = true
@@ -771,6 +817,14 @@ extension AppDelegate {
         DispatchQueue.main.async {
             // 旧 stream 迟到的错误不能停掉新的录制
             guard SCContext.streamQueue.sync(execute: { SCContext.activeStream == id }) else { return }
+            // Stopping from the system's screen sharing indicator is the user's own choice;
+            // anything else (sleep, lock, display change, -3821 ...) used to end the recording
+            // with only "Recording Completed", so say why it stopped (#222 #142 #290).
+            if (error as NSError).code != SCStreamError.Code.userStopped.rawValue {
+                SCContext.showNotification(title: "Recording Stopped by macOS".local,
+                                           body: String(format: "Reason: %@\nWhat was recorded until then has been saved.".local, error.localizedDescription),
+                                           id: "quickrecorder.error.\(UUID().uuidString)")
+            }
             SCContext.stream = nil
             SCContext.stopRecording()
         }
@@ -811,6 +865,20 @@ class AudioRecorder: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate {
 
         // Create audio data output
         audioDataOutput = AVCaptureAudioDataOutput()
+        // Interfaces with more than 2 inputs: the microphone track is stereo, and appending
+        // their native multi-channel buffers failed and stopped the recording (#133).
+        // Ask for the first two channels as 32-bit float PCM instead.
+        if let asbd = CMAudioFormatDescriptionGetStreamBasicDescription(audioDevice.activeFormat.formatDescription)?.pointee,
+           asbd.mChannelsPerFrame > 2 {
+            audioDataOutput.audioSettings = [
+                AVFormatIDKey: kAudioFormatLinearPCM,
+                AVSampleRateKey: asbd.mSampleRate,
+                AVNumberOfChannelsKey: 2,
+                AVLinearPCMBitDepthKey: 32,
+                AVLinearPCMIsFloatKey: true,
+                AVLinearPCMIsNonInterleaved: false,
+            ]
+        }
         // 与 SCStream 回调共用串行队列，避免与停止流程竞争
         audioDataOutput.setSampleBufferDelegate(self, queue: SCContext.streamQueue)
         
@@ -870,7 +938,13 @@ extension CMSampleBuffer {
 
 // Based on https://gist.github.com/aibo-cora/c57d1a4125e145e586ecb61ebecff47c
 extension AVAudioPCMBuffer {
-    var asSampleBuffer: CMSampleBuffer? {
+    var asSampleBuffer: CMSampleBuffer? { sampleBuffer(hostTime: nil) }
+
+    /// Wraps the buffer in a CMSampleBuffer stamped with the time its first sample was
+    /// captured. `hostTime` is the capture time from the audio engine (AVAudioTime.hostTime);
+    /// without it the start is estimated as "now minus the buffer length". Stamping with the
+    /// time of the callback instead made the microphone drift against the system audio (#247).
+    func sampleBuffer(hostTime: UInt64?) -> CMSampleBuffer? {
         let asbd = self.format.streamDescription
         var sampleBuffer: CMSampleBuffer? = nil
         var format: CMFormatDescription? = nil
@@ -888,7 +962,11 @@ extension AVAudioPCMBuffer {
 
         var timing = CMSampleTimingInfo(
             duration: CMTime(value: 1, timescale: Int32(asbd.pointee.mSampleRate)),
-            presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
+            presentationTimeStamp: {
+                if let hostTime = hostTime, hostTime > 0 { return CMClockMakeHostTimeFromSystemUnits(hostTime) }
+                let length = CMTime(value: CMTimeValue(self.frameLength), timescale: Int32(asbd.pointee.mSampleRate))
+                return CMTimeSubtract(CMClockGetTime(CMClockGetHostTimeClock()), length)
+            }(),
             decodeTimeStamp: .invalid
         )
 

@@ -202,6 +202,8 @@ struct StatusBarItem: View {
                             statusBarOccludedSince = nil
                             NSApp.windows.first(where: { $0.title == "Recording Controller".local })?.close(); return
                         }
+                        // The user can turn the on-screen controller off completely (#250)
+                        if !ud.bool(forKey: "showFloatingController") { return }
                         // Debounce: only show the fallback panel after the status item has
                         // stayed occluded for about a second.
                         let now = Date()

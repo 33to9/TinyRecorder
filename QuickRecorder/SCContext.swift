@@ -51,6 +51,8 @@ class SCContext {
     static var micTapFormat: AVAudioFormat?
     static var micConfigObserver: NSObjectProtocol?
     static var aecStarted = false
+    /// Set by discardRecording(): the next stop throws the recording away (#64)
+    static var discardRequested = false
     static var screenArea: NSRect?
     static let audioEngine = AVAudioEngine()
     static let AECEngine = AECAudioStream(sampleRate: 48000)
@@ -175,7 +177,13 @@ class SCContext {
             && $0.frame.width > 40
             && $0.frame.height > 40
         }
-        if isOnScreen { windows = windows.filter({$0.isOnScreen == true}) }
+        if isOnScreen {
+            // A full-screen app lives in its own Space, so its window is not "on screen" while
+            // you are on the desktop; keep such windows (normal layer, display-sized) so
+            // full-screen apps can still be picked (#258)
+            let displaySizes = content.displays.map { $0.frame.size }
+            windows = windows.filter { $0.isOnScreen || ($0.windowLayer == 0 && displaySizes.contains($0.frame.size)) }
+        }
         if hideSelf && ud.bool(forKey: "hideSelf") { windows = windows.filter({$0.owningApplication?.bundleIdentifier != Bundle.main.bundleIdentifier}) }
         return windows
     }
@@ -476,11 +484,18 @@ class SCContext {
         guard format.channelCount > 0, format.sampleRate > 0 else {
             throw RecordingError("No available microphone input.")
         }
-        if micTapFormat == nil { micTapFormat = format }
+        // The microphone track is at most stereo: convert interfaces with more inputs to their
+        // first two channels, otherwise appending failed and stopped the recording (#133)
+        if micTapFormat == nil {
+            micTapFormat = format.channelCount > 2
+                ? (AVAudioFormat(standardFormatWithSampleRate: format.sampleRate, channels: 2) ?? format)
+                : format
+        }
         let target = micTapFormat ?? format
         let converter: AVAudioConverter? = (format == target) ? nil : AVAudioConverter(from: format, to: target)
         if micTapInstalled { input.removeTap(onBus: 0) }
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
+        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, when in
+            let hostTime: UInt64? = when.isHostTimeValid ? when.hostTime : nil
             var out = buffer
             if let converter = converter {
                 let capacity = AVAudioFrameCount(Double(buffer.frameLength) * target.sampleRate / format.sampleRate) + 32
@@ -497,7 +512,7 @@ class SCContext {
                 out = converted
             }
             // 在回调线程上立即转换（会拷贝数据），再交给串行队列写入
-            guard let sample = out.asSampleBuffer else { return }
+            guard let sample = out.sampleBuffer(hostTime: hostTime) else { return }
             streamQueue.async { appendMicSample(sample) }
         }
         micTapInstalled = true
@@ -534,6 +549,19 @@ class SCContext {
         }
     }
     
+    /// Creation date and software tags written into recorded movies, like the system
+    /// screenshot / screen recording tools do (#131)
+    static func recordingMetadata() -> [AVMetadataItem] {
+        let date = AVMutableMetadataItem()
+        date.identifier = .commonIdentifierCreationDate
+        date.value = ISO8601DateFormatter().string(from: Date()) as NSString
+        let software = AVMutableMetadataItem()
+        software.identifier = .commonIdentifierSoftware
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        software.value = "TinyRecorder \(version)" as NSString
+        return [date, software]
+    }
+
     static func reportSaveFailure(_ error: Error?) {
         let err = error?.localizedDescription ?? "No content was captured.".local
         print("Failed to save recording: \(err)")
@@ -556,6 +584,23 @@ class SCContext {
         }
     }
     
+    /// Stops the recording and moves what was recorded to the Trash instead of saving it (#64)
+    static func discardRecording() {
+        guard streamType != nil, streamType != .idevice else { return }
+        discardRequested = true
+        stopRecording()
+    }
+
+    /// Called once a recording file is saved: optionally copies it to the clipboard (#289)
+    static func recordingSaved(_ url: URL) {
+        guard ud.bool(forKey: "copyToClipboard") else { return }
+        DispatchQueue.main.async {
+            guard fd.fileExists(atPath: url.path) else { return }
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.writeObjects([url as NSURL])
+        }
+    }
+
     static func stopRecording() {
         guard streamType != nil else { return }
         // 防重入；并在串行队列上置位，保证此后的回调都不会再写入
@@ -582,6 +627,36 @@ class SCContext {
         stopMicCapture()
         
         let currentType = streamType
+        if discardRequested {
+            discardRequested = false
+            if let writer = vW, writer.status == .writing { writer.cancelWriting() }
+            audioFile = nil
+            audioFile2 = nil
+            // filePath is this recording's file (or .qma package); filePath1 is only set for
+            // audio recordings, so don't touch it for video (it may point to an older file)
+            var paths = [filePath ?? ""]
+            if currentType == .systemaudio { paths.append(filePath1 ?? "") }
+            for p in paths where !p.isEmpty && fd.fileExists(atPath: p) {
+                try? fd.trashItem(at: p.url, resultingItemURL: nil)
+            }
+            controlPanel.close()
+            if isCameraRunning() {
+                if camWindow.isVisible { camWindow.close() }
+                if let capture = captureSession { capture.stopRunning() }
+            }
+            streamQueue.sync { isPaused = false; isResume = false; lastPTS = nil }
+            PopoverState.shared.isPaused = false
+            hideMousePointer = false
+            window = nil
+            screen = nil
+            startTime = nil
+            AppDelegate.shared.presenterType = "OFF"
+            streamType = nil
+            firstFrame = nil
+            updateStatusBar()
+            showNotification(title: "Recording Discarded".local, body: "The recording was moved to the Trash.".local, id: "quickrecorder.completed.\(UUID().uuidString)")
+            return
+        }
         let path: String = filePath ?? ""
         let remuxVideo = recMic && recWinSound && recRemuxAudio
         let remuxQma = recMic && recRemuxAudio
@@ -603,6 +678,7 @@ class SCContext {
                             switch result {
                             case .success(let url):
                                 finalURL = url
+                                recordingSaved(url)
                                 print("Exported video to \(String(describing: url.path))")
                                 if !ud.bool(forKey: "showPreview") {
                                     showNotification(title: "Recording Completed".local, body: String(format: "File saved to: %@".local, url.path), id: "quickrecorder.completed.\(UUID().uuidString)")
@@ -662,6 +738,7 @@ class SCContext {
                     do {
                         try await m4a2mp3(inputUrl: path1.url, outputUrl: outPutUrl)
                         try? fd.removeItem(atPath: path1)
+                        recordingSaved(outPutUrl)
                         if !ud.bool(forKey: "showPreview") {
                             let title = "Recording Completed".local
                             let body = String(format: "File saved to: %@".local, outPutUrl.path.removingPercentEncoding ?? outPutUrl.path)
@@ -675,6 +752,7 @@ class SCContext {
                     }
                 }
             } else {
+                recordingSaved(path.url)
                 if !ud.bool(forKey: "showPreview") {
                     let title = "Recording Completed".local
                     let body = String(format: "File saved to: %@".local, path)
@@ -700,6 +778,7 @@ class SCContext {
         updateStatusBar()
         
         if currentType != .systemaudio && !remuxVideo && videoSaved {
+            recordingSaved(path.url)
             if !ud.bool(forKey: "showPreview") {
                 let title = "Recording Completed".local
                 let body = String(format: "File saved to: %@".local, path)
@@ -740,6 +819,7 @@ class SCContext {
                 showNotification(title: "Failed to mix audio tracks".local, body: body, id: "quickrecorder.error.\(UUID().uuidString)")
             }
         } else {
+            recordingSaved(path.url)
             if !ud.bool(forKey: "showPreview") {
                 let title = "Recording Completed".local
                 let body = String(format: "File saved to: %@".local, path)

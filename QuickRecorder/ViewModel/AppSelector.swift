@@ -291,6 +291,9 @@ struct OptionsView: View {
                         }
                         .fixedSize()
                         .toggleStyle(.checkbox)
+                        // HDR needs a hardware HEVC encoder; without one recording fails (#144)
+                        .disabled(!hevcHardwareEncoderAvailable)
+                        .help(hevcHardwareEncoderAvailable ? "" : "This Mac has no hardware H.265 encoder, which HDR recording needs.".local)
                     }
                     Toggle(isOn: $showMouse) {
                         HStack(spacing: 0){

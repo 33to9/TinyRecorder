@@ -20,7 +20,14 @@ extension AppDelegate {
         camWindow.contentView?.wantsLayer = true
         camWindow.contentView?.layer?.cornerRadius = 5
         camWindow.contentView?.layer?.masksToBounds = true
+        // Circle overlay (#279): keep the window square so the circle stays round when resized
+        if ud.string(forKey: "cameraShape") == "circle" {
+            camWindow.contentAspectRatio = NSSize(width: 1, height: 1)
+        } else {
+            camWindow.contentResizeIncrements = NSSize(width: 1, height: 1)
+        }
         camWindow.orderFront(self)
+        camWindow.invalidateShadow()
     }
 }
 
@@ -81,6 +88,8 @@ struct SwiftCameraView: View {
     var type: StreamType!
     @State private var hover = false
     @State private var isFlipped = false
+    @AppStorage("cameraShape") private var cameraShape: String = "rounded"
+    private var isCircle: Bool { type == .camera && cameraShape == "circle" }
     
     var body: some View {
         GeometryReader { geometry in
@@ -90,7 +99,7 @@ struct SwiftCameraView: View {
                     Text("Please unlock!")
                         .foregroundStyle(.white)
                 }
-                ZStack(alignment: Alignment(horizontal: .trailing, vertical: .bottom)) {
+                ZStack(alignment: Alignment(horizontal: isCircle ? .center : .trailing, vertical: .bottom)) {
                     CameraView(type: type)
                         .rotation3DEffect(.degrees(isFlipped ? 180 : 0), axis: (x: 0, y: 1, z: 0))
                     Button(action: {
@@ -115,7 +124,9 @@ struct SwiftCameraView: View {
                         .opacity(hover ? 0.8 : 0.2)
                         .onHover{ hovering in hover = hovering }
                     }).buttonStyle(.plain).padding(10)
-                }.frame(width: geometry.size.width, height: geometry.size.height)
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .mask(Group { if isCircle { Circle() } else { Rectangle() } })
                 if SCContext.streamType == .window {
                     Text("Unable to use camera overlayer when recording a single window!".local
                          + (isMacOS14 ? " Please use \"Presenter Overlay\"".local : "")

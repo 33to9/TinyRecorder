@@ -375,10 +375,10 @@ extension AppDelegate {
         stopAreaSelectorScreenMonitor()
     }
 
-    func showAreaSelector(size: NSSize, noPanel: Bool = false) {
+    func showAreaSelector(size: NSSize, noPanel: Bool = false, origin: NSPoint? = nil) {
         guard let scDisplay = SCContext.getSCDisplayWithMouse() else { return }
         guard let screen = scDisplay.nsScreen else { return }
-        let screenshotWindow = ScreenshotWindow(contentRect: screen.frame, backing: .buffered, defer: false, size: size, force: noPanel)
+        let screenshotWindow = ScreenshotWindow(contentRect: screen.frame, backing: .buffered, defer: false, size: size, force: noPanel, origin: origin)
         screenshotWindow.title = "Area Selector".local
         //screenshotWindow.orderFront(self)
         screenshotWindow.orderFrontRegardless()

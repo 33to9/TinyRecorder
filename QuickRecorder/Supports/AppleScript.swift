@@ -208,6 +208,44 @@ class recordAudio: NSScriptCommand {
     }
 }
 
+// Stop / pause / resume / discard, so a script can run a whole recording (#128)
+
+@objc(stopRecordingCommand)
+class stopRecordingCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        if SCContext.streamType == nil { return scriptFail("Not recording.") }
+        DispatchQueue.main.async { stopActiveRecording() }
+        return nil
+    }
+}
+
+@objc(pauseRecordingCommand)
+class pauseRecordingCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        if SCContext.stream == nil { return scriptFail("Not recording.") }
+        DispatchQueue.main.async { if SCContext.stream != nil && !SCContext.isPaused { SCContext.pauseRecording() } }
+        return nil
+    }
+}
+
+@objc(resumeRecordingCommand)
+class resumeRecordingCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        if SCContext.stream == nil { return scriptFail("Not recording.") }
+        DispatchQueue.main.async { if SCContext.stream != nil && SCContext.isPaused { SCContext.pauseRecording() } }
+        return nil
+    }
+}
+
+@objc(discardRecordingCommand)
+class discardRecordingCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        if SCContext.stream == nil { return scriptFail("Not recording.") }
+        DispatchQueue.main.async { SCContext.discardRecording() }
+        return nil
+    }
+}
+
 @objc(setPreferences)
 class setPreferences: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
@@ -234,6 +272,14 @@ class setPreferences: NSScriptCommand {
             if SCContext.getMicrophone().map({$0.localizedName}).contains(micname) || micname == "default" {
                 UserDefaults.standard.set(micname, forKey: "micDevice")
             }
+        }
+        if let folder = args["folder"] as? String {
+            let path = (folder as NSString).expandingTildeInPath
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else {
+                return scriptFail("The save folder doesn't exist: \(path)")
+            }
+            UserDefaults.standard.set(path, forKey: "saveDirectory")
         }
         if let hdr = self.scriptArgs["hdr"] as? Bool {
             if #available(macOS 15.0, *) {

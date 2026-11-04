@@ -161,6 +161,7 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
             print("Device recording finished with error: \(error.localizedDescription)")
         }
         if succeeded {
+            SCContext.recordingSaved(outputFileURL)
             SCContext.showNotification(title: "Recording Completed".local,
                                        body: String(format: "File saved to: %@".local, outputFileURL.path),
                                        id: "quickrecorder.completed.\(UUID().uuidString)")

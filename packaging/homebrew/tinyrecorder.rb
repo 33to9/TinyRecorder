@@ -17,7 +17,7 @@ cask "tinyrecorder" do
 
   # The app updates itself with Sparkle (Check for Updates…).
   auto_updates true
-  depends_on macos: ">= :monterey"
+  depends_on macos: :monterey
 
   app "TinyRecorder.app"
 

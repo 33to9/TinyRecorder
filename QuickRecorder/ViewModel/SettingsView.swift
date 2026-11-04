@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 import Sparkle
 import ServiceManagement
 import KeyboardShortcuts
@@ -291,8 +292,13 @@ struct RecorderView: View {
     @AppStorage("preventSleep")     private var preventSleep: Bool = true
     @AppStorage("showPreview")      private var showPreview: Bool = true
     @AppStorage("hideCCenter")      private var hideCCenter: Bool = false
+    @AppStorage("showFloatingController") private var showFloatingController: Bool = true
+    @AppStorage("copyToClipboard")  private var copyToClipboard: Bool = false
+    @AppStorage("autoCamera")       private var autoCamera: String = ""
+    @AppStorage("cameraShape")      private var cameraShape: String = "rounded"
     
     @State private var userColor: Color = Color.black
+    @State private var cameras = SCContext.getCameras()
 
     var body: some View {
         SForm(spacing: 10) {
@@ -322,6 +328,30 @@ struct RecorderView: View {
                     SDivider()
                 }
                 SToggle("Open video trimmer after recording", isOn: $trimAfterRecord)
+                SDivider()
+                SToggle("Copy the recording to the clipboard", isOn: $copyToClipboard)
+                SDivider()
+                SToggle("Show on-screen controller when the menu bar icon is hidden", isOn: $showFloatingController, tips: "When the menu bar icon can't be seen (e.g. behind the notch or hidden by a menu bar manager), a small controller with the timer appears at the top of the screen. Turn this off to never show it; use the hotkeys to stop or pause.")
+            }
+            SGroupBox(label: "Camera") {
+                SPicker("Open Camera When Recording Starts", selection: $autoCamera) {
+                    Text("Off").tag("")
+                    ForEach(cameras, id: \.uniqueID) { camera in
+                        Text(verbatim: camera.localizedName).tag(camera.localizedName)
+                    }
+                    // Keep a camera chosen earlier selectable while it is unplugged
+                    if !autoCamera.isEmpty && !cameras.contains(where: { $0.localizedName == autoCamera }) {
+                        Text(verbatim: autoCamera).tag(autoCamera)
+                    }
+                }
+                .onChange(of: autoCamera) { name in
+                    if !name.isEmpty { SCContext.withCameraAccess {} }
+                }
+                SDivider()
+                SPicker("Camera Overlay Shape", selection: $cameraShape) {
+                    Text("Rounded Rectangle").tag("rounded")
+                    Text("Circle").tag("circle")
+                }
             }
             SGroupBox {
                 SToggle("Exclude TinyRecorder itself", isOn: $hideSelf)
@@ -442,6 +472,8 @@ struct HotkeyView: View {
                 SItem(label: "Stop Recording") { KeyboardShortcuts.Recorder("", name: .stop) }
                 SDivider()
                 SItem(label: "Pause / Resume") { KeyboardShortcuts.Recorder("", name: .pauseResume) }
+                SDivider()
+                SItem(label: "Discard Recording") { KeyboardShortcuts.Recorder("", name: .discard) }
             }
             SGroupBox {
                 SItem(label: "Record System Audio") { KeyboardShortcuts.Recorder("", name: .startWithAudio) }
@@ -451,6 +483,11 @@ struct HotkeyView: View {
                 SItem(label: "Record Topmost Window") { KeyboardShortcuts.Recorder("", name: .startWithWindow) }
                 SDivider()
                 SItem(label: "Select Area to Record") { KeyboardShortcuts.Recorder("", name: .startWithArea) }
+                SDivider()
+                Text("Press a recording hotkey again to stop the recording.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             SGroupBox {
                 SItem(label: "Save Current Frame") { KeyboardShortcuts.Recorder("", name: .saveFrame) }
@@ -516,6 +553,7 @@ extension KeyboardShortcuts.Name {
     static let saveFrame = Self("saveFrame")
     static let pauseResume = Self("pauseResume")
     static let stop = Self("stop")
+    static let discard = Self("discard")
     static let showPanel = Self("showPanel")
 }
 

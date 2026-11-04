@@ -259,6 +259,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                 "recordHDR": false,
                 "preventSleep": true,
                 "showPreview": isMacOS12 ? false : true,
+                "showFloatingController": true,
+                "copyToClipboard": false,
+                "autoCamera": "",
+                "cameraShape": "rounded",
                 "savedArea": [String: [String: CGFloat]]()
             ]
         )
@@ -297,11 +301,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         screenMagnifier.backgroundColor = NSColor.clear
         
         camWindow.title = "Camera Overlayer".local
-        camWindow.level = .floating
         camWindow.isReleasedWhenClosed = false
         camWindow.isMovableByWindowBackground = true
         camWindow.backgroundColor = NSColor.clear
-        camWindow.collectionBehavior = [.canJoinAllSpaces]
+        // Above full-screen apps and slideshows (Keynote play mode), so the camera overlay
+        // stays visible in the recording (#238)
+        camWindow.level = .screenSaver
+        camWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         
         countdownPanel.title = "Countdown Panel".local
         countdownPanel.level = .floating
@@ -335,17 +341,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         }
         KeyboardShortcuts.onKeyDown(for: .saveFrame) { if SCContext.stream != nil { SCContext.saveFrame = true }}
         KeyboardShortcuts.onKeyDown(for: .screenMagnifier) { if SCContext.stream != nil { SCContext.isMagnifierEnabled.toggle() }}
-        KeyboardShortcuts.onKeyDown(for: .stop) {
-            // iPhone/iPad 录制走 AVCaptureSession，没有 SCStream，要单独停止
-            if SCContext.streamType == .idevice { AVOutputClass.shared.stopRecording() }
-            else if SCContext.stream != nil { SCContext.stopRecording() }
-        }
+        KeyboardShortcuts.onKeyDown(for: .stop) { stopActiveRecording() }
+        KeyboardShortcuts.onKeyDown(for: .discard) { if SCContext.stream != nil { SCContext.discardRecording() } }
         KeyboardShortcuts.onKeyDown(for: .pauseResume) { if SCContext.stream != nil { SCContext.pauseRecording() }}
         // Recording shortcuts always go through AppDelegate.shared (the instance the rest of
         // the app uses) and refresh the shareable content first, so they never run on stale
         // content or crash when screen recording permission is missing.
         KeyboardShortcuts.onKeyDown(for: .startWithAudio) {
-            if SCContext.streamType != nil { return }
+            // Pressing a recording hotkey again stops the recording, so one key starts and stops (#95)
+            if SCContext.streamType != nil { stopActiveRecording(); return }
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
@@ -353,7 +357,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             }
         }
         KeyboardShortcuts.onKeyDown(for: .startWithScreen) {
-            if SCContext.streamType != nil { return }
+            // Pressing a recording hotkey again stops the recording, so one key starts and stops (#95)
+            if SCContext.streamType != nil { stopActiveRecording(); return }
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
@@ -361,7 +366,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             }
         }
         KeyboardShortcuts.onKeyDown(for: .startWithArea) {
-            if SCContext.streamType != nil { return }
+            // Pressing a recording hotkey again stops the recording, so one key starts and stops (#95)
+            if SCContext.streamType != nil { stopActiveRecording(); return }
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
@@ -369,7 +375,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             }
         }
         KeyboardShortcuts.onKeyDown(for: .startWithWindow) {
-            if SCContext.streamType != nil { return }
+            // Pressing a recording hotkey again stops the recording, so one key starts and stops (#95)
+            if SCContext.streamType != nil { stopActiveRecording(); return }
             let frontmostApp = NSWorkspace.shared.frontmostApplication
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
@@ -384,6 +391,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         closeAllWindow()
+        // Remember where the main toolbar was dragged to (#159)
+        NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: nil, queue: .main) { note in
+            guard let w = note.object as? NSWindow, w is EscPanel, w.title == "TinyRecorder".local, w.isVisible else { return }
+            ud.set(NSStringFromPoint(w.frame.origin), forKey: mainPanelOriginKey)
+        }
         // 测试用：带 `-resetOnboarding YES` 启动时按新用户重新走引导（不清权限）
         if ud.bool(forKey: "resetOnboarding") {
             ud.removeObject(forKey: firstRunSetupKey)
@@ -532,6 +544,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                     let wX = (screen.frame.width - mainPanel.frame.width) / 2 + screen.frame.minX
                     let wY = (screen.frame.height - mainPanel.frame.height) / 2 + screen.frame.minY
                     mainPanel.setFrameOrigin(NSPoint(x: wX, y: wY))
+                }
+                // Reopen where the user last dragged it (#159), if that spot is still on a screen
+                if let saved = ud.string(forKey: mainPanelOriginKey) {
+                    let origin = NSPointFromString(saved)
+                    let rect = NSRect(origin: origin, size: mainPanel.frame.size)
+                    if NSScreen.screens.contains(where: { $0.visibleFrame.contains(NSPoint(x: rect.midX, y: rect.midY)) }) {
+                        mainPanel.setFrameOrigin(origin)
+                    }
                 }
                 mainPanel.makeKeyAndOrderFront(self)
                 if #unavailable(macOS 13) { NSApp.activate(ignoringOtherApps: true) }
@@ -1097,6 +1117,17 @@ func relaunchApp() {
     task.arguments = ["-c", "sleep 1; /usr/bin/open -n \"$0\"", Bundle.main.bundlePath]
     try? task.run()
     NSApp.terminate(nil)
+}
+
+/// UserDefaults key for the main toolbar's last position
+let mainPanelOriginKey = "mainPanelOrigin"
+
+/// Stops whatever is recording (screen/audio via ScreenCaptureKit, or an iPhone/iPad).
+/// Does nothing while a recording is still starting up.
+func stopActiveRecording() {
+    // iPhone/iPad 录制走 AVCaptureSession，没有 SCStream，要单独停止
+    if SCContext.streamType == .idevice { AVOutputClass.shared.stopRecording() }
+    else if SCContext.stream != nil { SCContext.stopRecording() }
 }
 
 func closeMainWindow() {

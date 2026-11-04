@@ -25,7 +25,7 @@ struct DashWindow: View {
 }
 
 struct resizeView: View {
-    private enum Field: Int, Hashable { case width, height }
+    private enum Field: Int, Hashable { case width, height, x, y }
     @FocusState private var focusedField: Field?
     
     @AppStorage("areaWidth")  private var areaWidth: Int = 600
@@ -34,9 +34,36 @@ struct resizeView: View {
     
     var appDelegate = AppDelegate.shared
     var screen: SCDisplay!
+    /// Position of the area's top-left corner, in points from the screen's top-left (#135)
+    @State private var posX: Int = 0
+    @State private var posY: Int = 0
+    @State private var loaded = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 4) {
+                Text("Position:")
+                Text(verbatim: "X").foregroundStyle(.secondary)
+                TextField("", value: $posX, formatter: NumberFormatter())
+                    .frame(width: 60)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .x)
+                    .onChange(of: posX) { newValue in
+                        guard loaded, !appDelegate.isResizing else { return }
+                        posX = min(max(newValue, 0), max(0, screen.width - areaWidth))
+                        resize()
+                    }
+                Text(verbatim: "Y").foregroundStyle(.secondary)
+                TextField("", value: $posY, formatter: NumberFormatter())
+                    .frame(width: 60)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($focusedField, equals: .y)
+                    .onChange(of: posY) { newValue in
+                        guard loaded, !appDelegate.isResizing else { return }
+                        posY = min(max(newValue, 0), max(0, screen.height - areaHeight))
+                        resize()
+                    }
+            }
             HStack(spacing: 4) {
                 Text("Area Size:")
                 TextField("", value: $areaWidth, formatter: NumberFormatter())
@@ -66,12 +93,24 @@ struct resizeView: View {
                 let scale = Int(screen.nsScreen?.backingScaleFactor ?? 2)
                 Text(" \(highRes == 2 ? areaWidth * scale : areaWidth) x \(highRes == 2 ? areaHeight * scale : areaHeight)")
             }
-        }.onAppear{ focusedField = .width }
+        }.onAppear{
+            // SCContext.screenArea uses a bottom-left origin; show a top-left one
+            if let area = SCContext.screenArea {
+                posX = Int(area.origin.x)
+                posY = Int(CGFloat(screen.height) - area.maxY)
+            }
+            DispatchQueue.main.async { loaded = true }
+            focusedField = .width
+        }
     }
     
     func resize() {
         closeAllWindow(except: "Start Recording".local)
-        AppDelegate.shared.showAreaSelector(size: NSSize(width: areaWidth, height: areaHeight), noPanel: true)
+        // Keep the top-left corner where it is (or where X/Y says) instead of re-centering
+        let x = min(max(posX, 0), max(0, screen.width - areaWidth))
+        let y = min(max(posY, 0), max(0, screen.height - areaHeight))
+        let origin = NSPoint(x: CGFloat(x), y: CGFloat(screen.height - y - areaHeight))
+        AppDelegate.shared.showAreaSelector(size: NSSize(width: areaWidth, height: areaHeight), noPanel: true, origin: origin)
     }
 }
 
@@ -257,6 +296,7 @@ class ScreenshotOverlayView: NSView {
     var maxFrame: NSRect?
     var size: NSSize
     var force: Bool
+    var origin: NSPoint?
 
     let controlPointSize: CGFloat = 10.0
     let controlPointColor: NSColor = NSColor.systemYellow
@@ -265,9 +305,10 @@ class ScreenshotOverlayView: NSView {
     private var selectionLayer: CAShapeLayer?
     private var controlPointLayers: [CAShapeLayer] = []
 
-    init(frame: CGRect, size: NSSize, force: Bool) {
+    init(frame: CGRect, size: NSSize, force: Bool, origin: NSPoint? = nil) {
         self.size = size
         self.force = force
+        self.origin = origin
         super.init(frame: frame)
         wantsLayer = true
     }
@@ -279,7 +320,11 @@ class ScreenshotOverlayView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         selectionRect = NSRect(x: (self.frame.width - size.width) / 2, y: (self.frame.height - size.height) / 2, width: size.width, height: size.height)
-        if !force, let screen = self.window?.screen,
+        if let origin = origin {
+            let w = min(size.width, self.frame.width), h = min(size.height, self.frame.height)
+            selectionRect = NSRect(x: min(max(0, origin.x), self.frame.width - w),
+                                   y: min(max(0, origin.y), self.frame.height - h), width: w, height: h)
+        } else if !force, let screen = self.window?.screen,
            let savedArea = ud.object(forKey: "savedArea") as? [String: [String: CGFloat]] {
             // Prefer the display ID as key (stable when two displays share a name);
             // fall back to the localized name used by older versions.
@@ -519,8 +564,8 @@ class ScreenshotOverlayView: NSView {
 
 class ScreenshotWindow: NSPanel {
     
-    init(contentRect: NSRect, backing bufferingType: NSWindow.BackingStoreType, defer flag: Bool, size: NSSize, force: Bool = false) {
-        let overlayView = ScreenshotOverlayView(frame: contentRect, size:size, force: force)
+    init(contentRect: NSRect, backing bufferingType: NSWindow.BackingStoreType, defer flag: Bool, size: NSSize, force: Bool = false, origin: NSPoint? = nil) {
+        let overlayView = ScreenshotOverlayView(frame: contentRect, size:size, force: force, origin: origin)
         super.init(contentRect: contentRect, styleMask: [.borderless, .nonactivatingPanel], backing: bufferingType, defer: flag)
         self.isOpaque = false
         self.hasShadow = false
