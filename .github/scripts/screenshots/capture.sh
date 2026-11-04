@@ -60,7 +60,8 @@ for lang in "$@"; do
       log "$lang: recording → menu bar"
       cliclick "c:$((px + pw - 62)),$((py + ph - 53))"        # Start
       sleep 8; snap 6-recording
-      screencapture -x -R "524,0,500,24" "$OUT/$lang/menubar.png" && echo "saved menubar (region)"
+      # Only TinyRecorder's own menu bar items (status icon, timer, camera), not the system clock.
+      screencapture -x -R "592,0,212,24" "$OUT/$lang/menubar.png" && echo "saved menubar (region)"
     else echo "MISSING picker"; fi
   fi
   pkill -f "$APP/Contents/MacOS/"; sleep 2

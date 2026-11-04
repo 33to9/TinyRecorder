@@ -61,10 +61,6 @@ jobs:
           d SUHasLaunchedBefore -bool true    # no Sparkle "check automatically?" prompt
           d SUEnableAutomaticChecks -bool false
 
-      - name: Content to record (a few ordinary windows)
-        run: |
-          open -a Calculator; open -a TextEdit; open /Applications; sleep 5
-
       - name: Capture
         env:
           LANGS: ${{ inputs.languages }}
