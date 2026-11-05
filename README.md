@@ -3,7 +3,7 @@
 </p>
 <h3 align="center">A lightweight screen recorder for macOS, with macOS 27 support</h3>
 <p align="center">
-<a href="https://www.tinyrecorder.app/en/"><b>Website: www.tinyrecorder.app</b></a> · <a href="img/TinyRecorder-Quick-Start-EN.mp4"><b>▶ Quick start video</b></a>
+<a href="https://www.tinyrecorder.app/en/"><b>Website: www.tinyrecorder.app</b></a> · <a href="https://www.tinyrecorder.app/en/#video"><b>▶ Quick start video</b></a>
 </p>
 <p align="center">
 <b>English</b> · <a href="docs/README.zh-CN.md">简体中文</a> · <a href="docs/README.zh-TW.md">繁體中文</a> · <a href="docs/README.it.md">Italiano</a> · <a href="docs/README.ja.md">日本語</a> · <a href="docs/README.de.md">Deutsch</a> · <a href="docs/README.es.md">Español</a>

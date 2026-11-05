@@ -3,7 +3,7 @@
 </p>
 <h3 align="center">轻量化、高性能的 macOS 录屏工具（支持 macOS 27）</h3>
 <p align="center">
-<a href="https://www.tinyrecorder.app/zh-Hans/"><b>官网：www.tinyrecorder.app</b></a> · <a href="../img/TinyRecorder-Quick-Start-EN.mp4"><b>▶ 快速上手视频（英文）</b></a>
+<a href="https://www.tinyrecorder.app/zh-Hans/"><b>官网：www.tinyrecorder.app</b></a> · <a href="https://www.tinyrecorder.app/zh-Hans/#video"><b>▶ 快速上手视频（英文）</b></a>
 </p>
 <p align="center">
 <a href="../README.md">English</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
