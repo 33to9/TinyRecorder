@@ -521,7 +521,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10811;
+				CURRENT_PROJECT_VERSION = 10812;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"TinyRecorder/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -541,7 +541,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
-				MARKETING_VERSION = 1.8.11;
+				MARKETING_VERSION = 1.8.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.33to9.TinyRecorder;
 				PRODUCT_NAME = TinyRecorder;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -559,7 +559,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 10811;
+				CURRENT_PROJECT_VERSION = 10812;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"TinyRecorder/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
@@ -579,7 +579,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 12.3;
-				MARKETING_VERSION = 1.8.11;
+				MARKETING_VERSION = 1.8.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.33to9.TinyRecorder;
 				PRODUCT_NAME = TinyRecorder;
 				PROVISIONING_PROFILE_SPECIFIER = "";
