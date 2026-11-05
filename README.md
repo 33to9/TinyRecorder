@@ -146,6 +146,7 @@ tell application "TinyRecorder" to stop recording
 
 Good to know:
 - The record commands return right away. If **Delay Before Recording** is set (Preferences → Recorder), recording starts after the countdown, so add that time to `delay`.
+- During the countdown, `stop recording` or `discard recording` cancels the recording before it starts, and another record command is refused as already recording.
 - If a name matches several windows, or the app has windows on more than one screen, TinyRecorder opens the picker so you can choose.
 - Errors (already recording, not recording, no Screen Recording permission) are returned to the script, so `osascript` exits with an error.
 - `pause`, `resume` and `discard` don't work for iPhone / iPad recordings; `stop recording` does.

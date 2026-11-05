@@ -146,6 +146,7 @@ tell application "TinyRecorder" to stop recording
 
 Gut zu wissen:
 - Die Aufnahmebefehle kehren sofort zurück. Ist **Verzögerung vor der Aufnahme** eingestellt (Einstellungen → Aufnahme), beginnt die Aufnahme erst nach dem Countdown – rechne diese Zeit zu `delay` hinzu.
+- Während des Countdowns bricht `stop recording` oder `discard recording` die Aufnahme ab, bevor sie beginnt; ein weiterer Aufnahmebefehl wird abgelehnt, als liefe bereits eine Aufnahme.
 - Passt ein Name auf mehrere Fenster oder hat die App Fenster auf mehreren Bildschirmen, öffnet TinyRecorder die Auswahl, damit du selbst wählst.
 - Fehler (Aufnahme läuft bereits, keine Aufnahme aktiv, keine Berechtigung für Bildschirmaufnahme) werden an das Skript zurückgegeben; `osascript` endet dann mit einem Fehler.
 - `pause`, `resume` und `discard` funktionieren nicht bei iPhone-/iPad-Aufnahmen; `stop recording` schon.

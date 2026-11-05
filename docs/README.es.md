@@ -146,6 +146,7 @@ tell application "TinyRecorder" to stop recording
 
 Conviene saber:
 - Los comandos de grabación vuelven de inmediato. Si tienes configurado **Retardo antes de grabar** (Preferencias → Grabación), la grabación empieza tras la cuenta atrás: suma ese tiempo a `delay`.
+- Durante la cuenta atrás, `stop recording` o `discard recording` cancelan la grabación antes de que empiece, y otro comando de grabación se rechaza como si ya se estuviera grabando.
 - Si un nombre coincide con varias ventanas, o la app tiene ventanas en más de una pantalla, TinyRecorder abre el selector para que elijas tú.
 - Los errores (ya se está grabando, no se está grabando, falta el permiso de grabación de pantalla) se devuelven al script, así que `osascript` termina con error.
 - `pause`, `resume` y `discard` no funcionan con grabaciones de iPhone / iPad; `stop recording` sí.

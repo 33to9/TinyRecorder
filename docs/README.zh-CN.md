@@ -146,6 +146,7 @@ tell application "TinyRecorder" to stop recording
 
 注意：
 - 录制命令会立即返回。如果设置了 **开始录制前倒数**（设置 → 录制设置），录制会在倒数结束后才开始，`delay` 要把这段时间加上。
+- 倒数期间发送 `stop recording` 或 `discard recording` 会取消这次录制；再发录制命令会被当作“已在录制”拒绝。
 - 名称匹配到多个窗口，或者 App 的窗口分布在多块屏幕上时，TinyRecorder 会打开选择窗口让你手动选。
 - 出错时（已经在录制、没有在录制、没有屏幕录制权限）会把错误返回给脚本，`osascript` 会以出错状态退出。
 - 录制 iPhone / iPad 时不支持 `pause`、`resume` 和 `discard`，`stop recording` 可以用。
