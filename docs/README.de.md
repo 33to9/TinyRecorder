@@ -94,6 +94,62 @@ Ist der Schalter für TinyRecorder bereits aktiviert, bleibt er nicht aktiviert 
 - **Einstellungen → Allgemein → Berechtigungen → Berechtigung für Bildschirmaufnahme reparieren**; oder
 - Beende TinyRecorder, führe `tccutil reset ScreenCapture com.33to9.TinyRecorder` im Terminal aus, öffne TinyRecorder erneut und erteile die Berechtigung noch einmal.
 
+## Automatisierung (AppleScript)
+
+TinyRecorder lässt sich per AppleScript steuern. So kannst du Aufnahmen aus dem Terminal, der Kurzbefehle-App (Aktion **AppleScript ausführen**), Raycast, Alfred, Keyboard Maestro oder eigenen Skripten starten und stoppen.
+
+Im Terminal:
+
+```bash
+osascript -e 'tell application "TinyRecorder" to record screen numbered 1'
+osascript -e 'tell application "TinyRecorder" to stop recording'
+```
+
+Beim ersten Mal fragt macOS, ob die App, die das Skript ausführt (z. B. Terminal), TinyRecorder steuern darf. Klicke auf **OK**. Später lässt sich das unter **Systemeinstellungen → Datenschutz & Sicherheit → Automation** ändern.
+
+| Befehl | Funktion |
+|---|---|
+| `record screen numbered 1` | Nimmt Bildschirm 1 auf (Zählung beginnt bei 1). Ohne `numbered` öffnet sich die Bildschirmauswahl |
+| `record application named "Safari"` | Nimmt eine App anhand ihres Namens auf. Ohne `named` öffnet sich die App-Auswahl |
+| `record window titled "Titel" in application "Safari"` | Nimmt ein Fenster anhand seines genauen Titels auf; `in application` ist optional. Ohne `titled` öffnet sich die Fensterauswahl |
+| `record screen area` | Öffnet die Bereichsauswahl; du ziehst den Bereich mit der Maus auf |
+| `record system audio` | Nimmt nur den Systemton auf. Mit `microphone true` wird bei dieser Aufnahme auch das Mikrofon aufgenommen |
+| `pause recording` / `resume recording` | Pausiert / setzt die Aufnahme fort |
+| `stop recording` | Stoppt und speichert die Aufnahme |
+| `discard recording` | Stoppt die Aufnahme und legt sie in den Papierkorb |
+| `configure …` | Ändert Aufnahmeeinstellungen (siehe unten) |
+
+`configure` akzeptiert beliebige der folgenden Parameter. Die Änderungen werden gespeichert, genau wie in den Einstellungen, und während einer Aufnahme ist der Befehl nicht möglich.
+
+| Parameter | Wert |
+|---|---|
+| `fps` | 10, 15, 24, 30, 60, 90, 120, 144 oder 240 |
+| `quality` | 1 = niedrig, 2 = mittel, 3 = hoch |
+| `hires` | `true` nimmt in Retina-Auflösung auf |
+| `cursor` | Mauszeiger aufnehmen |
+| `sound` | System- / App-Ton aufnehmen |
+| `microphone` | Mikrofon aufnehmen |
+| `mic device` | Name des Eingabegeräts oder `"default"` |
+| `hdr` | In HDR aufnehmen (ab macOS 15) |
+| `save folder` | Ordner für Aufnahmen; er muss existieren, `~` ist erlaubt |
+
+Beispiel: Bildschirm 1 eine Minute lang aufnehmen.
+
+```applescript
+tell application "TinyRecorder"
+    configure fps 30 quality 2 cursor true save folder "~/Movies"
+    record screen numbered 1
+end tell
+delay 60
+tell application "TinyRecorder" to stop recording
+```
+
+Gut zu wissen:
+- Die Aufnahmebefehle kehren sofort zurück. Ist **Verzögerung vor der Aufnahme** eingestellt (Einstellungen → Aufnahme), beginnt die Aufnahme erst nach dem Countdown – rechne diese Zeit zu `delay` hinzu.
+- Passt ein Name auf mehrere Fenster oder hat die App Fenster auf mehreren Bildschirmen, öffnet TinyRecorder die Auswahl, damit du selbst wählst.
+- Fehler (Aufnahme läuft bereits, keine Aufnahme aktiv, keine Berechtigung für Bildschirmaufnahme) werden an das Skript zurückgegeben; `osascript` endet dann mit einem Fehler.
+- `pause`, `resume` und `discard` funktionieren nicht bei iPhone-/iPad-Aufnahmen; `stop recording` schon.
+
 ## Aus dem Quellcode kompilieren
 
 Voraussetzungen: Xcode 15 oder neuer mit macOS SDK.

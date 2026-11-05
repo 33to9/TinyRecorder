@@ -94,6 +94,62 @@ TinyRecorder のスイッチがすでにオンになっている、オンのま�
 - **「設定」→「一般」→「権限」→「画面収録の権限を修復」** を開きます。
 - TinyRecorder を終了し、「ターミナル」で `tccutil reset ScreenCapture com.33to9.TinyRecorder` を実行してから、TinyRecorder をもう一度開いて権限を付与します。
 
+## 自動化（AppleScript）
+
+TinyRecorder は AppleScript で操作できます。ターミナル、ショートカット（「**AppleScript を実行**」アクション）、Raycast、Alfred、Keyboard Maestro、自作のスクリプトから録画を開始・停止できます。
+
+ターミナルから：
+
+```bash
+osascript -e 'tell application "TinyRecorder" to record screen numbered 1'
+osascript -e 'tell application "TinyRecorder" to stop recording'
+```
+
+初回は、スクリプトを実行する App（例：ターミナル）が TinyRecorder を制御してよいか macOS が確認します。「**OK**」をクリックしてください。あとから「**システム設定**」→「**プライバシーとセキュリティ**」→「**オートメーション**」で変更できます。
+
+| コマンド | 動作 |
+|---|---|
+| `record screen numbered 1` | ディスプレイ 1 を録画（番号は 1 から）。`numbered` を省略すると画面の選択を開きます |
+| `record application named "Safari"` | App を名前で指定して録画。`named` を省略すると App の選択を開きます |
+| `record window titled "タイトル" in application "Safari"` | ウインドウを正確なタイトルで指定して録画。`in application` は省略可。`titled` を省略するとウインドウの選択を開きます |
+| `record screen area` | 範囲選択を開き、マウスで範囲をドラッグします |
+| `record system audio` | システムオーディオのみ録音。`microphone true` を付けると今回はマイクも録音します |
+| `pause recording` / `resume recording` | 録画を一時停止 / 再開 |
+| `stop recording` | 録画を停止して保存 |
+| `discard recording` | 録画を停止し、ファイルをゴミ箱に移動 |
+| `configure …` | 録画設定を変更（下の表を参照） |
+
+`configure` には次のパラメータを自由に組み合わせて指定できます。変更は環境設定で変えた場合と同じく保存されます。録画中は使えません。
+
+| パラメータ | 値 |
+|---|---|
+| `fps` | 10、15、24、30、60、90、120、144、240 のいずれか |
+| `quality` | 1 = 低、2 = 中、3 = 高 |
+| `hires` | `true` で Retina 解像度 |
+| `cursor` | マウスポインタを録画するか |
+| `sound` | システム / App のサウンドを録音するか |
+| `microphone` | マイクを録音するか |
+| `mic device` | 入力デバイス名、または `"default"` |
+| `hdr` | HDR で録画（macOS 15 以降） |
+| `save folder` | 録画の保存先フォルダ。既存のフォルダである必要があり、`~` も使えます |
+
+例：ディスプレイ 1 を 1 分間録画する。
+
+```applescript
+tell application "TinyRecorder"
+    configure fps 30 quality 2 cursor true save folder "~/Movies"
+    record screen numbered 1
+end tell
+delay 60
+tell application "TinyRecorder" to stop recording
+```
+
+補足：
+- 録画コマンドはすぐに戻ります。「**録画開始までの待ち時間**」（環境設定 → 録画）を設定している場合、録画はカウントダウン後に始まるので、その分を `delay` に足してください。
+- 名前が複数のウインドウに一致する場合や、App のウインドウが複数の画面にある場合は、選択画面が開くので手動で選んでください。
+- エラー（すでに録画中、録画していない、画面収録の権限がない）はスクリプトに返され、`osascript` はエラーで終了します。
+- iPhone / iPad の録画では `pause`、`resume`、`discard` は使えません。`stop recording` は使えます。
+
 ## ソースからのビルド
 
 必要なもの：macOS SDK を含む Xcode 15 以降。

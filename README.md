@@ -94,6 +94,62 @@ If TinyRecorder's toggle is already on, won't stay on, or every button still ope
 - **Settings → General → Permissions → Repair Screen Recording Permission**; or
 - Quit TinyRecorder, run `tccutil reset ScreenCapture com.33to9.TinyRecorder` in Terminal, reopen TinyRecorder and grant the permission again.
 
+## Automation (AppleScript)
+
+TinyRecorder can be controlled with AppleScript, so you can start and stop recordings from Terminal, the Shortcuts app (**Run AppleScript** action), Raycast, Alfred, Keyboard Maestro or your own scripts.
+
+From Terminal:
+
+```bash
+osascript -e 'tell application "TinyRecorder" to record screen numbered 1'
+osascript -e 'tell application "TinyRecorder" to stop recording'
+```
+
+The first time, macOS asks whether the app running the script (for example Terminal) may control TinyRecorder. Click **OK**. You can change this later in **System Settings → Privacy & Security → Automation**.
+
+| Command | What it does |
+|---|---|
+| `record screen numbered 1` | Records display 1 (numbering starts at 1). Without `numbered`, opens the screen picker |
+| `record application named "Safari"` | Records an app by its name. Without `named`, opens the app picker |
+| `record window titled "Title" in application "Safari"` | Records one window by its exact title; `in application` is optional. Without `titled`, opens the window picker |
+| `record screen area` | Opens the area selector; you drag the area with the mouse |
+| `record system audio` | Records system audio only. Add `microphone true` to include the microphone in this recording |
+| `pause recording` / `resume recording` | Pauses / resumes the recording |
+| `stop recording` | Stops and saves the recording |
+| `discard recording` | Stops the recording and moves it to the Trash |
+| `configure …` | Changes recording settings (see below) |
+
+`configure` takes any of these parameters. The changes are saved, just like changing them in Preferences, and it can't be used while recording.
+
+| Parameter | Value |
+|---|---|
+| `fps` | 10, 15, 24, 30, 60, 90, 120, 144 or 240 |
+| `quality` | 1 = low, 2 = medium, 3 = high |
+| `hires` | `true` records at Retina resolution |
+| `cursor` | Record the mouse pointer |
+| `sound` | Record system / app sound |
+| `microphone` | Record the microphone |
+| `mic device` | Name of the input device, or `"default"` |
+| `hdr` | Record in HDR (macOS 15 and later) |
+| `save folder` | Folder to save recordings to; it must exist, `~` is allowed |
+
+Example: record display 1 for one minute.
+
+```applescript
+tell application "TinyRecorder"
+    configure fps 30 quality 2 cursor true save folder "~/Movies"
+    record screen numbered 1
+end tell
+delay 60
+tell application "TinyRecorder" to stop recording
+```
+
+Good to know:
+- The record commands return right away. If **Delay Before Recording** is set (Preferences → Recorder), recording starts after the countdown, so add that time to `delay`.
+- If a name matches several windows, or the app has windows on more than one screen, TinyRecorder opens the picker so you can choose.
+- Errors (already recording, not recording, no Screen Recording permission) are returned to the script, so `osascript` exits with an error.
+- `pause`, `resume` and `discard` don't work for iPhone / iPad recordings; `stop recording` does.
+
 ## Building from source
 
 Requirements: Xcode 15+ with macOS SDK.

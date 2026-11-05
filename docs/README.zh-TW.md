@@ -94,6 +94,62 @@ brew install --cask 33to9/tap/tinyrecorder
 - 「**偏好設定**」→「**一般設定**」→「**權限**」→**修復螢幕錄製權限**；或
 - 結束 TinyRecorder，在「終端機」中執行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再重新打開 TinyRecorder 並授予權限。
 
+## 自動化（AppleScript）
+
+TinyRecorder 支援 AppleScript，可以在終端機、捷徑（「**執行 AppleScript**」動作）、Raycast、Alfred、Keyboard Maestro 或你自己的腳本中開始和停止錄製。
+
+在終端機中：
+
+```bash
+osascript -e 'tell application "TinyRecorder" to record screen numbered 1'
+osascript -e 'tell application "TinyRecorder" to stop recording'
+```
+
+第一次執行時，macOS 會詢問執行腳本的應用程式（例如「終端機」）能否控制 TinyRecorder，按一下「**好**」。之後可以在「**系統設定**」→「**隱私權與安全性**」→「**自動化**」中修改。
+
+| 指令 | 作用 |
+|---|---|
+| `record screen numbered 1` | 錄製第 1 個螢幕（從 1 開始編號）。不帶 `numbered` 時開啟螢幕選擇 |
+| `record application named "Safari"` | 依名稱錄製某個應用程式。不帶 `named` 時開啟應用程式選擇 |
+| `record window titled "標題" in application "Safari"` | 依完整標題錄製一個視窗，`in application` 可省略。不帶 `titled` 時開啟視窗選擇 |
+| `record screen area` | 開啟區域選擇，用滑鼠拖出要錄製的區域 |
+| `record system audio` | 只錄製系統聲音。加上 `microphone true` 時本次同時錄製麥克風 |
+| `pause recording` / `resume recording` | 暫停 / 繼續錄製 |
+| `stop recording` | 停止並儲存 |
+| `discard recording` | 停止錄製，並將檔案移到垃圾桶 |
+| `configure …` | 修改錄製設定（見下表） |
+
+`configure` 可以帶下列任意參數。修改會被儲存，和在設定中修改相同；錄製過程中無法使用。
+
+| 參數 | 取值 |
+|---|---|
+| `fps` | 10、15、24、30、60、90、120、144 或 240 |
+| `quality` | 1 = 低，2 = 中，3 = 高 |
+| `hires` | `true` 為 Retina 解析度 |
+| `cursor` | 是否錄製滑鼠指標 |
+| `sound` | 是否錄製系統 / 應用程式聲音 |
+| `microphone` | 是否錄製麥克風 |
+| `mic device` | 輸入裝置名稱，或 `"default"` |
+| `hdr` | HDR 錄製（macOS 15 以上） |
+| `save folder` | 儲存錄製的檔案夾，必須已存在，可以使用 `~` |
+
+範例：錄製第 1 個螢幕 1 分鐘。
+
+```applescript
+tell application "TinyRecorder"
+    configure fps 30 quality 2 cursor true save folder "~/Movies"
+    record screen numbered 1
+end tell
+delay 60
+tell application "TinyRecorder" to stop recording
+```
+
+注意：
+- 錄製指令會立即返回。如果設定了「**開始錄製前倒數**」（設定 → 錄製設定），錄製會在倒數結束後才開始，`delay` 要加上這段時間。
+- 名稱符合多個視窗，或應用程式的視窗分布在多個螢幕上時，TinyRecorder 會開啟選擇視窗讓你手動選擇。
+- 出錯時（已經在錄製、沒有在錄製、沒有螢幕錄製權限）會將錯誤傳回給腳本，`osascript` 會以錯誤狀態結束。
+- 錄製 iPhone / iPad 時不支援 `pause`、`resume` 和 `discard`，`stop recording` 可以使用。
+
 ## 從原始碼建置
 
 需求：Xcode 15 以上版本（含 macOS SDK）。

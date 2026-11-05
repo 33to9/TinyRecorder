@@ -94,6 +94,62 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 - **设置 → 一般设置 → 权限 → 修复屏幕录制权限**；或
 - 退出 TinyRecorder，在终端执行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再打开 TinyRecorder 重新授权。
 
+## 自动化（AppleScript）
+
+TinyRecorder 支持 AppleScript，可以在终端、快捷指令（**运行 AppleScript** 操作）、Raycast、Alfred、Keyboard Maestro 或你自己的脚本里开始和停止录制。
+
+在终端里：
+
+```bash
+osascript -e 'tell application "TinyRecorder" to record screen numbered 1'
+osascript -e 'tell application "TinyRecorder" to stop recording'
+```
+
+第一次运行时，macOS 会询问运行脚本的 App（比如“终端”）能否控制 TinyRecorder，点 **好**。以后可以在 **系统设置 → 隐私与安全性 → 自动化** 里修改。
+
+| 命令 | 作用 |
+|---|---|
+| `record screen numbered 1` | 录制第 1 块屏幕（从 1 开始编号）。不带 `numbered` 时打开屏幕选择 |
+| `record application named "Safari"` | 按名称录制某个 App。不带 `named` 时打开 App 选择 |
+| `record window titled "标题" in application "Safari"` | 按完整标题录制一个窗口，`in application` 可省略。不带 `titled` 时打开窗口选择 |
+| `record screen area` | 打开区域选择，用鼠标拖出要录的区域 |
+| `record system audio` | 只录系统声音。加上 `microphone true` 时本次同时录麦克风 |
+| `pause recording` / `resume recording` | 暂停 / 继续录制 |
+| `stop recording` | 停止并保存 |
+| `discard recording` | 停止录制，并把文件移到废纸篓 |
+| `configure …` | 修改录制设置（见下表） |
+
+`configure` 可以带下面任意参数。修改会被保存，和在设置里改是一样的；录制过程中不能使用。
+
+| 参数 | 取值 |
+|---|---|
+| `fps` | 10、15、24、30、60、90、120、144 或 240 |
+| `quality` | 1 = 低，2 = 中，3 = 高 |
+| `hires` | `true` 为 Retina 分辨率 |
+| `cursor` | 是否录制鼠标指针 |
+| `sound` | 是否录制系统 / App 声音 |
+| `microphone` | 是否录制麦克风 |
+| `mic device` | 输入设备名称，或 `"default"` |
+| `hdr` | HDR 录制（macOS 15 及以上） |
+| `save folder` | 保存录制的文件夹，必须已存在，可以用 `~` |
+
+示例：录制第 1 块屏幕 1 分钟。
+
+```applescript
+tell application "TinyRecorder"
+    configure fps 30 quality 2 cursor true save folder "~/Movies"
+    record screen numbered 1
+end tell
+delay 60
+tell application "TinyRecorder" to stop recording
+```
+
+注意：
+- 录制命令会立即返回。如果设置了 **开始录制前倒数**（设置 → 录制设置），录制会在倒数结束后才开始，`delay` 要把这段时间加上。
+- 名称匹配到多个窗口，或者 App 的窗口分布在多块屏幕上时，TinyRecorder 会打开选择窗口让你手动选。
+- 出错时（已经在录制、没有在录制、没有屏幕录制权限）会把错误返回给脚本，`osascript` 会以出错状态退出。
+- 录制 iPhone / iPad 时不支持 `pause`、`resume` 和 `discard`，`stop recording` 可以用。
+
 ## 从源码构建
 
 依赖：Xcode 15+（含 macOS SDK）。
