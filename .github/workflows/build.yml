@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, 'fix/**']
     tags: ['v*']
-    paths-ignore: ['**.md', 'appcast.xml', 'img/**', '.github/workflows/screenshots.yml', '.github/scripts/screenshots/**']
+    paths-ignore: ['**.md', 'appcast.xml', 'img/**', 'TinyRecorder-Brand-Kit/**', '.github/workflows/screenshots.yml', '.github/scripts/screenshots/**']
   workflow_dispatch:
 
 permissions:
