@@ -211,6 +211,23 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         if let monitor = mouseMonitor { NSEvent.removeMonitor(monitor); mouseMonitor = nil }
     }
     
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Stop here instead of only in applicationWillTerminate: with "Record Microphone to Main
+        // Track" the audio is mixed asynchronously after stopping, and exiting before it ends
+        // leaves the temporary "X.mp4.mp4.mp4" file behind. Wait for the mix (at most 60 s).
+        stopActiveRecording()
+        guard SCContext.pendingMixes > 0 else { return .terminateNow }
+        var replied = false
+        let reply = {
+            guard !replied else { return }
+            replied = true
+            sender.reply(toApplicationShouldTerminate: true)
+        }
+        SCContext.onMixesFinished = reply
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60, execute: reply)
+        return .terminateLater
+    }
+
     func applicationWillTerminate(_ aNotification: Notification) {
         if SCContext.streamType == .idevice { AVOutputClass.shared.stopRecording() }
         else if SCContext.stream != nil { SCContext.stopRecording() }
@@ -392,6 +409,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         closeAllWindow()
+        DispatchQueue.global(qos: .utility).async { SCContext.recoverLeftoverMixFiles() }
         // Remember where the main toolbar was dragged to (#159)
         NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: nil, queue: .main) { note in
             guard let w = note.object as? NSWindow, w is EscPanel, w.title == "TinyRecorder".local, w.isVisible else { return }

@@ -44,6 +44,10 @@ class SCContext {
     static var recMic = false
     static var recWinSound = false
     static var recRemuxAudio = false
+    /// Recordings still mixing their audio tracks after stopping (main thread only). Quitting
+    /// waits for them, otherwise the temporary "X.mp4.mp4.mp4" file is left behind.
+    static var pendingMixes = 0
+    static var onMixesFinished: (() -> Void)?
     static var recAudioFormat = ""
     // 实际启动了哪些麦克风采集组件，停止时据此清理
     static var micTapInstalled = false
@@ -586,6 +590,30 @@ class SCContext {
         }
     }
     
+    private static func mixFinished() {
+        pendingMixes = max(0, pendingMixes - 1)
+        if pendingMixes == 0, let done = onMixesFinished {
+            onMixesFinished = nil
+            done()
+        }
+    }
+
+    /// A quit or crash while mixing leaves the temporary "X.mp4.mp4.mp4" (video with separate
+    /// microphone and system audio tracks) in the save folder. Gives it its real name at launch.
+    static func recoverLeftoverMixFiles() {
+        guard let dir = ud.string(forKey: "saveDirectory"),
+              let names = try? fd.contentsOfDirectory(atPath: dir) else { return }
+        for name in names {
+            guard let ext = ["mp4", "mov"].first(where: { name.hasSuffix(".\($0).\($0).\($0)") }) else { continue }
+            let url = URL(fileURLWithPath: dir).appendingPathComponent(name)
+            let partialAudioURL = url.deletingPathExtension()
+            let targetURL = partialAudioURL.deletingPathExtension()
+            guard targetURL.pathExtension == ext, !fd.fileExists(atPath: targetURL.path) else { continue }
+            if fd.fileExists(atPath: partialAudioURL.path) { try? fd.removeItem(at: partialAudioURL) }
+            try? fd.moveItem(at: url, to: targetURL)
+        }
+    }
+
     /// Stops the recording and moves what was recorded to the Trash instead of saving it (#64)
     static func discardRecording() {
         guard streamType != nil, streamType != .idevice else { return }
@@ -669,6 +697,7 @@ class SCContext {
         if currentType != .systemaudio {
             if let writer = vW {
                 let previewImage: NSImage? = remuxVideo ? firstFrame?.nsImage : nil
+                if remuxVideo { pendingMixes += 1 }
                 let dispatchGroup = DispatchGroup()
                 dispatchGroup.enter()
                 finishWriter(writer) { ok in
@@ -676,6 +705,7 @@ class SCContext {
                     if !ok {
                         print("Video writing failed with status: \(writer.status.rawValue), error: \(String(describing: writer.error))")
                         reportSaveFailure(writer.error, type: currentType)
+                        if remuxVideo { DispatchQueue.main.async { mixFinished() } }
                     } else if remuxVideo {
                         mixAudioTracks(videoURL: path.url) { result in
                             let finalURL: URL
@@ -694,6 +724,7 @@ class SCContext {
                                 showNotification(title: "Failed to mix audio tracks".local, body: body, id: "quickrecorder.error.\(UUID().uuidString)")
                             }
                             DispatchQueue.main.async {
+                                mixFinished()
                                 if ud.bool(forKey: "trimAfterRecord") {
                                     AppDelegate.shared.createNewWindow(view: VideoTrimmerView(videoURL: finalURL), title: finalURL.lastPathComponent, only: false)
                                 } else {
