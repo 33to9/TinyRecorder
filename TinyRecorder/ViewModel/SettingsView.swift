@@ -45,7 +45,7 @@ struct SettingsView: View {
                 default: GeneralView()
                 }
             }
-            .frame(width: 640, height: 540)
+            .frame(width: 640, height: 560)
             .background(SettingsWindowConfigurator())
         } else {
             NavigationView {
@@ -70,16 +70,16 @@ struct SettingsView: View {
                 .padding(.top, 9)
                 .frame(minWidth: 180)
             }
-            .frame(width: 640, height: 540)
+            .frame(width: 640, height: 560)
             .background(SettingsWindowConfigurator())
         }
     }
 }
 
-/// 设置窗尺寸固定（640x540）且不可拉伸；启动时把历史上保存的异常窗口 frame
+/// 设置窗尺寸固定（640x560）且不可拉伸；启动时把历史上保存的异常窗口 frame
 /// （被拉大或探出屏幕外）拉回屏幕中央，避免顶部内容跑到屏幕外看不见。
 struct SettingsWindowConfigurator: NSViewRepresentable {
-    static let fixedSize = NSSize(width: 640, height: 540)
+    static let fixedSize = NSSize(width: 640, height: 560)
 
     func makeNSView(context: Context) -> NSView {
         let v = NSView()
