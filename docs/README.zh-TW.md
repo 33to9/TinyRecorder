@@ -12,6 +12,9 @@
 > **TinyRecorder** 是由社群接手維護的 [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) 分支，原專案由 [lihaoyun6](https://github.com/lihaoyun6) 開發，自 2025 年年中起已停止更新。
 > 此分支著重於**與最新 macOS 版本的相容性**（從 macOS 27「Golden Gate」開始）。
 
+
+https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74
+
 ## 此分支修正了哪些問題
 
 - ✅ **macOS 27 上選單列的錄製控制項（停止／暫停／攝影機）無法回應**：原專案議題 [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295)／[#296](https://github.com/lihaoyun6/QuickRecorder/issues/296)。根本原因：在 macOS 27 上，無論指標實際位於何處，`locationInWindow` 一律回報為 `NSStatusItem` 視窗的中心點；因此 SwiftUI 的點擊判定永遠只會觸發位於中央的控制項。修正方式是透過 `NSEvent.mouseLocation` 取得指標的實際位置，重新建立滑鼠事件。

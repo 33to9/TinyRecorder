@@ -12,6 +12,9 @@
 > **TinyRecorder** は、2025 年半ばから開発が止まっている [lihaoyun6](https://github.com/lihaoyun6) 氏の [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) のコミュニティフォークです。
 > このフォークは、**最新の macOS リリースとの互換性**（macOS 27 /「Golden Gate」以降）を重視しています。
 
+
+https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74
+
 ## このフォークでの修正点
 
 - ✅ **macOS 27 でメニューバーの録画コントロール（停止／一時停止／カメラ）が反応しない問題** — アップストリームの Issue [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295) / [#296](https://github.com/lihaoyun6/QuickRecorder/issues/296)。原因：macOS 27 では、実際のポインタの位置にかかわらず、`locationInWindow` が `NSStatusItem` のウインドウの中心として報告されます。そのため SwiftUI のヒットテストでは、常に中央のコントロールしか反応しませんでした。`NSEvent.mouseLocation` で取得した実際のポインタの位置を使ってマウスイベントを再構築することで修正しました。

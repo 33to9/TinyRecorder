@@ -12,6 +12,9 @@
 > **TinyRecorder** is a community fork of [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) by [lihaoyun6](https://github.com/lihaoyun6), which has been inactive since mid-2025.
 > The fork focuses on **compatibility with the latest macOS releases** (starting with macOS 27 / "Golden Gate").
 
+
+https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74
+
 ## What's fixed in this fork
 
 - ✅ **Menu bar recording controls (stop / pause / camera) not responding on macOS 27** — upstream issue [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295) / [#296](https://github.com/lihaoyun6/QuickRecorder/issues/296). Root cause: macOS 27 reports `locationInWindow` as the centre of an `NSStatusItem`'s window regardless of the real pointer position; SwiftUI hit-testing then only ever fires the centred control. Fixed by rebuilding mouse events with the real pointer position via `NSEvent.mouseLocation`.

@@ -12,6 +12,9 @@
 > **TinyRecorder** es una bifurcación comunitaria de [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) de [lihaoyun6](https://github.com/lihaoyun6), que no recibe cambios desde mediados de 2025.
 > La bifurcación se centra en la **compatibilidad con las versiones más recientes de macOS** (empezando por macOS 27 / "Golden Gate").
 
+
+https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74
+
 ## Qué corrige esta bifurcación
 
 - ✅ **Los controles de grabación de la barra de menús (detener / pausar / cámara) no responden en macOS 27**: incidencias [#295](https://github.com/lihaoyun6/QuickRecorder/issues/295) / [#296](https://github.com/lihaoyun6/QuickRecorder/issues/296) del proyecto original. Causa: macOS 27 informa de `locationInWindow` como el centro de la ventana de un `NSStatusItem`, sea cual sea la posición real del puntero; por eso, la detección de clics de SwiftUI solo activa el control situado en el centro. Se ha corregido reconstruyendo los eventos del ratón con la posición real del puntero mediante `NSEvent.mouseLocation`.
