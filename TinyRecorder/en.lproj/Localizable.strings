@@ -217,7 +217,6 @@
 "Refresh" = "Refresh";
 "Repair & Relaunch" = "Repair & Relaunch";
 "Repair Failed" = "Repair Failed";
-"Repair Screen Recording Permission" = "Repair Screen Recording Permission";
 "Repair Screen Recording Permission?" = "Repair Screen Recording Permission?";
 "Reset & Relaunch" = "Reset & Relaunch";
 "Reset Permission & Relaunch" = "Reset Permission & Relaunch";
@@ -331,3 +330,4 @@
 "Privacy" = "Privacy";
 "Share Anonymous Usage Data" = "Share Anonymous Usage Data";
 "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles.";
+"Repair…" = "Repair…";

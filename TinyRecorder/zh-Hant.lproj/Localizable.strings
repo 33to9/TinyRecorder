@@ -199,7 +199,6 @@
 
 /* Permission repair (v1.7.3) */
 "Permissions" = "權限";
-"Repair Screen Recording Permission" = "修復螢幕錄製權限";
 "If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again." = "如果系統設定裡的螢幕錄製開關無法保持開啟（升級或替換應用後可能出現），可重置權限記錄後重新授權。";
 "Repair & Relaunch" = "修復並重新啟動";
 "Repair Screen Recording Permission?" = "修復螢幕錄製權限？";
@@ -356,3 +355,4 @@
 "Privacy" = "隱私";
 "Share Anonymous Usage Data" = "分享匿名使用資料";
 "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "協助改善 TinyRecorder。會傳送 App 與 macOS 版本、語言，以及錄製的類型、格式和長度。絕不包含錄製內容、檔案名稱或視窗標題。";
+"Repair…" = "修復…";

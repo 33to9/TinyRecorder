@@ -45,7 +45,7 @@ struct SettingsView: View {
                 default: GeneralView()
                 }
             }
-            .frame(width: 640, height: 512)
+            .frame(width: 640, height: 540)
             .background(SettingsWindowConfigurator())
         } else {
             NavigationView {
@@ -70,16 +70,16 @@ struct SettingsView: View {
                 .padding(.top, 9)
                 .frame(minWidth: 180)
             }
-            .frame(width: 640, height: 512)
+            .frame(width: 640, height: 540)
             .background(SettingsWindowConfigurator())
         }
     }
 }
 
-/// 设置窗尺寸固定（640x512）且不可拉伸；启动时把历史上保存的异常窗口 frame
+/// 设置窗尺寸固定（640x540）且不可拉伸；启动时把历史上保存的异常窗口 frame
 /// （被拉大或探出屏幕外）拉回屏幕中央，避免顶部内容跑到屏幕外看不见。
 struct SettingsWindowConfigurator: NSViewRepresentable {
-    static let fixedSize = NSSize(width: 640, height: 512)
+    static let fixedSize = NSSize(width: 640, height: 540)
 
     func makeNSView(context: Context) -> NSView {
         let v = NSView()
@@ -127,8 +127,14 @@ struct GeneralView: View {
     @State private var language: String = AppLanguage.current
     @State private var showLanguageRestart = false
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+
     var body: some View {
-        SForm {
+        // Tighter section spacing than the other pages so the whole page fits the
+        // fixed-height window without scrolling.
+        SForm(spacing: 20) {
             SGroupBox(label: "Startup") {
                 SPicker("Language", selection: $language) {
                     Text("Follow System").tag(AppLanguage.system)
@@ -171,28 +177,21 @@ struct GeneralView: View {
                     Button("Show Again") { AppDelegate.shared.replayOnboarding() }
                 }
             }
-            SGroupBox(label: "Update") { UpdaterSettingsView(updater: updaterController.updater) }
+            SGroupBox(label: "Update") {
+                UpdaterSettingsView(updater: updaterController.updater)
+                SDivider()
+                SItem(label: "TinyRecorder v\(appVersion)") {
+                    CheckForUpdatesView(updater: updaterController.updater)
+                }
+            }
             SGroupBox(label: "Privacy") {
                 SToggle("Share Anonymous Usage Data", isOn: $shareUsageData, tips: "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles.")
                     .onChange(of: shareUsageData) { Analytics.setEnabled($0) }
             }
             SGroupBox(label: "Permissions") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button("Repair Screen Recording Permission") {
-                        showRepairConfirm = true
-                    }
-                }
-            }
-            VStack(spacing: 8) {
-                CheckForUpdatesView(updater: updaterController.updater)
-                if let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-                    Text("TinyRecorder v\(appVersion)")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                SButton("Screen Recording Permission", buttonTitle: "Repair…",
+                        tips: "If the screen recording toggle in System Settings won't stay enabled (may happen after upgrading or replacing the app), reset the permission record and grant it again.") {
+                    showRepairConfirm = true
                 }
             }
         }

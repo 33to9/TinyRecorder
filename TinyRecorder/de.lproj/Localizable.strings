@@ -215,7 +215,6 @@
 "Refresh" = "Aktualisieren";
 "Repair & Relaunch" = "Reparieren & neu starten";
 "Repair Failed" = "Reparatur fehlgeschlagen";
-"Repair Screen Recording Permission" = "Berechtigung für Bildschirmaufnahme reparieren";
 "Repair Screen Recording Permission?" = "Berechtigung für Bildschirmaufnahme reparieren?";
 "Reset & Relaunch" = "Zurücksetzen & neu starten";
 "Reset Permission & Relaunch" = "Berechtigung zurücksetzen & neu starten";
@@ -329,3 +328,4 @@
 "Privacy" = "Datenschutz";
 "Share Anonymous Usage Data" = "Anonyme Nutzungsdaten teilen";
 "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "Hilft, TinyRecorder zu verbessern. Sendet App- und macOS-Version, Sprache sowie Art, Format und Länge der Aufnahmen. Niemals deine Aufnahmen, Dateinamen oder Fenstertitel.";
+"Repair…" = "Reparieren …";
