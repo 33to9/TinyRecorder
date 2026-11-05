@@ -25,11 +25,24 @@ extension NSScriptCommand {
         return nil
     }
 
+    /// Cancels a countdown that hasn't started recording yet. CountdownView skips its action
+    /// once the panel is hidden. Returns true if there was one.
+    func cancelPendingCountdown() -> Bool {
+        guard countdownPanel.isVisible else { return false }
+        // Same as the countdown's Cancel button: also drop the area frame of an area recording.
+        for w in NSApp.windows.filter({
+            $0.title == "Countdown Panel".local || $0.title == "Area Overlayer".local
+        }) { w.close() }
+        return true
+    }
+
     /// Common precondition for the recording commands. Returns an error message if the
     /// command can't run now, nil otherwise.
     func scriptRecordingPrecondition() -> String? {
         // streamType 覆盖 iPhone/iPad 录制（没有 SCStream）和正在启动中的录制
         if SCContext.streamType != nil { return "Already recording!".local }
+        // A recording is counting down and about to start; a second one would race it.
+        if countdownPanel.isVisible { return "Already recording!".local }
         if !CGPreflightScreenCaptureAccess() {
             DispatchQueue.main.async { AppDelegate.shared.showScreenPermissionGuide() }
             return "Screen Recording Permission".local
@@ -168,16 +181,12 @@ class selectWindows: NSScriptCommand {
                         createAlert(title: "Error".local, message: "Unable to find the screen this window belongs to!".local, button1: "OK".local).runModal()
                         return
                     }
-                    if let display = SCContext.getSCDisplayWithMouse() {
-                        if s.contains(display) {
-                            AppDelegate.shared.createCountdownPanel(screen: display) {
-                                AppDelegate.shared.prepRecord(type: "window" , screens: s.first!, windows: [window], applications: nil)
-                            }
-                        } else {
-                            AppDelegate.shared.createCountdownPanel(screen: s.first!) {
-                                AppDelegate.shared.prepRecord(type: "window" , screens: s.first!, windows: [window], applications: nil)
-                            }
-                        }
+                    // Show the countdown on the pointer's screen if the window is on it, else on
+                    // the window's screen. (Previously nothing happened when the pointer's screen
+                    // couldn't be determined.)
+                    let countdownScreen = SCContext.getSCDisplayWithMouse().flatMap { s.contains($0) ? $0 : nil } ?? s.first!
+                    AppDelegate.shared.createCountdownPanel(screen: countdownScreen) {
+                        AppDelegate.shared.prepRecord(type: "window" , screens: s.first!, windows: [window], applications: nil)
                     }
                 } else {
                     closeAllWindow()
@@ -213,7 +222,10 @@ class recordAudio: NSScriptCommand {
 @objc(stopRecordingCommand)
 class stopRecordingCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if SCContext.streamType == nil { return scriptFail("Not recording.") }
+        if SCContext.streamType == nil {
+            // Stopping during the countdown cancels the recording before it starts.
+            return cancelPendingCountdown() ? nil : scriptFail("Not recording.")
+        }
         DispatchQueue.main.async { stopActiveRecording() }
         return nil
     }
@@ -240,7 +252,9 @@ class resumeRecordingCommand: NSScriptCommand {
 @objc(discardRecordingCommand)
 class discardRecordingCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if SCContext.stream == nil { return scriptFail("Not recording.") }
+        if SCContext.stream == nil {
+            return cancelPendingCountdown() ? nil : scriptFail("Not recording.")
+        }
         DispatchQueue.main.async { SCContext.discardRecording() }
         return nil
     }

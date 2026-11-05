@@ -69,7 +69,10 @@ enum Analytics {
             params["encoder"] = ud.string(forKey: "encoder") ?? "unknown"
             params["frameRate"] = String(ud.integer(forKey: "frameRate"))
         }
-        params["microphone"] = ud.bool(forKey: "recordMic") ? "on" : "off"
+        // Screen/audio recordings use the per-recording snapshot (a script can override the
+        // microphone for one recording); iPhone/iPad recordings read the setting directly.
+        let mic = type == .idevice ? ud.bool(forKey: "recordMic") : SCContext.recMic
+        params["microphone"] = mic ? "on" : "off"
         signal("Recording.started", parameters: params)
     }
 
