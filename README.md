@@ -91,7 +91,7 @@ Since v1.7.15 the app is signed with a fixed certificate, so in-app updates keep
 If TinyRecorder's toggle is already on, won't stay on, or every button still opens the permission guide, the permission record in macOS belongs to an older build (macOS ties the permission to the app's code signature, and that signature changed). Fix it in any one of these ways:
 
 - In the permission guide, click **Reset Permission & Relaunch**, then grant the permission again; or
-- **Settings → General → Permissions → Repair Screen Recording Permission**; or
+- **Settings → General → Permissions → Screen Recording Permission → Repair…**; or
 - Quit TinyRecorder, run `tccutil reset ScreenCapture com.33to9.TinyRecorder` in Terminal, reopen TinyRecorder and grant the permission again.
 
 ## Automation (AppleScript)

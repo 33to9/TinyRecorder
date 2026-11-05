@@ -91,7 +91,7 @@ Dalla versione 1.7.15 l'app è firmata con un certificato fisso, quindi gli aggi
 Se l'interruttore di TinyRecorder è già attivo, non resta attivo, oppure ogni pulsante apre ancora la guida ai permessi, il permesso registrato in macOS appartiene a una build precedente (macOS associa il permesso alla firma del codice dell'app, e quella firma è cambiata). Puoi risolvere in uno di questi modi:
 
 - Nella guida ai permessi, fai clic su **Reimposta permesso e riavvia**, poi concedi di nuovo il permesso; oppure
-- **Preferenze → Generali → Permessi → Ripara permesso di registrazione schermo**; oppure
+- **Preferenze → Generali → Permessi → Permesso di registrazione schermo → Ripara…**; oppure
 - Chiudi TinyRecorder, esegui `tccutil reset ScreenCapture com.33to9.TinyRecorder` in Terminale, riapri TinyRecorder e concedi di nuovo il permesso.
 
 ## Automazione (AppleScript)

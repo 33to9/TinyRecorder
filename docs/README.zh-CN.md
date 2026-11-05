@@ -91,7 +91,7 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 如果 TinyRecorder 的开关已经打开、打不开，或者点任何功能键都弹出授权引导窗，说明系统里的权限记录属于旧版本（macOS 按应用的代码签名记录权限，而签名已经变了）。任选一种方法修复：
 
 - 在授权引导窗中点击 **重置授权并重启**，然后重新授权；或
-- **设置 → 一般设置 → 权限 → 修复屏幕录制权限**；或
+- **设置 → 一般设置 → 权限 → 屏幕录制权限 → 修复…**；或
 - 退出 TinyRecorder，在终端执行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再打开 TinyRecorder 重新授权。
 
 ## 自动化（AppleScript）

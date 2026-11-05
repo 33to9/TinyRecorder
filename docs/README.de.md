@@ -91,7 +91,7 @@ Seit Version 1.7.15 ist die App mit einem festen Zertifikat signiert, daher blei
 Ist der Schalter für TinyRecorder bereits aktiviert, bleibt er nicht aktiviert oder öffnet jede Taste weiterhin die Anleitung zur Berechtigung, gehört der Berechtigungseintrag in macOS zu einem älteren Build (macOS bindet die Berechtigung an die Codesignatur der App, und diese Signatur hat sich geändert). Du kannst das auf eine der folgenden Arten beheben:
 
 - Klicke in der Anleitung zur Berechtigung auf **Berechtigung zurücksetzen & neu starten** und erteile die Berechtigung dann erneut; oder
-- **Einstellungen → Allgemein → Berechtigungen → Berechtigung für Bildschirmaufnahme reparieren**; oder
+- **Einstellungen → Allgemein → Berechtigungen → Berechtigung für Bildschirmaufnahme → Reparieren …**; oder
 - Beende TinyRecorder, führe `tccutil reset ScreenCapture com.33to9.TinyRecorder` im Terminal aus, öffne TinyRecorder erneut und erteile die Berechtigung noch einmal.
 
 ## Automatisierung (AppleScript)

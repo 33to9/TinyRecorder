@@ -91,7 +91,7 @@ brew install --cask 33to9/tap/tinyrecorder
 如果 TinyRecorder 的開關已經開啟、無法保持開啟，或是每個按鈕仍會打開權限導引，代表 macOS 中的權限紀錄屬於舊版本（macOS 會將權限與應用程式的程式碼簽章綁定，而簽章已經變更）。可用以下任一方式解決：
 
 - 在權限導引中按一下**重設授權並重新啟動**，然後重新授予權限；或
-- 「**偏好設定**」→「**一般設定**」→「**權限**」→**修復螢幕錄製權限**；或
+- 「**偏好設定**」→「**一般設定**」→「**權限**」→「**螢幕錄製權限**」→「**修復…**」；或
 - 結束 TinyRecorder，在「終端機」中執行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再重新打開 TinyRecorder 並授予權限。
 
 ## 自動化（AppleScript）
