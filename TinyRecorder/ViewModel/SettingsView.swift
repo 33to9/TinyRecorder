@@ -508,7 +508,7 @@ struct BlocklistView: View {
         SForm(spacing: 0, noSpacer: true, scrollable: false) {
             SGroupBox(label: "Blocklist") {
                     BundleSelector()
-                    Text("These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded.")
+                    Text("These apps will be excluded when recording \"Screen\" or \"Screen Area\".")
                         .font(.footnote)
                         .multilineTextAlignment(.center)
                         .foregroundColor(Color.secondary)
