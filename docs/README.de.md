@@ -97,6 +97,12 @@ Ist der Schalter für TinyRecorder bereits aktiviert, bleibt er nicht aktiviert 
 - **Einstellungen → Allgemein → Berechtigungen → Berechtigung für Bildschirmaufnahme → Reparieren …**; oder
 - Beende TinyRecorder, führe `tccutil reset ScreenCapture com.33to9.TinyRecorder` im Terminal aus, öffne TinyRecorder erneut und erteile die Berechtigung noch einmal.
 
+## Datenschutz
+
+Deine Aufnahmen verlassen nie deinen Mac. Um die App zu verbessern, sendet TinyRecorder anonyme Nutzungsstatistiken über [TelemetryDeck](https://telemetrydeck.com/privacy/): App- und macOS-Version, Sprache und Mac-Modell sowie für jede Aufnahme Art (Bildschirm, Fenster, Bereich, Audio usw.), Format, Encoder, Bildrate, ob das Mikrofon an war, Länge und bei einem Fehler einen Fehlercode. Niemals gesendet werden deine Aufnahmen, Dateinamen, Ordner, Fenster- oder App-Titel und Fehlermeldungen. Es gibt kein Konto und keine Benutzer-ID: Die App erzeugt eine zufällige Kennung, die vor dem Senden gehasht wird, und TelemetryDeck speichert keine IP-Adressen. Zum Abschalten öffne Einstellungen › Allgemein › Datenschutz und deaktiviere „Anonyme Nutzungsdaten teilen“.
+
+Die Nutzungsstatistik ist standardmäßig eingeschaltet. Alle Details: [Datenschutzseite](https://www.tinyrecorder.app/de/privacy).
+
 ## Automatisierung (AppleScript)
 
 TinyRecorder lässt sich per AppleScript steuern. So kannst du Aufnahmen aus dem Terminal, der Kurzbefehle-App (Aktion **AppleScript ausführen**), Raycast, Alfred, Keyboard Maestro oder eigenen Skripten starten und stoppen.

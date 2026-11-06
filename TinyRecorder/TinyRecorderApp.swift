@@ -1027,6 +1027,7 @@ struct OnboardingStartStep: View {
     var finish: () -> Void
     @AppStorage("showMenubar") private var showMenubar: Bool = true
     @AppStorage("showOnDock")  private var showOnDock: Bool = true
+    @AppStorage(Analytics.enabledKey) private var shareUsageData: Bool = true
 
     var body: some View {
         VStack(spacing: 16) {
@@ -1049,6 +1050,21 @@ struct OnboardingStartStep: View {
                      text: "While recording, click the stop button in the menu bar to finish. Recordings are saved to your Desktop by default.".local)
             }
             .frame(maxWidth: 380, alignment: .leading)
+            // Usage statistics are on by default, so say so before the first recording.
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Share Anonymous Usage Data".local, isOn: $shareUsageData)
+                    .toggleStyle(.checkbox)
+                    .onChange(of: shareUsageData) { Analytics.setEnabled($0) }
+                Text(usageDataNote)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                Link("Privacy Details".local, destination: privacyPageURL)
+                    .font(.caption)
+            }
+            .padding(10)
+            .frame(maxWidth: 380, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.08)))
             HStack {
                 Button("Back".local) { back() }
                 Spacer()
@@ -1061,6 +1077,12 @@ struct OnboardingStartStep: View {
             .frame(maxWidth: 380)
         }
         .padding(24)
+    }
+
+    private var usageDataNote: String {
+        let what = "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles.".local
+        // Chinese and Japanese sentences (ending in U+3002) follow each other without a space.
+        return what + (what.hasSuffix("\u{3002}") ? "" : " ") + "You can turn this off any time in Preferences → General.".local
     }
 
     private func hint(icon: String, text: String) -> some View {
@@ -1078,6 +1100,13 @@ struct OnboardingStartStep: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
+}
+
+/// The website's privacy page, in the app's language when the site has it.
+var privacyPageURL: URL {
+    let lang = Bundle.main.preferredLocalizations.first ?? "en"
+    let site = ["en", "zh-Hans", "zh-Hant", "ja", "de", "es", "it"].contains(lang) ? lang : "en"
+    return URL(string: "https://www.tinyrecorder.app/\(site)/privacy")!
 }
 
 /// Sketch of the System Settings row the user has to switch on, so they know what to look for.

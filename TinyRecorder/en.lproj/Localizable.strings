@@ -331,3 +331,7 @@
 "Share Anonymous Usage Data" = "Share Anonymous Usage Data";
 "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles.";
 "Repair…" = "Repair…";
+
+/* Onboarding: usage statistics */
+"You can turn this off any time in Preferences → General." = "You can turn this off any time in Preferences → General.";
+"Privacy Details" = "Privacy Details";

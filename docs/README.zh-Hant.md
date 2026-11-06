@@ -97,6 +97,12 @@ brew install --cask 33to9/tap/tinyrecorder
 - 「**偏好設定**」→「**一般設定**」→「**權限**」→「**螢幕錄製權限**」→「**修復…**」；或
 - 結束 TinyRecorder，在「終端機」中執行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再重新打開 TinyRecorder 並授予權限。
 
+## 隱私權
+
+錄影只保存在你的 Mac 上，不會上傳。為了改善應用程式，TinyRecorder 會透過 [TelemetryDeck](https://telemetrydeck.com/privacy/) 傳送匿名使用統計：應用程式與 macOS 版本、語言、Mac 機型，以及每次錄製的類型（全螢幕、視窗、區域、音訊等）、格式、編碼器、影格速率、是否開啟麥克風、長度，錄製失敗時還有錯誤代碼。絕不傳送錄影內容、檔案名稱、檔案夾、視窗或應用程式標題，也不傳送錯誤訊息原文。沒有帳號或使用者 ID：應用程式會產生一個隨機識別碼，傳送前經過雜湊處理，TelemetryDeck 也不保存 IP 位址。如需關閉，請打開 偏好設定 › 一般設定 › 隱私，關閉「分享匿名使用資料」。
+
+使用統計預設為開啟。詳細說明：[隱私權頁面](https://www.tinyrecorder.app/zh-Hant/privacy)。
+
 ## 自動化（AppleScript）
 
 TinyRecorder 支援 AppleScript，可以在終端機、捷徑（「**執行 AppleScript**」動作）、Raycast、Alfred、Keyboard Maestro 或你自己的腳本中開始和停止錄製。

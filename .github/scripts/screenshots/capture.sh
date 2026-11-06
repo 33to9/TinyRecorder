@@ -2,7 +2,7 @@
 # Takes the website screenshots of the installed TinyRecorder in each language.
 # Runs on a GitHub-hosted macOS runner (see .github/workflows/screenshots.yml).
 #   capture.sh <out-dir> <lang>...
-# For each language it writes <out>/<lang>/{toolbar,picker,settings}.png plus debug-*.png
+# For each language it writes <out>/<lang>/{toolbar,picker,settings,onboarding}.png plus debug-*.png
 # full-screen images and window lists, so a failed step can be diagnosed from the artifact.
 set -uo pipefail
 OUT="$1"; shift
@@ -65,4 +65,14 @@ for lang in "$@"; do
     else echo "MISSING picker"; fi
   fi
   pkill -f "$APP/Contents/MacOS/"; sleep 2
+
+  log "$lang: first-launch guide, last step"
+  # Permission is granted on the runner, so the guide resumes at the saved step (3 = Get Started).
+  defaults write "$BUNDLE_ID" firstRunSetupDone -bool false
+  defaults write "$BUNDLE_ID" onboardingStep -int 3
+  open -n "$APP" --args -AppleLanguages "($lang)"
+  sleep 8; snap 7-onboarding
+  grab onboarding '$4 >= 470 && $4 <= 490 && $5 >= 590'
+  pkill -f "$APP/Contents/MacOS/"; sleep 2
+  defaults write "$BUNDLE_ID" firstRunSetupDone -bool true
 done

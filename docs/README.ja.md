@@ -97,6 +97,12 @@ TinyRecorder のスイッチがすでにオンになっている、オンのま�
 - **「設定」→「一般」→「権限」→「画面収録の権限」→「修復…」** を開きます。
 - TinyRecorder を終了し、「ターミナル」で `tccutil reset ScreenCapture com.33to9.TinyRecorder` を実行してから、TinyRecorder をもう一度開いて権限を付与します。
 
+## プライバシー
+
+録画はお使いの Mac から外に出ることはありません。アプリの改善のため、TinyRecorder は [TelemetryDeck](https://telemetrydeck.com/privacy/) を通じて匿名の使用状況データを送信します。内容は、アプリと macOS のバージョン、言語、Mac の機種、そして収録ごとの種類（画面、ウインドウ、範囲、オーディオなど）、形式、エンコーダ、フレームレート、マイクのオン／オフ、長さ、失敗した場合はエラーコードです。録画内容、ファイル名、フォルダ、ウインドウやアプリのタイトル、エラーメッセージは一切送信しません。アカウントやユーザ ID はありません。アプリが生成したランダムな識別子は送信前にハッシュ化され、TelemetryDeck は IP アドレスを保存しません。オフにするには「設定」›「一般」›「プライバシー」で「匿名の使用状況データを共有」をオフにしてください。
+
+使用状況データの送信は初期設定でオンになっています。詳しくは[プライバシーページ](https://www.tinyrecorder.app/ja/privacy)をご覧ください。
+
 ## 自動化（AppleScript）
 
 TinyRecorder は AppleScript で操作できます。ターミナル、ショートカット（「**AppleScript を実行**」アクション）、Raycast、Alfred、Keyboard Maestro、自作のスクリプトから録画を開始・停止できます。

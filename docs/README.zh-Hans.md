@@ -97,6 +97,12 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 - **设置 → 一般设置 → 权限 → 屏幕录制权限 → 修复…**；或
 - 退出 TinyRecorder，在终端执行 `tccutil reset ScreenCapture com.33to9.TinyRecorder`，再打开 TinyRecorder 重新授权。
 
+## 隐私
+
+录像只保存在你的 Mac 上，不会上传。为了改进应用，TinyRecorder 会通过 [TelemetryDeck](https://telemetrydeck.com/privacy/) 发送匿名使用统计：应用和 macOS 版本、语言、Mac 机型，以及每次录制的类型（全屏、窗口、区域、音频等）、格式、编码器、帧率、是否开启麦克风、时长，录制失败时还有错误代码。绝不发送录像内容、文件名、文件夹、窗口或应用标题，也不发送错误信息原文。没有账户或用户 ID：应用会生成一个随机标识符，发送前经过哈希处理，TelemetryDeck 也不保存 IP 地址。如需关闭，请打开 偏好设置 › 一般设置 › 隐私，关闭“共享匿名使用数据”。
+
+使用统计默认开启。详细说明：[隐私页](https://www.tinyrecorder.app/zh-Hans/privacy)。
+
 ## 自动化（AppleScript）
 
 TinyRecorder 支持 AppleScript，可以在终端、快捷指令（**运行 AppleScript** 操作）、Raycast、Alfred、Keyboard Maestro 或你自己的脚本里开始和停止录制。

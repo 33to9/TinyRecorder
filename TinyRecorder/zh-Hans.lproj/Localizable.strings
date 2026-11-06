@@ -356,3 +356,7 @@
 "Share Anonymous Usage Data" = "共享匿名使用数据";
 "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "帮助改进 TinyRecorder。会发送 App 和 macOS 版本、语言，以及录制的类型、格式和时长。绝不包含录制内容、文件名或窗口标题。";
 "Repair…" = "修复…";
+
+/* Onboarding: usage statistics */
+"You can turn this off any time in Preferences → General." = "之后可随时在「偏好设置 → 一般设置」中关闭。";
+"Privacy Details" = "隐私详情";

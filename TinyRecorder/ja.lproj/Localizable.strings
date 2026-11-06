@@ -329,3 +329,7 @@
 "Share Anonymous Usage Data" = "匿名の使用状況データを共有";
 "Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "TinyRecorder の改善に役立てます。App と macOS のバージョン、言語、収録の種類・形式・長さを送信します。収録内容、ファイル名、ウインドウのタイトルは一切送信しません。";
 "Repair…" = "修復…";
+
+/* Onboarding: usage statistics */
+"You can turn this off any time in Preferences → General." = "「設定」→「一般」でいつでもオフにできます。";
+"Privacy Details" = "プライバシーの詳細";

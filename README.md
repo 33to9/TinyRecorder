@@ -97,6 +97,12 @@ If TinyRecorder's toggle is already on, won't stay on, or every button still ope
 - **Settings → General → Permissions → Screen Recording Permission → Repair…**; or
 - Quit TinyRecorder, run `tccutil reset ScreenCapture com.33to9.TinyRecorder` in Terminal, reopen TinyRecorder and grant the permission again.
 
+## Privacy
+
+Your recordings never leave your Mac. To help improve the app, TinyRecorder sends anonymous usage statistics through [TelemetryDeck](https://telemetrydeck.com/privacy/): the app and macOS version, language and Mac model, and for each recording its type (screen, window, area, audio and so on), format, encoder, frame rate, whether the microphone was on, its length and, if it failed, an error code. It never sends your recordings, file names, folders, window or app titles, or error messages. There is no account or user ID: the app creates a random identifier that is hashed before it is sent, and TelemetryDeck doesn't store IP addresses. To turn this off, open Preferences › General › Privacy and switch off “Share Anonymous Usage Data”.
+
+Usage statistics are on by default. Full details: [privacy page](https://www.tinyrecorder.app/en/privacy).
+
 ## Automation (AppleScript)
 
 TinyRecorder can be controlled with AppleScript, so you can start and stop recordings from Terminal, the Shortcuts app (**Run AppleScript** action), Raycast, Alfred, Keyboard Maestro or your own scripts.
