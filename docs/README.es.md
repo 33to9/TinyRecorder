@@ -12,8 +12,8 @@
 <a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <b>Español</b>
 </p>
 
-> **TinyRecorder** es una bifurcación comunitaria de [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) de [lihaoyun6](https://github.com/lihaoyun6), que no recibe cambios desde mediados de 2025.
-> La bifurcación se centra en la **compatibilidad con las versiones más recientes de macOS** (empezando por macOS 27 / "Golden Gate").
+> **TinyRecorder** es una bifurcación comunitaria de [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) de [lihaoyun6](https://github.com/lihaoyun6): un grabador de pantalla pequeño, rápido y realmente bueno que dejó de recibir cambios a mediados de 2025. En macOS 27, sus botones de detener, pausar y cámara de la barra de menús ya no responden.
+> Una buena app no debería desaparecer solo porque dejó de actualizarse. Esta bifurcación toma el relevo y se centra en la **compatibilidad con las versiones más recientes de macOS** (empezando por macOS 27 / "Golden Gate").
 
 
 https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74

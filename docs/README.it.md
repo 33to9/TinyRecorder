@@ -12,8 +12,8 @@
 <a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <b>Italiano</b> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 </p>
 
-> **TinyRecorder** è un fork comunitario di [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) di [lihaoyun6](https://github.com/lihaoyun6), fermo da metà 2025.
-> Il fork si concentra sulla **compatibilità con le ultime versioni di macOS** (a partire da macOS 27 / "Golden Gate").
+> **TinyRecorder** è un fork comunitario di [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) di [lihaoyun6](https://github.com/lihaoyun6): un registratore dello schermo piccolo, veloce e davvero valido, fermo da metà 2025. Su macOS 27 i suoi pulsanti Interrompi, Pausa e Fotocamera nella barra dei menu non rispondono più.
+> Una buona app non dovrebbe sparire solo perché non riceve più aggiornamenti. Questo fork ne raccoglie il testimone e si concentra sulla **compatibilità con le ultime versioni di macOS** (a partire da macOS 27 / "Golden Gate").
 
 
 https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74

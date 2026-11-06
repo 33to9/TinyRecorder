@@ -12,8 +12,8 @@
 <a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <b>日本語</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 </p>
 
-> **TinyRecorder** は、2025 年半ばから開発が止まっている [lihaoyun6](https://github.com/lihaoyun6) 氏の [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) のコミュニティフォークです。
-> このフォークは、**最新の macOS リリースとの互換性**（macOS 27 /「Golden Gate」以降）を重視しています。
+> **TinyRecorder** は、[lihaoyun6](https://github.com/lihaoyun6) 氏の [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) のコミュニティフォークです。QuickRecorder は軽くて速い、本当に良い録画アプリですが、2025 年半ばから開発が止まり、macOS 27 ではメニューバーの停止・一時停止・カメラボタンが反応しなくなりました。
+> 更新が止まったというだけで、良いアプリが消えてしまうのはあまりに惜しい。このフォークはそのバトンを受け継ぎ、**最新の macOS リリースとの互換性**（macOS 27 /「Golden Gate」以降）を重視して保守しています。
 
 
 https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74

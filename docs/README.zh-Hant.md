@@ -12,8 +12,8 @@
 <a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <b>繁體中文</b> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 </p>
 
-> **TinyRecorder** 是由社群接手維護的 [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) 分支，原專案由 [lihaoyun6](https://github.com/lihaoyun6) 開發，自 2025 年年中起已停止更新。
-> 此分支著重於**與最新 macOS 版本的相容性**（從 macOS 27「Golden Gate」開始）。
+> **TinyRecorder** 是由社群接手維護的 [QuickRecorder](https://github.com/lihaoyun6/QuickRecorder) 分支，原專案由 [lihaoyun6](https://github.com/lihaoyun6) 開發。QuickRecorder 是一款小巧、快速、真正好用的錄影工具，可惜自 2025 年年中起已停止更新，在 macOS 27 上，選單列中的停止、暫停和攝影機按鈕都已失效。
+> 好的軟體，不該因為停止更新就此消失。此分支接下這根接力棒，著重於**與最新 macOS 版本的相容性**（從 macOS 27「Golden Gate」開始）。
 
 
 https://github.com/user-attachments/assets/bf8c2512-a823-40e2-bb89-748e7202bd74
