@@ -3,6 +3,9 @@
 </p>
 <h3 align="center">Un grabador de pantalla ligero para macOS, compatible con macOS 27</h3>
 <p align="center">
+<a href="https://github.com/33to9/TinyRecorder/releases/latest"><img src="https://img.shields.io/github/v/release/33to9/TinyRecorder?style=flat" alt="Latest release"></a> <a href="https://github.com/33to9/TinyRecorder/releases"><img src="https://img.shields.io/github/downloads/33to9/TinyRecorder/total?style=flat" alt="Total downloads"></a> <a href="https://github.com/33to9/TinyRecorder/releases/latest"><img src="https://img.shields.io/github/downloads/33to9/TinyRecorder/latest/total?style=flat" alt="Downloads of the latest release"></a> <a href="https://github.com/33to9/TinyRecorder/blob/main/LICENSE"><img src="https://img.shields.io/github/license/33to9/TinyRecorder?style=flat" alt="License"></a>
+</p>
+<p align="center">
 <a href="https://www.tinyrecorder.app/es/"><b>Sitio web: www.tinyrecorder.app</b></a> · <a href="https://www.tinyrecorder.app/es/#video"><b>▶ Vídeo de inicio rápido (en inglés)</b></a>
 </p>
 <p align="center">

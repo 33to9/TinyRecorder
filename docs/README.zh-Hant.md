@@ -3,6 +3,9 @@
 </p>
 <h3 align="center">輕巧的 macOS 螢幕錄影工具，已支援 macOS 27</h3>
 <p align="center">
+<a href="https://github.com/33to9/TinyRecorder/releases/latest"><img src="https://img.shields.io/github/v/release/33to9/TinyRecorder?style=flat" alt="Latest release"></a> <a href="https://github.com/33to9/TinyRecorder/releases"><img src="https://img.shields.io/github/downloads/33to9/TinyRecorder/total?style=flat" alt="Total downloads"></a> <a href="https://github.com/33to9/TinyRecorder/releases/latest"><img src="https://img.shields.io/github/downloads/33to9/TinyRecorder/latest/total?style=flat" alt="Downloads of the latest release"></a> <a href="https://github.com/33to9/TinyRecorder/blob/main/LICENSE"><img src="https://img.shields.io/github/license/33to9/TinyRecorder?style=flat" alt="License"></a>
+</p>
+<p align="center">
 <a href="https://www.tinyrecorder.app/zh-Hant/"><b>官方網站：www.tinyrecorder.app</b></a> · <a href="https://www.tinyrecorder.app/zh-Hant/#video"><b>▶ 快速上手影片（英文）</b></a>
 </p>
 <p align="center">
