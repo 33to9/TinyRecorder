@@ -1,12 +1,14 @@
 # TinyRecorder · macOS 图标与品牌素材
 
+<a href="../README.md">English</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+
 以用户提供的「显示器 + 录制圆点」参考图重新绘制全部矢量几何，去除参考拼图的噪点、残边和装饰文件标记。浅色为项目默认主图标，深色为可选替代。所有 PNG 附带 sRGB 配置；SVG 可无限缩放，品牌字标已转轮廓。
 
 ## 已接入当前项目
 
-- `QuickRecorder/Assets.xcassets/AppIcon.appiconset/`：传统 macOS 全套 10 张 PNG，16 / 32 / 128 / 256 / 512 pt，每档 1×、2×。
-- `QuickRecorder/Assets.xcassets/TinyRecorderMenuBar.imageset/`：18 pt 黑色透明模板，macOS 1× / 2×。SwiftUI 在未录制状态使用 `.template` 渲染，随菜单栏外观着色。18 pt 是本项目的设计尺寸，不是 Apple 强制尺寸；`menubar/` 另附 54 px 导出。
-- `img/tinyrecorder-header.png`：已接入中英文 README 顶部。
+- `TinyRecorder/Assets.xcassets/AppIcon.appiconset/`：传统 macOS 全套 10 张 PNG，16 / 32 / 128 / 256 / 512 pt，每档 1×、2×。
+- `TinyRecorder/Assets.xcassets/TinyRecorderMenuBar.imageset/`：18 pt 黑色透明模板，macOS 1× / 2×。SwiftUI 在未录制状态使用 `.template` 渲染，随菜单栏外观着色。18 pt 是本项目的设计尺寸，不是 Apple 强制尺寸；`menubar/` 另附 54 px 导出。
+- `img/tinyrecorder-header.png`：已接入各语言 README 顶部。
 
 ## 目录与用途
 
@@ -34,13 +36,13 @@
 
 - 颜色：Ink `#293248`，Record `#FF435C`，Canvas `#F3F5FA`。
 - Logo 四周至少留出一个录制圆点直径的空白；不要拉伸、改变圆点相对位置或加文字进应用图标。
-- 小号应用图标单独加粗边框、支架及圆点，按逻辑 pt 档选择源稿；16pt@2x 与 32pt@1x 虽然都是32px，仍按用途导出。
+- 小号应用图标单独加粗边框、支架及圆点，按逻辑 pt 档选择源稿；16pt@2x 与 32pt@1x 虽然都是 32 px，仍按用途导出。
 - 菜单栏只使用黑色 + 透明并设为 Template；品牌红色不烘焙进菜单栏模板。
 - 参考图右下角的 “SVG” 文件样式不代表应用真实文件类型。本包额外制作 QMA 文件图标，作为可选接入素材。
 
 ## 重新生成与验证
 
-在仓库根目录运行：
+在 `TinyRecorder-Brand-Kit` 目录下运行：
 
 ```sh
 python -m pip install -r scripts/requirements-branding.txt
@@ -50,11 +52,13 @@ python scripts/validate_brand_assets.py
 
 生成器从 SVG 几何渲染，不依赖上传的 PNG。`scripts/brand-fonts/Manrope.ttf` 来自 Google Fonts，使用 SIL OFL；许可证随附于同目录。品牌字标导出为轮廓，不要求使用者安装字体。
 
-ICNS 使用 PNG 数据块保存全部标准尺寸。可在 Mac 上用系统工具重新生成并检查：
+生成器按原 QuickRecorder 项目的目录结构编写：除 `branding/` 外，它还会在本目录下写出 `QuickRecorder/Assets.xcassets/`、`img/` 和 `.github/assets/`，并重新生成旧的中文 README 文件。项目用到的文件请手动复制到对应位置，重新生成的 README 文件直接删除即可。
+
+ICNS 使用 PNG 数据块保存全部标准尺寸。可在 Mac 上用系统工具重新生成并检查（`iconutil` 在本目录运行，`xcodebuild` 在仓库根目录运行）：
 
 ```sh
 iconutil -c icns branding/macos/TinyRecorder.iconset -o /tmp/TinyRecorder.icns
-xcodebuild -project QuickRecorder.xcodeproj -scheme QuickRecorder -configuration Release -destination 'generic/platform=macOS' CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build
+xcodebuild -project TinyRecorder.xcodeproj -scheme TinyRecorder -configuration Release -destination 'generic/platform=macOS' CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build
 ```
 
 本次制作环境为 Windows：已检查尺寸、透明通道、ICNS 结构、SVG、模板着色及接入引用；没有运行 Xcode、actool、Icon Composer 或 Finder/Dock 实机验证。
