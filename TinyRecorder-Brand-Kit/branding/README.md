@@ -1,6 +1,6 @@
 # TinyRecorder · macOS icon and brand assets
 
-<b>English</b> · <a href="docs/README.zh-CN.md">简体中文</a> · <a href="docs/README.zh-TW.md">繁體中文</a> · <a href="docs/README.it.md">Italiano</a> · <a href="docs/README.ja.md">日本語</a> · <a href="docs/README.de.md">Deutsch</a> · <a href="docs/README.es.md">Español</a>
+<b>English</b> · <a href="docs/README.zh-Hans.md">简体中文</a> · <a href="docs/README.zh-Hant.md">繁體中文</a> · <a href="docs/README.it.md">Italiano</a> · <a href="docs/README.ja.md">日本語</a> · <a href="docs/README.de.md">Deutsch</a> · <a href="docs/README.es.md">Español</a>
 
 All vector geometry was redrawn from the supplied "display + record dot" reference image, without the noise, leftover edges and decorative file badge of the reference collage. The light version is the project's default app icon; the dark version is an optional alternative. Every PNG carries an sRGB profile; the SVGs scale without limit, and the brand wordmark is converted to outlines.
 

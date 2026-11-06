@@ -56,7 +56,10 @@ class Inspector:
         self.counts[kind] = len(self.counted[kind])
 
     def label(self, path: Path) -> str:
-        return path.relative_to(self.root).as_posix()
+        for base in (self.root, self.root.parent):
+            if path.is_relative_to(base):
+                return path.relative_to(base).as_posix()
+        return path.as_posix()
 
     def require(self, condition: bool, message: str) -> None:
         if not condition:
@@ -297,9 +300,12 @@ class Inspector:
         self.png(branding / "menubar" / "tinyrecorder-menubar@3x.png", 54,
                  transparent_border=True, template=True)
 
-        # The source repository additionally contains the copies used by Xcode.
-        assets = self.root / "QuickRecorder" / "Assets.xcassets"
-        if (self.root / "QuickRecorder").is_dir():
+        # Inside the TinyRecorder repository (the kit lives in TinyRecorder-Brand-Kit/),
+        # also check the copies used by Xcode and the README header.
+        repo = next((d for d in (self.root, self.root.parent)
+                     if (d / "TinyRecorder" / "Assets.xcassets").is_dir()), None)
+        if repo is not None:
+            assets = repo / "TinyRecorder" / "Assets.xcassets"
             self.catalog(assets / "AppIcon.appiconset")
             self.catalog(assets / "TinyRecorderMenuBar.imageset", template=True)
             for filename in ICON_SLOTS:
@@ -309,7 +315,7 @@ class Inspector:
                 self.same(exports / "TinyRecorderMenuBar.imageset" / filename,
                           assets / "TinyRecorderMenuBar.imageset" / filename)
             self.same(branding / "marketing" / "github-header.png",
-                      self.root / "img" / "tinyrecorder-header.png")
+                      repo / "img" / "tinyrecorder-header.png")
 
         self.iconset(branding / "documents" / "TinyRecorder-QMA.iconset")
         self.icns(branding / "documents" / "TinyRecorder-QMA.icns")
@@ -336,7 +342,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", nargs="?", type=Path,
                         default=Path(__file__).resolve().parents[1],
-                        help="TinyRecorder repository or extracted brand kit directory")
+                        help="TinyRecorder-Brand-Kit directory (default: the one containing this script)")
     args = parser.parse_args()
     return Inspector(args.root.resolve()).run()
 

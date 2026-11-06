@@ -1,6 +1,6 @@
 # TinyRecorder · macOS 图标与品牌素材
 
-<a href="../README.md">English</a> · <b>简体中文</b> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <b>简体中文</b> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 以用户提供的「显示器 + 录制圆点」参考图重新绘制全部矢量几何，去除参考拼图的噪点、残边和装饰文件标记。浅色为项目默认主图标，深色为可选替代。所有 PNG 附带 sRGB 配置；SVG 可无限缩放，品牌字标已转轮廓。
 

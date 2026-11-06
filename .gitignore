@@ -99,3 +99,7 @@ certs/
 
 # Local screenshots / scratch
 erro/
+
+# Brand kit generator output (zip) and Python cache
+TinyRecorder-Brand-Kit/deliverables/
+__pycache__/

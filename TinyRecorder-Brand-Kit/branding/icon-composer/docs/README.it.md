@@ -1,6 +1,6 @@
 # Livelli per Icon Composer
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <b>Italiano</b> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <b>Italiano</b> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 Questi file sono sorgenti SVG da importare, **non un progetto `.icon` compilato e verificato**.
 Il progetto usa già l'AppIcon classica e compatibile, quindi non serve completare prima questi passaggi.

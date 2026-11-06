@@ -1,6 +1,6 @@
 # TinyRecorder · macOS 圖示與品牌素材
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <b>繁體中文</b> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 依據使用者提供的「顯示器 + 錄製圓點」參考圖重新繪製全部向量幾何，去除參考拼圖中的雜點、殘邊和裝飾用的檔案標記。淺色為專案預設主圖示，深色為可選替代。所有 PNG 皆附 sRGB 描述檔；SVG 可無限縮放，品牌字標已轉為外框。
 

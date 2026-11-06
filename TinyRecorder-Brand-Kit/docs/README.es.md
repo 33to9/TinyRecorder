@@ -1,6 +1,6 @@
 # Kit de marca de TinyRecorder
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <b>Español</b>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <b>Español</b>
 
 Todos los recursos están en [`branding/`](../branding/). Empieza por [`branding/preview/brand-overview.png`](../branding/preview/brand-overview.png) y [`branding/docs/README.es.md`](../branding/docs/README.es.md).
 

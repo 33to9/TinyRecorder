@@ -1,6 +1,6 @@
 # Capas para Icon Composer
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <b>Español</b>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <b>Español</b>
 
 Estos archivos son fuentes SVG para importar, **no un proyecto `.icon` compilado y verificado**.
 El proyecto ya usa el AppIcon clásico y compatible, así que no hace falta hacer esto primero.

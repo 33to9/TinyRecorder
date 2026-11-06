@@ -1,6 +1,6 @@
 # TinyRecorder · macOS アイコンとブランド素材
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <b>日本語</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <b>日本語</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 提供された「ディスプレイ + 録画ドット」の参考画像をもとに、すべてのベクター形状を描き直しました。参考コラージュにあったノイズ、エッジの残り、装飾用のファイルバッジは取り除いています。ライトはプロジェクトの既定のアプリアイコン、ダークは任意の代替です。すべての PNG に sRGB プロファイルが付いています。SVG はいくらでも拡大でき、ブランドのワードマークはアウトライン化済みです。
 

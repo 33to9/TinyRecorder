@@ -1,6 +1,6 @@
 # TinyRecorder · icona macOS e risorse del marchio
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <b>Italiano</b> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <b>Italiano</b> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 Tutta la geometria vettoriale è stata ridisegnata a partire dall'immagine di riferimento «schermo + punto di registrazione» fornita, senza il rumore, i bordi residui e il badge di file decorativo del collage di riferimento. La versione chiara è l'icona predefinita dell'app; quella scura è un'alternativa facoltativa. Tutti i PNG includono un profilo sRGB; gli SVG si scalano senza limiti e il logotipo è convertito in tracciati.
 

@@ -1,6 +1,6 @@
 # TinyRecorder · macOS-Symbol und Markenassets
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a>
 
 Die gesamte Vektorgeometrie wurde nach der gelieferten Vorlage „Bildschirm + Aufnahmepunkt“ neu gezeichnet, ohne das Rauschen, die Kantenreste und das dekorative Dateisymbol der Vorlagencollage. Die helle Variante ist das Standard-App-Symbol des Projekts, die dunkle eine optionale Alternative. Alle PNGs enthalten ein sRGB-Profil; die SVGs lassen sich beliebig skalieren, und die Wortmarke ist in Pfade umgewandelt.
 

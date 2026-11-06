@@ -1,6 +1,6 @@
 # Icon Composer 分層素材
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <b>繁體中文</b> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <b>繁體中文</b> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 這些檔案是可匯入的 SVG 原始素材，**不是已編譯、已驗證的 `.icon` 專案**。
 目前專案已經使用傳統相容的 AppIcon，不必先完成這些步驟。

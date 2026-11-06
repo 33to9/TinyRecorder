@@ -1,6 +1,6 @@
 # Icon Composer 用レイヤー素材
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <b>日本語</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <b>日本語</b> · <a href="README.de.md">Deutsch</a> · <a href="README.es.md">Español</a>
 
 これらは読み込み用の SVG ソース素材で、**コンパイル・検証済みの `.icon` プロジェクトではありません**。
 プロジェクトには従来互換の AppIcon がすでに組み込まれているので、この作業を先に済ませる必要はありません。

@@ -1,6 +1,6 @@
 # Icon-Composer-Ebenen
 
-<a href="../README.md">English</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.zh-TW.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a>
+<a href="../README.md">English</a> · <a href="README.zh-Hans.md">简体中文</a> · <a href="README.zh-Hant.md">繁體中文</a> · <a href="README.it.md">Italiano</a> · <a href="README.ja.md">日本語</a> · <b>Deutsch</b> · <a href="README.es.md">Español</a>
 
 Diese Dateien sind SVG-Quellen zum Import, **kein kompiliertes, geprüftes `.icon`-Projekt**.
 Das Projekt verwendet bereits das klassische, kompatible AppIcon, diese Schritte sind also nicht vorab nötig.
