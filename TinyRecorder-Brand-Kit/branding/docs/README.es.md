@@ -52,7 +52,7 @@ python scripts/validate_brand_assets.py
 
 El generador renderiza a partir de la geometría SVG y no depende de los PNG subidos. `scripts/brand-fonts/Manrope.ttf` procede de Google Fonts con licencia SIL OFL; la licencia está en la misma carpeta. El logotipo de texto se exporta como contornos, así que nadie necesita instalar la fuente.
 
-El generador se escribió para la estructura de carpetas original del proyecto QuickRecorder. Además de `branding/`, escribe `QuickRecorder/Assets.xcassets/`, `img/` y `.github/assets/` dentro de esta carpeta, y vuelve a crear los antiguos archivos README en chino. Copia a mano los archivos del proyecto a su sitio y borra los README que vuelva a crear.
+Además de `branding/`, el generador actualiza las copias que usa la app en el repositorio de TinyRecorder (`TinyRecorder/Assets.xcassets/`, `img/tinyrecorder-header.png` y el fondo del DMG en `.github/assets/`) y escribe un zip del kit en `deliverables/`. Los archivos README se mantienen a mano y no se modifican.
 
 Los ICNS guardan todos los tamaños estándar como datos PNG. En un Mac puedes regenerarlos y comprobarlos con las herramientas del sistema (`iconutil` en esta carpeta, `xcodebuild` en la raíz del repositorio):
 

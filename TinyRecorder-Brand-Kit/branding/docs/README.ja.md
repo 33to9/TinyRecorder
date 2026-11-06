@@ -52,7 +52,7 @@ python scripts/validate_brand_assets.py
 
 ジェネレータは SVG の形状からレンダリングするため、アップロードされた PNG には依存しません。`scripts/brand-fonts/Manrope.ttf` は Google Fonts のもので、SIL OFL ライセンスです。ライセンスファイルは同じフォルダにあります。ワードマークはアウトラインで書き出すため、フォントのインストールは不要です。
 
-ジェネレータは元の QuickRecorder プロジェクトのフォルダ構成を前提に書かれています。`branding/` のほかに、このフォルダ内に `QuickRecorder/Assets.xcassets/`、`img/`、`.github/assets/` を書き出し、古い中国語の README ファイルも作り直します。プロジェクトで使うファイルは手動で所定の場所にコピーし、作り直された README ファイルは削除してください。
+ジェネレータは `branding/` のほか、TinyRecorder リポジトリ内でアプリが使うコピー（`TinyRecorder/Assets.xcassets/`、`img/tinyrecorder-header.png`、`.github/assets/` の DMG 背景）も更新し、キットの zip を `deliverables/` に書き出します。README ファイルは手作業で管理しているため、変更しません。
 
 ICNS はすべての標準サイズを PNG データとして格納しています。Mac ではシステムのツールで再生成と確認ができます（`iconutil` はこのフォルダで、`xcodebuild` はリポジトリのルートで実行）：
 

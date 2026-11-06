@@ -52,7 +52,7 @@ python scripts/validate_brand_assets.py
 
 生成器从 SVG 几何渲染，不依赖上传的 PNG。`scripts/brand-fonts/Manrope.ttf` 来自 Google Fonts，使用 SIL OFL；许可证随附于同目录。品牌字标导出为轮廓，不要求使用者安装字体。
 
-生成器按原 QuickRecorder 项目的目录结构编写：除 `branding/` 外，它还会在本目录下写出 `QuickRecorder/Assets.xcassets/`、`img/` 和 `.github/assets/`，并重新生成旧的中文 README 文件。项目用到的文件请手动复制到对应位置，重新生成的 README 文件直接删除即可。
+除 `branding/` 外，生成器还会更新 TinyRecorder 仓库中项目实际使用的副本（`TinyRecorder/Assets.xcassets/`、`img/tinyrecorder-header.png` 和 `.github/assets/` 里的 DMG 背景），并把素材包打包到 `deliverables/`。各语言 README 由人工维护，生成器不会改动。
 
 ICNS 使用 PNG 数据块保存全部标准尺寸。可在 Mac 上用系统工具重新生成并检查（`iconutil` 在本目录运行，`xcodebuild` 在仓库根目录运行）：
 
