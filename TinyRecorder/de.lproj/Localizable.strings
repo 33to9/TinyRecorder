@@ -327,7 +327,7 @@
 "No available microphone input." = "Kein Mikrofoneingang verfügbar.";
 "Privacy" = "Datenschutz";
 "Share Anonymous Usage Data" = "Anonyme Nutzungsdaten teilen";
-"Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "Hilft, TinyRecorder zu verbessern. Sendet App- und macOS-Version, Sprache sowie Art, Format und Länge der Aufnahmen. Niemals deine Aufnahmen, Dateinamen oder Fenstertitel.";
+"Helps improve TinyRecorder. Sends the app and macOS version, language, and the type, format and length of recordings. Never your recordings, file names or window titles." = "Hilft, TinyRecorder zu verbessern. Sendet App- und macOS-Version, Sprache sowie Art, Format und Länge der Aufnahmen. Niemals Ihre Aufnahmen, Dateinamen oder Fenstertitel.";
 "Repair…" = "Reparieren …";
 
 /* Onboarding: usage statistics */
