@@ -25,6 +25,7 @@ extension AppDelegate {
     func abortRecording(reason: String) {
         print("Recording aborted: \(reason)")
         Analytics.recordingFailed(stage: "start", type: SCContext.streamType, error: nil)
+        Analytics.recordingID = nil
         SCContext.streamQueue.sync { SCContext.isStopping = true }
         SCContext.stopMicCapture()
         if let stream = SCContext.stream { stream.stopCapture() }

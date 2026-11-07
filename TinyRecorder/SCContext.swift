@@ -567,10 +567,10 @@ class SCContext {
         return [date, software]
     }
 
-    static func reportSaveFailure(_ error: Error?, type: StreamType? = nil) {
+    static func reportSaveFailure(_ error: Error?, type: StreamType? = nil, recordingID: String?) {
         let err = error?.localizedDescription ?? "No content was captured.".local
         print("Failed to save recording: \(err)")
-        Analytics.recordingFailed(stage: "saving", type: type ?? streamType, error: error)
+        Analytics.recordingFailed(stage: "saving", type: type ?? streamType, error: error, id: recordingID)
         showNotification(title: "Failed to save file".local, body: err, id: "quickrecorder.error.\(UUID().uuidString)")
     }
     
@@ -621,8 +621,14 @@ class SCContext {
         stopRecording()
     }
 
-    /// Called once a recording file is saved: optionally copies it to the clipboard (#289)
-    static func recordingSaved(_ url: URL) {
+    /// Called once a recording file is saved: reports it and optionally copies it to the
+    /// clipboard (#289). `recordingID` is the one captured when the recording stopped.
+    static func recordingSaved(_ url: URL, type: StreamType?, recordingID: String?) {
+        Analytics.recordingSaved(type, id: recordingID)
+        copyRecordingToClipboard(url)
+    }
+
+    private static func copyRecordingToClipboard(_ url: URL) {
         guard ud.bool(forKey: "copyToClipboard") else { return }
         DispatchQueue.main.async {
             guard fd.fileExists(atPath: url.path) else { return }
@@ -658,8 +664,11 @@ class SCContext {
         stopMicCapture()
         
         let currentType = streamType
+        // Saving finishes asynchronously, after the recording state is reset below
+        let recordingID = Analytics.recordingID
         if discardRequested {
             Analytics.recordingDiscarded(currentType)
+            Analytics.recordingID = nil
             discardRequested = false
             if let writer = vW, writer.status == .writing { writer.cancelWriting() }
             audioFile = nil
@@ -690,6 +699,7 @@ class SCContext {
             return
         }
         Analytics.recordingFinished(currentType, startedAt: startTime)
+        Analytics.recordingID = nil
         let path: String = filePath ?? ""
         let remuxVideo = recMic && recWinSound && recRemuxAudio
         let remuxQma = recMic && recRemuxAudio
@@ -705,7 +715,7 @@ class SCContext {
                     videoSaved = ok
                     if !ok {
                         print("Video writing failed with status: \(writer.status.rawValue), error: \(String(describing: writer.error))")
-                        reportSaveFailure(writer.error, type: currentType)
+                        reportSaveFailure(writer.error, type: currentType, recordingID: recordingID)
                         if remuxVideo { DispatchQueue.main.async { mixFinished() } }
                     } else if remuxVideo {
                         mixAudioTracks(videoURL: path.url) { result in
@@ -713,7 +723,7 @@ class SCContext {
                             switch result {
                             case .success(let url):
                                 finalURL = url
-                                recordingSaved(url)
+                                recordingSaved(url, type: currentType, recordingID: recordingID)
                                 print("Exported video to \(String(describing: url.path))")
                                 if !ud.bool(forKey: "showPreview") {
                                     showNotification(title: "Recording Completed".local, body: String(format: "File saved to: %@".local, url.path), id: "quickrecorder.completed.\(UUID().uuidString)")
@@ -721,6 +731,9 @@ class SCContext {
                             case .failure(let error):
                                 print("Failed to export video: \(error.localizedDescription)")
                                 finalURL = recoverUnmixedRecording(videoURL: path.url)
+                                // The recording is kept, only without the mixed audio
+                                Analytics.recordingFailed(stage: "mixing", type: currentType, error: error, id: recordingID)
+                                recordingSaved(finalURL, type: currentType, recordingID: recordingID)
                                 let body = String(format: "File saved to: %@".local, finalURL.path) + "\n" + error.localizedDescription
                                 showNotification(title: "Failed to mix audio tracks".local, body: body, id: "quickrecorder.error.\(UUID().uuidString)")
                             }
@@ -739,7 +752,7 @@ class SCContext {
                 // finishWriting 的回调不会回到主线程同步执行，这里等待不会死锁
                 dispatchGroup.wait()
             } else {
-                reportSaveFailure(nil, type: currentType)
+                reportSaveFailure(nil, type: currentType, recordingID: recordingID)
             }
         }
         
@@ -762,11 +775,11 @@ class SCContext {
                     finishWriter(writer) { ok in
                         let error = writer.error
                         DispatchQueue.main.async {
-                            finalizeQmaRecording(path: path, micSaved: ok, error: error, remux: remuxQma)
+                            finalizeQmaRecording(path: path, micSaved: ok, error: error, remux: remuxQma, recordingID: recordingID)
                         }
                     }
                 } else {
-                    finalizeQmaRecording(path: path, micSaved: false, error: nil, remux: remuxQma)
+                    finalizeQmaRecording(path: path, micSaved: false, error: nil, remux: remuxQma, recordingID: recordingID)
                 }
             } else if recAudioFormat == AudioFormat.mp3.rawValue {
                 Task {
@@ -774,7 +787,7 @@ class SCContext {
                     do {
                         try await m4a2mp3(inputUrl: path1.url, outputUrl: outPutUrl)
                         try? fd.removeItem(atPath: path1)
-                        recordingSaved(outPutUrl)
+                        recordingSaved(outPutUrl, type: currentType, recordingID: recordingID)
                         if !ud.bool(forKey: "showPreview") {
                             let title = "Recording Completed".local
                             let body = String(format: "File saved to: %@".local, outPutUrl.path.removingPercentEncoding ?? outPutUrl.path)
@@ -784,11 +797,12 @@ class SCContext {
                             DispatchQueue.main.async { showPreview(path: outPutUrl.path, image: NSImage(named: "audioIcon")) }
                         }
                     } catch {
+                        Analytics.recordingFailed(stage: "converting", type: currentType, error: error, id: recordingID)
                         showNotification(title: "Failed to save file".local, body: "\(error.localizedDescription)", id: "quickrecorder.error.\(UUID().uuidString)")
                     }
                 }
             } else {
-                recordingSaved(path.url)
+                recordingSaved(path.url, type: currentType, recordingID: recordingID)
                 if !ud.bool(forKey: "showPreview") {
                     let title = "Recording Completed".local
                     let body = String(format: "File saved to: %@".local, path)
@@ -814,7 +828,7 @@ class SCContext {
         updateStatusBar()
         
         if currentType != .systemaudio && !remuxVideo && videoSaved {
-            recordingSaved(path.url)
+            recordingSaved(path.url, type: currentType, recordingID: recordingID)
             if !ud.bool(forKey: "showPreview") {
                 let title = "Recording Completed".local
                 let body = String(format: "File saved to: %@".local, path)
@@ -831,13 +845,17 @@ class SCContext {
     }
     
     /// qma（系统声音 + 麦克风分轨）录制收尾：必须在麦克风写入器完成之后调用（主线程）
-    private static func finalizeQmaRecording(path: String, micSaved: Bool, error: Error?, remux: Bool) {
+    private static func finalizeQmaRecording(path: String, micSaved: Bool, error: Error?, remux: Bool, recordingID: String?) {
         guard micSaved else {
+            Analytics.recordingFailed(stage: "saving", type: .systemaudio, error: error, id: recordingID)
             let err = error?.localizedDescription ?? "No content was captured.".local
             let body = String(format: "File saved to: %@".local, path) + "\n" + err
             showNotification(title: "Failed to save file".local, body: body, id: "quickrecorder.error.\(UUID().uuidString)")
             return
         }
+        // The .qma package (system audio + microphone) is saved; mixing it into one file
+        // below is an export of that package
+        Analytics.recordingSaved(.systemaudio, id: recordingID)
         if remux {
             let fileURL = path.url
             do {
@@ -855,7 +873,7 @@ class SCContext {
                 showNotification(title: "Failed to mix audio tracks".local, body: body, id: "quickrecorder.error.\(UUID().uuidString)")
             }
         } else {
-            recordingSaved(path.url)
+            copyRecordingToClipboard(path.url)
             if !ud.bool(forKey: "showPreview") {
                 let title = "Recording Completed".local
                 let body = String(format: "File saved to: %@".local, path)

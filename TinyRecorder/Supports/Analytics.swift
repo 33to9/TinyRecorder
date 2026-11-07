@@ -8,6 +8,9 @@
 //  What is sent: the SDK's default signal metadata (app version, macOS version,
 //  locale, device model) plus the few signals below. Never file names, paths,
 //  window or app titles, error messages or recording content.
+//  Recording signals carry a recordingID: a random UUID made for each recording,
+//  only used to link its started/finished/saved/failed signals. It is not tied to
+//  the user, the device or the file.
 //
 //  Users can turn it off in Settings › General › Privacy ("shareUsageData").
 //
@@ -63,8 +66,20 @@ enum Analytics {
         return ud.string(forKey: key) ?? "unknown"
     }
 
+    /// The recording in progress; set when it starts, cleared when it stops.
+    static var recordingID: String?
+
+    private static func baseParams(_ type: StreamType?, id: String?) -> [String: String] {
+        var params = ["recordingType": name(type)]
+        if let id { params["recordingID"] = id }
+        return params
+    }
+
     static func recordingStarted(_ type: StreamType?) {
-        var params = ["recordingType": name(type), "format": format(type)]
+        let id = UUID().uuidString
+        recordingID = id
+        var params = baseParams(type, id: id)
+        params["format"] = format(type)
         if type != .systemaudio, type != .idevice {
             params["encoder"] = ud.string(forKey: "encoder") ?? "unknown"
             params["frameRate"] = String(ud.integer(forKey: "frameRate"))
@@ -76,19 +91,33 @@ enum Analytics {
         signal("Recording.started", parameters: params)
     }
 
+    /// The recording was stopped; sent before its file is written out, so it says nothing
+    /// about whether saving worked (see `recordingSaved`).
     static func recordingFinished(_ type: StreamType?, startedAt: Date?) {
         let seconds = startedAt.map { max(0, Date.now.timeIntervalSince($0)) }
-        signal("Recording.finished", parameters: ["recordingType": name(type), "format": format(type)], floatValue: seconds)
+        var params = baseParams(type, id: recordingID)
+        params["format"] = format(type)
+        signal("Recording.finished", parameters: params, floatValue: seconds)
+    }
+
+    /// The recording's file is in the save folder. `id` is captured when the recording
+    /// stopped, as saving finishes after `recordingID` is cleared.
+    static func recordingSaved(_ type: StreamType?, id: String?) {
+        var params = baseParams(type, id: id)
+        params["format"] = format(type)
+        signal("Recording.saved", parameters: params)
     }
 
     static func recordingDiscarded(_ type: StreamType?) {
-        signal("Recording.discarded", parameters: ["recordingType": name(type)])
+        signal("Recording.discarded", parameters: baseParams(type, id: recordingID))
     }
 
-    /// `stage`: "start", "writing" or "saving". Only the error domain and code are sent,
-    /// never the message (it can contain file paths).
-    static func recordingFailed(stage: String, type: StreamType?, error: Error?) {
-        var params = ["stage": stage, "recordingType": name(type)]
+    /// `stage`: "start", "writing", "saving", "mixing" (the file is kept without the mixed
+    /// audio) or "converting" (MP3). Only the error domain and code are sent, never the
+    /// message (it can contain file paths). `id` defaults to the recording in progress.
+    static func recordingFailed(stage: String, type: StreamType?, error: Error?, id: String? = Analytics.recordingID) {
+        var params = baseParams(type, id: id)
+        params["stage"] = stage
         if let error = error as NSError? {
             params["errorDomain"] = error.domain
             params["errorCode"] = String(error.code)

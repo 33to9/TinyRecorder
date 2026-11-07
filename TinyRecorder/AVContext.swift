@@ -56,6 +56,8 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
     static let shared = AVOutputClass()
     var output: AVCaptureMovieFileOutput!
     var dataOutput: AVCaptureVideoDataOutput!
+    /// The stopped recording whose file is being written; its result arrives in fileOutput(_:didFinishRecordingTo:)
+    private var savingRecordingID: String?
     //var captureSession: AVCaptureSession!
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -138,6 +140,8 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
         SCContext.previewSession?.stopRunning()
         guard SCContext.streamType == .idevice else { return }
         Analytics.recordingFinished(.idevice, startedAt: SCContext.startTime)
+        savingRecordingID = Analytics.recordingID
+        Analytics.recordingID = nil
         SCContext.streamType = nil
         SCContext.startTime = nil
         DispatchQueue.main.async {
@@ -163,11 +167,12 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
             print("Device recording finished with error: \(error.localizedDescription)")
         }
         if succeeded {
-            SCContext.recordingSaved(outputFileURL)
+            SCContext.recordingSaved(outputFileURL, type: .idevice, recordingID: savingRecordingID)
             SCContext.showNotification(title: "Recording Completed".local,
                                        body: String(format: "File saved to: %@".local, outputFileURL.path),
                                        id: "quickrecorder.completed.\(UUID().uuidString)")
         } else {
+            Analytics.recordingFailed(stage: "saving", type: .idevice, error: error, id: savingRecordingID)
             SCContext.showNotification(title: "Failed to save file".local,
                                        body: error?.localizedDescription ?? "Unknown Error".local,
                                        id: "quickrecorder.error.\(UUID().uuidString)")
