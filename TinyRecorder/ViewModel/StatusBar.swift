@@ -270,11 +270,15 @@ struct StatusBarItem: View {
                 .buttonStyle(.plain)
                 .popover(isPresented: $popoverState.isShowing, arrowEdge: .bottom) {
                     if #available(macOS 13, *) {
-                        ContentViewNew().onAppear{ closeAllWindow() }
+                        ContentViewNew().onAppear {
+                            closeAllWindow()
+                            Analytics.recordingSource = "menuBar"
+                        }
                     } else {
                         ContentView(fromStatusBar: true)
                             .onAppear{
                                 closeAllWindow()
+                                Analytics.recordingSource = "menuBar"
                                 if isMacOS12 { NSApp.activate(ignoringOtherApps: true) }
                             }
                     }

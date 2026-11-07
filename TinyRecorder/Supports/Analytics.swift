@@ -69,6 +69,44 @@ enum Analytics {
     /// The recording in progress; set when it starts, cleared when it stops.
     static var recordingID: String?
 
+    // MARK: Where recordings start
+
+    /// Where the user started the next recording from: "toolbar", "menuBar", "hotkey" or
+    /// "script". Set by each entry point, sent and cleared by `recordingStarted`, so a path
+    /// that doesn't set it shows up as "unknown".
+    static var recordingSource: String?
+    /// How the toolbar now on screen was opened, sent with recordings started from it.
+    private static var toolbarOpenedFrom = "reopen"
+    /// Set right before an in-app call opens the toolbar: "hotkey", "onboarding" or "launch".
+    /// Otherwise the system opened it ("reopen": the Dock icon, or opening the app again).
+    private static var nextToolbarOpener: String?
+
+    static func toolbarWillOpen(from opener: String) { nextToolbarOpener = opener }
+
+    /// Called at the start of applicationShouldHandleReopen, whether or not it shows the toolbar.
+    static func toolbarOpenRequested() -> String {
+        let opener = nextToolbarOpener ?? "reopen"
+        nextToolbarOpener = nil
+        return opener
+    }
+
+    static func toolbarOpened(from opener: String) {
+        recordingSource = "toolbar"
+        toolbarOpenedFrom = opener
+    }
+
+    /// "pending" until this install's first recording starts, then "done". Installs that
+    /// already finished the setup before this was added start at "done": whether they ever
+    /// recorded is unknown.
+    private static let firstRecordingKey = "analyticsFirstRecording"
+
+    /// Call at launch, before the onboarding can mark the setup as done.
+    static func prepareFirstRecordingFlag(setupDone: Bool) {
+        if ud.string(forKey: firstRecordingKey) == nil {
+            ud.set(setupDone ? "done" : "pending", forKey: firstRecordingKey)
+        }
+    }
+
     private static func baseParams(_ type: StreamType?, id: String?) -> [String: String] {
         var params = ["recordingType": name(type)]
         if let id { params["recordingID"] = id }
@@ -88,6 +126,13 @@ enum Analytics {
         // microphone for one recording); iPhone/iPad recordings read the setting directly.
         let mic = type == .idevice ? ud.bool(forKey: "recordMic") : SCContext.recMic
         params["microphone"] = mic ? "on" : "off"
+        params["source"] = recordingSource ?? "unknown"
+        if recordingSource == "toolbar" { params["toolbarOpenedFrom"] = toolbarOpenedFrom }
+        recordingSource = nil
+        if ud.string(forKey: firstRecordingKey) == "pending" {
+            params["firstRecording"] = "true"
+            ud.set("done", forKey: firstRecordingKey)
+        }
         signal("Recording.started", parameters: params)
     }
 

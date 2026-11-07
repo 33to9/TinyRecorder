@@ -354,6 +354,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         previewWindow.backgroundColor = .clear
         
         KeyboardShortcuts.onKeyDown(for: .showPanel) {
+            Analytics.toolbarWillOpen(from: "hotkey")
             _ = self.applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
             if SCContext.stream == nil { NSApp.activate(ignoringOtherApps: true) }
         }
@@ -371,6 +372,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
+                Analytics.recordingSource = "hotkey"
                 AppDelegate.shared.prepRecord(type: "audio", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
             }
         }
@@ -380,6 +382,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
+                Analytics.recordingSource = "hotkey"
                 AppDelegate.shared.prepRecord(type: "display", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil, fastStart: true)
             }
         }
@@ -389,6 +392,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
+                Analytics.recordingSource = "hotkey"
                 AppDelegate.shared.startAreaSelection()
             }
         }
@@ -399,6 +403,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             AppDelegate.shared.withFreshScreenContent {
                 if SCContext.streamType != nil { return }
                 closeAllWindow()
+                Analytics.recordingSource = "hotkey"
                 guard let pid = frontmostApp?.processIdentifier else { return }
                 guard let scWindow = SCContext.getWindows().first(where: { $0.owningApplication?.processID == pid && $0.title != "" && $0.isOnScreen }) else { return }
                 AppDelegate.shared.prepRecord(type: "window", screens: SCContext.getSCDisplayWithMouse(), windows: [scWindow], applications: nil, fastStart: true)
@@ -420,6 +425,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             ud.removeObject(forKey: firstRunSetupKey)
             ud.removeObject(forKey: onboardingStepKey)
         }
+        Analytics.prepareFirstRecordingFlag(setupDone: ud.bool(forKey: firstRunSetupKey))
         if !ud.bool(forKey: firstRunSetupKey) {
             // 首次使用：一个分步引导窗完成 权限 → 麦克风 → 格式 → 怎么开始录。
             // 授权后需要重启，重启后引导窗会从下一步继续（见 OnboardingView.init）。
@@ -431,6 +437,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
             showScreenPermissionGuide()
         } else if showOnDock || !showMenubar {
             // Dock 图标和菜单栏图标都关掉时，启动后也要显示录制工具栏，否则看起来像没打开
+            Analytics.toolbarWillOpen(from: "launch")
             _ = applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
     }
@@ -548,6 +555,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
     }
     
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        let opener = Analytics.toolbarOpenRequested()
         if SCContext.stream == nil {
             let w1 = NSApp.windows.filter({ !$0.title.contains("Item-0") && !$0.title.isEmpty && $0.isVisible })
             let w2 = w1.filter({ !$0.title.contains(".qma") })
@@ -556,6 +564,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
                 let width = isMacOS12 ? 800 : 928
                 let mainPanel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: width + offset, height: 100), styleMask: [.fullSizeContentView, .nonactivatingPanel], backing: .buffered, defer: false)
                 mainPanel.contentView = NSHostingView(rootView: ContentView())
+                Analytics.toolbarOpened(from: opener)
                 mainPanel.title = "TinyRecorder".local
                 mainPanel.isOpaque = false
                 mainPanel.level = .floating
@@ -900,6 +909,7 @@ struct OnboardingView: View {
         // 否则“已有可见窗口”时工具栏不会弹出
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             closeAllWindow()
+            Analytics.toolbarWillOpen(from: "onboarding")
             _ = AppDelegate.shared.applicationShouldHandleReopen(NSApp, hasVisibleWindows: true)
         }
     }

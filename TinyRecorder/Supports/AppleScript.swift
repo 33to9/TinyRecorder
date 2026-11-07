@@ -47,6 +47,7 @@ extension NSScriptCommand {
             DispatchQueue.main.async { AppDelegate.shared.showScreenPermissionGuide() }
             return "Screen Recording Permission".local
         }
+        Analytics.recordingSource = "script"
         return nil
     }
 }
