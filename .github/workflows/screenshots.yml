@@ -71,6 +71,7 @@ jobs:
           d showMenubar -bool true
           d SUHasLaunchedBefore -bool true    # no Sparkle "check automatically?" prompt
           d SUEnableAutomaticChecks -bool false
+          d shareUsageData -bool false        # keep CI launches out of the usage statistics
 
       - name: Capture
         env:
