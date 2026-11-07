@@ -271,7 +271,11 @@ class SCContext {
     
     static func performMicCheck() async {
         guard ud.bool(forKey: "recordMic") == true else { return }
-        if await AVCaptureDevice.requestAccess(for: .audio) { return }
+        // Report only a real system prompt or a refusal, not every recording with access already granted
+        let prompted = AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined
+        let granted = await AVCaptureDevice.requestAccess(for: .audio)
+        if prompted || !granted { Analytics.microphonePermission(granted: granted, context: "recording") }
+        if granted { return }
 
         ud.setValue(false, forKey: "recordMic")
         DispatchQueue.main.async {

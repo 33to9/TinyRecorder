@@ -447,6 +447,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         let panel = EscPanel(contentRect: NSRect(x: 0, y: 0, width: 480, height: 600),
                              styleMask: [.titled, .closable, .fullSizeContentView],
                              backing: .buffered, defer: false)
+        onboardingFinishing = false
         panel.contentView = NSHostingView(rootView: OnboardingView())
         panel.title = onboardingTitle
         // NSPanel 默认在 App 失去焦点时隐藏；权限这一步需要切到系统设置，引导窗必须留在屏幕上
@@ -454,6 +455,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         // 关闭窗口 = 跳过剩余步骤；但还没拿到录屏权限时，下次启动继续引导
         var closeObserver: NSObjectProtocol?
         closeObserver = NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: panel, queue: .main) { _ in
+            if !onboardingFinishing {
+                let step = OnboardingView.Step(rawValue: ud.integer(forKey: onboardingStepKey)) ?? .permission
+                Analytics.onboardingClosed(atStep: step.analyticsName, replay: onboardingIsReplay)
+            }
             // 权限步骤里授权后会重启（窗口也可能随之关闭），那时还停在第 0 步，不能算完成
             if ud.integer(forKey: onboardingStepKey) >= OnboardingView.Step.microphone.rawValue {
                 ud.set(true, forKey: firstRunSetupKey)
@@ -476,6 +481,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, SCStreamDelegate, SCStreamOu
         // 引导窗正开着就直接带到前面，不打断当前进度
         if !NSApp.windows.contains(where: { $0.title == onboardingTitle && $0.isVisible }) {
             ud.removeObject(forKey: onboardingStepKey)
+            onboardingIsReplay = true
         }
         showOnboarding()
     }
@@ -671,6 +677,7 @@ struct ScreenPermissionGuide: View {
                     Button(requested ? "Open System Settings" : "Grant Permission") {
                         if !requested {
                             requested = true
+                            Analytics.screenRecordingPermission("requested", context: analyticsContext)
                             if ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 15 {
                                 // macOS 15+：系统授权框经常不出现（或只出现一次），隐藏引导窗会让
                                 // 屏幕上什么都没有。保持引导窗可见，并直接打开系统设置的录屏页面。
@@ -721,7 +728,12 @@ struct ScreenPermissionGuide: View {
         }
         .alert("Reset Screen Recording Permission?".local, isPresented: $showResetConfirm) {
             Button("Reset & Relaunch".local, role: .destructive) {
-                if resetScreenCapturePermission() { relaunchApp() } else { showResetFailed = true }
+                if resetScreenCapturePermission() {
+                    Analytics.screenRecordingPermission("reset", context: analyticsContext)
+                    relaunchApp()
+                } else {
+                    showResetFailed = true
+                }
             }
             Button("Cancel".local, role: .cancel) {}
         } message: {
@@ -740,6 +752,7 @@ struct ScreenPermissionGuide: View {
             }
             let now = CGPreflightScreenCaptureAccess()
             if now && !granted {
+                Analytics.screenRecordingPermission("granted", context: analyticsContext)
                 // 授权成功：若引导窗处于隐藏状态（请求权限时避让系统弹窗），重新显示，
                 // 并开始 3 秒自动重启倒计时，省去用户再点一次。
                 orderGuidePanel(visible: true)
@@ -748,6 +761,8 @@ struct ScreenPermissionGuide: View {
             granted = now
         }
     }
+
+    private var analyticsContext: String { embedded ? "onboarding" : "guide" }
 
     /// 按标题找到引导窗并显示/隐藏
     private func orderGuidePanel(visible: Bool) {
@@ -780,6 +795,10 @@ let firstRunSetupKey = "firstRunSetupDone"
 /// Last onboarding step reached, so the onboarding resumes there after the permission relaunch.
 let onboardingStepKey = "onboardingStep"
 var onboardingTitle: String { "Welcome to TinyRecorder".local }
+/// The onboarding was reopened from Preferences rather than shown at first launch (analytics).
+var onboardingIsReplay = false
+/// Set by "Start Recording", so closing the window then isn't reported as leaving the onboarding.
+var onboardingFinishing = false
 
 /// First-run onboarding in one window: screen recording permission → microphone (optional)
 /// → default format → where to start recording. Granting the screen permission needs a
@@ -793,6 +812,15 @@ struct OnboardingView: View {
             case .microphone: return "Voice".local
             case .format: return "Format".local
             case .start: return "Get Started".local
+            }
+        }
+        /// Untranslated name sent with the onboarding signals.
+        var analyticsName: String {
+            switch self {
+            case .permission: return "permission"
+            case .microphone: return "microphone"
+            case .format: return "format"
+            case .start: return "start"
             }
         }
     }
@@ -828,6 +856,7 @@ struct OnboardingView: View {
             .frame(maxHeight: .infinity, alignment: .top)
         }
         .frame(width: 480, height: 600)
+        .onAppear { Analytics.onboardingStepShown(step.analyticsName, replay: onboardingIsReplay) }
     }
 
     private var stepIndicator: some View {
@@ -859,9 +888,12 @@ struct OnboardingView: View {
     private func go(_ s: Step) {
         step = s
         ud.set(s.rawValue, forKey: onboardingStepKey)
+        Analytics.onboardingStepShown(s.analyticsName, replay: onboardingIsReplay)
     }
 
     private func finish() {
+        onboardingFinishing = true
+        Analytics.onboardingCompleted(replay: onboardingIsReplay)
         ud.set(true, forKey: firstRunSetupKey)
         NSApp.windows.first(where: { $0.title == onboardingTitle })?.close()
         // 打开录制工具栏，让用户马上能开始第一次录制。先关掉其他窗口（例如刚打开的偏好设置），
@@ -915,6 +947,7 @@ struct OnboardingMicrophoneStep: View {
             default:
                 Button("Allow Microphone".local) {
                     AVCaptureDevice.requestAccess(for: .audio) { ok in
+                        Analytics.microphonePermission(granted: ok, context: "onboarding")
                         DispatchQueue.main.async {
                             status = AVCaptureDevice.authorizationStatus(for: .audio)
                             if ok { recordMic = true }

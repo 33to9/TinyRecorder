@@ -124,4 +124,43 @@ enum Analytics {
         }
         signal("Recording.failed", parameters: params)
     }
+
+    // MARK: - First-run funnel
+
+    /// `replay`: the onboarding was reopened from Preferences, not shown at first launch.
+    private static func onboardingParams(_ replay: Bool) -> [String: String] {
+        ["replay": replay ? "true" : "false"]
+    }
+
+    /// An onboarding step was shown: "permission", "microphone", "format" or "start".
+    static func onboardingStepShown(_ step: String, replay: Bool) {
+        var params = onboardingParams(replay)
+        params["step"] = step
+        signal("Onboarding.stepShown", parameters: params)
+    }
+
+    /// "Start Recording" on the last step.
+    static func onboardingCompleted(replay: Bool) {
+        signal("Onboarding.completed", parameters: onboardingParams(replay))
+    }
+
+    /// The onboarding window was closed without finishing; `step` is where it was closed.
+    static func onboardingClosed(atStep step: String, replay: Bool) {
+        var params = onboardingParams(replay)
+        params["step"] = step
+        signal("Onboarding.closed", parameters: params)
+    }
+
+    /// `action`: "requested" (Grant Permission clicked), "granted" (seen while the guide is
+    /// open) or "reset" (Reset Permission & Relaunch). `context`: "onboarding" or "guide"
+    /// (the standalone guide shown later when the permission is missing).
+    static func screenRecordingPermission(_ action: String, context: String) {
+        signal("Permission.screenRecording", parameters: ["action": action, "context": context])
+    }
+
+    /// Result of a system microphone prompt. `context`: "onboarding" or "recording"
+    /// (asked when a recording with the microphone starts).
+    static func microphonePermission(granted: Bool, context: String) {
+        signal("Permission.microphone", parameters: ["result": granted ? "granted" : "denied", "context": context])
+    }
 }
