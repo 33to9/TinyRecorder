@@ -261,7 +261,7 @@
 "The output path is a file instead of a folder!" = "出力先がフォルダではなくファイルです！";
 "The recording was moved to the Trash." = "録画をゴミ箱に入れました。";
 "There needs to be at least one display connected!" = "少なくとも 1 台のディスプレイを接続する必要があります！";
-"These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded." = "「画面」または「画面の範囲」を録画するとき、これらのアプリは除外されます。\nただし、録画開始後に起動したアプリは除外できません。";
+"These apps will be excluded when recording \"Screen\" or \"Screen Area\"." = "「画面」または「画面の範囲」を録画するとき、これらのアプリは除外されます。";
 "This Mac has no hardware H.265 encoder, which HDR recording needs." = "この Mac には、HDR 録画に必要な H.265 ハードウェアエンコーダがありません。";
 "This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU." = "この Mac には H.265 ハードウェアエンコーダがありません。H.265 で録画すると CPU 使用率が大幅に上がります。";
 "This app exists in multiple screens, please select it manually!" = "このアプリは複数の画面にあります。手動で選択してください！";

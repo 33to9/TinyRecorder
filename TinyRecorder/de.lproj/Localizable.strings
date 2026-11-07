@@ -261,7 +261,7 @@
 "The output path is a file instead of a folder!" = "Der Ausgabepfad ist eine Datei und kein Ordner!";
 "The recording was moved to the Trash." = "Die Aufnahme wurde in den Papierkorb gelegt.";
 "There needs to be at least one display connected!" = "Es muss mindestens ein Bildschirm angeschlossen sein!";
-"These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded." = "Diese Apps werden bei der Aufnahme von „Bildschirm“ oder „Bildschirmbereich“ ausgeschlossen.\nApps, die erst nach Beginn der Aufnahme gestartet werden, können jedoch nicht ausgeschlossen werden.";
+"These apps will be excluded when recording \"Screen\" or \"Screen Area\"." = "Diese Apps werden bei der Aufnahme von „Bildschirm“ oder „Bildschirmbereich“ ausgeschlossen.";
 "This Mac has no hardware H.265 encoder, which HDR recording needs." = "Dieser Mac hat keinen H.265-Hardware-Encoder, der für HDR-Aufnahmen erforderlich ist.";
 "This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU." = "Dieser Mac hat keinen H.265-Hardware-Encoder. Die Aufnahme in H.265 beansprucht die CPU deutlich stärker.";
 "This app exists in multiple screens, please select it manually!" = "Diese App befindet sich auf mehreren Bildschirmen, bitte wählen Sie sie manuell aus!";

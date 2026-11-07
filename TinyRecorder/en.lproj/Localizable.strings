@@ -263,7 +263,7 @@
 "The output path is a file instead of a folder!" = "The output path is a file instead of a folder!";
 "The recording was moved to the Trash." = "The recording was moved to the Trash.";
 "There needs to be at least one display connected!" = "There needs to be at least one display connected!";
-"These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded." = "These apps will be excluded when recording \"Screen\" or \"Screen Area\"\nBut if the app is launched after the recording starts, it cannot be excluded.";
+"These apps will be excluded when recording \"Screen\" or \"Screen Area\"." = "These apps will be excluded when recording \"Screen\" or \"Screen Area\".";
 "This Mac has no hardware H.265 encoder, which HDR recording needs." = "This Mac has no hardware H.265 encoder, which HDR recording needs.";
 "This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU." = "This Mac has no hardware H.265 encoder. Recording in H.265 will use much more CPU.";
 "This app exists in multiple screens, please select it manually!" = "This app exists in multiple screens, please select it manually!";

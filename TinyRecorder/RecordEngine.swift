@@ -174,6 +174,8 @@ extension AppDelegate {
                 if hideDesktopFiles { except += desktopFiles }
                 SCContext.filter = SCContentFilter(display: screen, excludingApplications: excluded, exceptingWindows: except)
                 if #available(macOS 14.2, *) { SCContext.filter?.includeMenuBar = ((SCContext.streamType == .screen || SCContext.streamType == .screenarea) && includeMenuBar) }
+                // 录制开始后才启动的名单内 App 也要排除（采集开始后在 record() 里启动监听）
+                if let filter = SCContext.filter { HiddenAppsWatcher.prepare(filter: filter, display: screen, excluded: excluded, except: except) }
             }
             if SCContext.streamType == .application {
                 var includ = SCContext.application ?? []
@@ -425,6 +427,7 @@ extension AppDelegate {
             return
         }
         if !audioOnly { registerGlobalMouseMonitor() }
+        HiddenAppsWatcher.start(stream: stream, filter: filter)
         Analytics.recordingStarted(SCContext.streamType)
         DispatchQueue.main.async { updateStatusBar() }
     }
@@ -479,6 +482,232 @@ extension AppDelegate {
             SCContext.filePath1 = SCContext.filePath
             SCContext.audioFile = try AVAudioFile(forWriting: SCContext.filePath.url, settings: SCContext.updateAudioSettings(), commonFormat: .pcmFormatFloat32, interleaved: false)
         }
+    }
+}
+
+/// 让「App 排除列表」（UserDefaults 键 hiddenApps）对录制中途才启动（或重新启动）的 App 也生效。
+/// prepRecord() 建过滤器时只能排除当时已在运行的 App。「全屏」「屏幕区域」录制期间，这里观察运行中的
+/// App 列表（App 一开始启动就会出现在列表里，比「启动完成」通知早得多，Edge 要早两秒多），并低频轮询兜底；
+/// 发现名单内 App 有未被排除的进程时，重新获取 SCShareableContent，按原过滤器（同一显示器、原来的
+/// exceptingWindows 和 includeMenuBar）补上排除，再用 updateContentFilter 应用。
+/// 名单内 App 已经有窗口、排除却还没生效的那一小段（实测约 0.15 秒）不写入画面，录像短暂停在上一帧，
+/// 保证一帧都不漏。除 holdUntil（加锁）外，所有状态只在主线程读写。
+final class HiddenAppsWatcher {
+    private static var shared: HiddenAppsWatcher?
+
+    // 定格：采集时间早于 holdUntil 的画面帧不写入；等待排除生效时为 +∞。录制回调线程也会读，所以加锁
+    private static let holdLock = NSLock()
+    private static var holdUntil = CMTime.zero
+    private var holdTimeout: DispatchWorkItem?
+
+    private let filter: SCContentFilter          // prepRecord() 建的过滤器，用来认出是哪一次录制
+    private let display: SCDisplay
+    private let except: [SCWindow]
+    private var excluded: [SCRunningApplication] // 当前过滤器排除的 App
+    private var stream: SCStream?
+    private var appsObservation: NSKeyValueObservation?
+    private var pollTimer: Timer?
+    private var windowTimer: Timer?
+    private var windowTicks = 0
+    private var firstSeen = [pid_t: Date]()      // 在运行但还没被排除的名单内进程 → 第一次发现的时间
+    private var windowSeen = Set<pid_t>()        // 其中已经有窗口出现在屏幕上的
+    private var lastFetch = Date.distantPast
+    private var isUpdating = false
+    private var needsCheck = false
+
+    private init(filter: SCContentFilter, display: SCDisplay, excluded: [SCRunningApplication], except: [SCWindow]) {
+        self.filter = filter
+        self.display = display
+        self.excluded = excluded
+        self.except = except
+    }
+
+    /// prepRecord() 建好「全屏」「屏幕区域」的过滤器后调用（主线程）
+    static func prepare(filter: SCContentFilter, display: SCDisplay, excluded: [SCRunningApplication], except: [SCWindow]) {
+        stop()
+        shared = HiddenAppsWatcher(filter: filter, display: display, excluded: excluded, except: except)
+    }
+
+    /// stream 用 filter 开始采集后调用（任意线程）；filter 不是 prepare() 登记的那个就什么都不做
+    static func start(stream: SCStream, filter: SCContentFilter) {
+        DispatchQueue.main.async {
+            guard let watcher = shared, watcher.filter === filter, watcher.stream == nil,
+                  SCContext.stream === stream else { return }
+            watcher.stream = stream
+            // App 一开始启动（向 LaunchServices 登记）就会加进这个列表；KVO 在主 run loop 上回调
+            watcher.appsObservation = NSWorkspace.shared.observe(\.runningApplications) { [weak watcher] _, _ in
+                DispatchQueue.main.async { watcher?.check() }
+            }
+            // 兜底：漏掉的变化，以及迟迟没出现在 SCShareableContent 里的 App
+            let timer = Timer(timeInterval: 2, repeats: true) { [weak watcher] _ in watcher?.check() }
+            RunLoop.main.add(timer, forMode: .common)
+            watcher.pollTimer = timer
+            // 选择屏幕/区域之后、开始采集之前启动的 App 也不在过滤器里
+            watcher.check()
+        }
+    }
+
+    /// 录制回调（streamQueue）里对每一帧画面调用：是否要丢掉这一帧（定格）
+    static func shouldDropFrame(_ sample: CMSampleBuffer) -> Bool {
+        holdLock.lock(); defer { holdLock.unlock() }
+        return CMTimeCompare(CMSampleBufferGetPresentationTimeStamp(sample), holdUntil) < 0
+    }
+
+    /// 开始定格：名单内 App 已经有窗口（或窗口已在屏幕上），排除还没生效
+    private func hold() {
+        Self.holdLock.lock()
+        let wasHolding = Self.holdUntil == .positiveInfinity
+        Self.holdUntil = .positiveInfinity
+        Self.holdLock.unlock()
+        guard !wasHolding else { return }
+        // 保底：2 秒内排除还没生效也恢复写入，画面不会一直卡住
+        let timeout = DispatchWorkItem { [weak self] in
+            print("Hidden app not excluded after 2 s, writing frames again")
+            self?.releaseHold(margin: 0)
+        }
+        holdTimeout = timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: timeout)
+    }
+
+    /// 结束定格：只写采集时间晚于「现在 + margin」的画面（之前采集的可能还是旧过滤器的画面）
+    private func releaseHold(margin: Double) {
+        holdTimeout?.cancel()
+        holdTimeout = nil
+        Self.holdLock.lock()
+        if Self.holdUntil == .positiveInfinity {
+            Self.holdUntil = CMTimeAdd(CMClockGetTime(CMClockGetHostTimeClock()), CMTime(seconds: margin, preferredTimescale: 1000))
+        }
+        Self.holdLock.unlock()
+    }
+
+    private static func resetHold() {
+        holdLock.lock()
+        holdUntil = .zero
+        holdLock.unlock()
+    }
+
+    /// 录制停止时调用（主线程）
+    static func stop() {
+        resetHold()
+        guard let watcher = shared else { return }
+        shared = nil
+        watcher.holdTimeout?.cancel()
+        watcher.appsObservation?.invalidate()
+        watcher.pollTimer?.invalidate()
+        watcher.windowTimer?.invalidate()
+    }
+
+    /// 要排除的 bundle ID：当前的排除名单，加上本次录制已经排除的（含「隐藏控制中心」）
+    private var bundleIDs: Set<String> {
+        var ids = Set(excluded.map { $0.bundleIdentifier })
+        if let data = ud.data(forKey: "hiddenApps"),
+           let apps = try? JSONDecoder().decode([AppInfo].self, from: data) {
+            ids.formUnion(apps.map { $0.bundleID })
+        }
+        return ids
+    }
+
+    /// 找出在运行但还没被排除的名单内 App，有的话更新过滤器
+    private func check(retry: Bool = false) {
+        guard Self.shared === self, let stream = stream else { return }
+        guard SCContext.stream === stream else { Self.stop(); return }
+        let ids = bundleIDs
+        let known = Set(excluded.map { $0.processID })
+        let missing = Set(NSWorkspace.shared.runningApplications.filter { app in
+            guard let id = app.bundleIdentifier else { return false }
+            return ids.contains(id) && !known.contains(app.processIdentifier)
+        }.map { $0.processIdentifier })
+        let now = Date()
+        firstSeen = firstSeen.filter { missing.contains($0.key) }
+        windowSeen.formIntersection(missing)
+        var isNew = false
+        for pid in missing where firstSeen[pid] == nil {
+            firstSeen[pid] = now
+            isNew = true
+        }
+        watchWindows(!missing.isEmpty)
+        // 窗口观察触发的定格，在没有待排除的进程后就可以结束了
+        if missing.isEmpty { releaseHold(margin: 0.1) }
+        // 新发现的马上查，刚发现 10 秒内反复查（见 finish()），之后仍找不到的（比如没有窗口的进程）每 10 秒查一次
+        guard !missing.isEmpty, isNew || retry || now.timeIntervalSince(lastFetch) >= 10 else { return }
+        guard !isUpdating else { needsCheck = true; return }
+        // 没有权限时不碰 SCK（会弹授权框）
+        guard CGPreflightScreenCaptureAccess() else { return }
+        isUpdating = true
+        lastFetch = now
+        SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { content, error in
+            DispatchQueue.main.async {
+                let fresh = content?.applications.filter { ids.contains($0.bundleIdentifier) } ?? []
+                let found = fresh.filter { !known.contains($0.processID) }
+                guard Self.shared === self, SCContext.stream === stream, !found.isEmpty else {
+                    if let error = error { print("Failed to get shareable content: \(error.localizedDescription)") }
+                    self.finish()
+                    return
+                }
+                // 实测能列出来时它通常已经建好窗口，窗口随时会出现在屏幕上：排除生效前先定格
+                self.hold()
+                // 已排除且还在运行的 App 保留（关掉所有窗口的 App 可能暂时不在 SCShareableContent 里）
+                let freshPIDs = Set(fresh.map { $0.processID })
+                let apps = fresh + self.excluded.filter {
+                    !freshPIDs.contains($0.processID) && NSRunningApplication(processIdentifier: $0.processID) != nil
+                }
+                // 与 prepRecord() 建的过滤器相同，只是排除的 App 换成最新的
+                let newFilter = SCContentFilter(display: self.display, excludingApplications: apps, exceptingWindows: self.except)
+                if #available(macOS 14.2, *) { newFilter.includeMenuBar = self.filter.includeMenuBar }
+                stream.updateContentFilter(newFilter) { error in
+                    DispatchQueue.main.async {
+                        if let error = error {
+                            print("Failed to update the content filter: \(error.localizedDescription)")
+                        } else {
+                            self.excluded = apps
+                            // 刚排除的进程不再算「待排除」，免得窗口观察又为它们定格
+                            let excludedPIDs = Set(apps.map { $0.processID })
+                            self.firstSeen = self.firstSeen.filter { !excludedPIDs.contains($0.key) }
+                            self.windowSeen.subtract(excludedPIDs)
+                            print("Excluded hidden app launched during the recording: pid \(found.map { "\($0.processID)" }.joined(separator: ","))")
+                            // 余量 0.1 秒：兜住更新前采集、更新后才送到的画面
+                            self.releaseHold(margin: 0.1)
+                        }
+                        self.finish()
+                    }
+                }
+            }
+        }
+    }
+
+    /// 一次获取/更新结束：期间有新情况就马上再查；名单内 App 刚发现不久就 0.1 秒后重试
+    private func finish() {
+        isUpdating = false
+        if needsCheck { needsCheck = false; check(retry: true); return }
+        if firstSeen.values.contains(where: { Date().timeIntervalSince($0) < 10 }) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in self?.check(retry: true) }
+        }
+    }
+
+    /// 有名单内 App 没被排除时看它的窗口有没有出现在屏幕上（刚发现 10 秒内每 20 ms 看一次，之后每 0.5 秒），
+    /// 出现了就马上重新获取 SCShareableContent。读窗口列表很便宜（实测约 0.25 ms），也不需要录屏权限。
+    private func watchWindows(_ on: Bool) {
+        guard on else { windowTimer?.invalidate(); windowTimer = nil; return }
+        guard windowTimer == nil else { return }
+        let timer = Timer(timeInterval: 0.02, repeats: true) { [weak self] _ in self?.checkWindows() }
+        RunLoop.main.add(timer, forMode: .common)
+        windowTimer = timer
+    }
+
+    private func checkWindows() {
+        let known = Set(excluded.map { $0.processID })
+        let pending = firstSeen.filter { !windowSeen.contains($0.key) && !known.contains($0.key) }
+        guard !pending.isEmpty else { return }
+        windowTicks += 1
+        let recent = pending.values.contains { Date().timeIntervalSince($0) < 10 }
+        guard recent || windowTicks % 25 == 0 else { return }
+        let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        let owners = Set(windows.compactMap { $0[kCGWindowOwnerPID as String] as? pid_t })
+        let appeared = Set(pending.keys).intersection(owners)
+        guard !appeared.isEmpty else { return }
+        windowSeen.formUnion(appeared)
+        hold()
+        check(retry: true)
     }
 }
 
@@ -725,6 +954,8 @@ extension AppDelegate {
             guard let statusRawValue = attachments[SCStreamFrameInfo.status] as? Int,
                   let status = SCFrameStatus(rawValue: statusRawValue),
                   status == .complete else { return }
+            // 名单内 App 正在被排除：这段画面不写入，录像停在上一帧（见 HiddenAppsWatcher）
+            if HiddenAppsWatcher.shouldDropFrame(SampleBuffer) { return }
             
             guard let writer = SCContext.vW, writer.status == .writing, let videoInput = SCContext.vwInput else { return }
             if !SCContext.sessionStarted {
