@@ -64,7 +64,7 @@ enum Analytics {
     }
 
     static func recordingStarted(_ type: StreamType?) {
-        var params = ["type": name(type), "format": format(type)]
+        var params = ["recordingType": name(type), "format": format(type)]
         if type != .systemaudio, type != .idevice {
             params["encoder"] = ud.string(forKey: "encoder") ?? "unknown"
             params["frameRate"] = String(ud.integer(forKey: "frameRate"))
@@ -78,17 +78,17 @@ enum Analytics {
 
     static func recordingFinished(_ type: StreamType?, startedAt: Date?) {
         let seconds = startedAt.map { max(0, Date.now.timeIntervalSince($0)) }
-        signal("Recording.finished", parameters: ["type": name(type), "format": format(type)], floatValue: seconds)
+        signal("Recording.finished", parameters: ["recordingType": name(type), "format": format(type)], floatValue: seconds)
     }
 
     static func recordingDiscarded(_ type: StreamType?) {
-        signal("Recording.discarded", parameters: ["type": name(type)])
+        signal("Recording.discarded", parameters: ["recordingType": name(type)])
     }
 
     /// `stage`: "start", "writing" or "saving". Only the error domain and code are sent,
     /// never the message (it can contain file paths).
     static func recordingFailed(stage: String, type: StreamType?, error: Error?) {
-        var params = ["stage": stage, "type": name(type)]
+        var params = ["stage": stage, "recordingType": name(type)]
         if let error = error as NSError? {
             params["errorDomain"] = error.domain
             params["errorCode"] = String(error.code)
