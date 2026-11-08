@@ -335,3 +335,15 @@
 /* Onboarding: usage statistics */
 "You can turn this off any time in Preferences → General." = "You can turn this off any time in Preferences → General.";
 "Privacy Details" = "Privacy Details";
+
+/* Command-line tool installer */
+"Install Command-Line Tool…" = "Install Command-Line Tool…";
+"Command-Line Tool" = "Command-Line Tool";
+"Install…" = "Install…";
+"Adds the tinyrecorder command to Terminal, so scripts and AI agents can control TinyRecorder." = "Adds the tinyrecorder command to Terminal, so scripts and AI agents can control TinyRecorder.";
+"The command-line tool is missing from this copy of TinyRecorder. Download TinyRecorder again from tinyrecorder.app." = "The command-line tool is missing from this copy of TinyRecorder. Download TinyRecorder again from tinyrecorder.app.";
+"Move TinyRecorder to the Applications folder, open it from there, then try again." = "Move TinyRecorder to the Applications folder, open it from there, then try again.";
+"There is already a file at %@. Remove it, then try again." = "There is already a file at %@. Remove it, then try again.";
+"Command-Line Tool Installed" = "Command-Line Tool Installed";
+"You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do.";
+"Couldn't Install the Command-Line Tool" = "Couldn't Install the Command-Line Tool";

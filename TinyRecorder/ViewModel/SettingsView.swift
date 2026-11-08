@@ -176,6 +176,11 @@ struct GeneralView: View {
                 SItem(label: "Welcome Guide") {
                     Button("Show Again") { AppDelegate.shared.replayOnboarding() }
                 }
+                SDivider()
+                SButton("Command-Line Tool", buttonTitle: "Install…",
+                        tips: "Adds the tinyrecorder command to Terminal, so scripts and AI agents can control TinyRecorder.") {
+                    CommandLineTool.install()
+                }
             }
             SGroupBox(label: "Update") {
                 UpdaterSettingsView(updater: updaterController.updater)

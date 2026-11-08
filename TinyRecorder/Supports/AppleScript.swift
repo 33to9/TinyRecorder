@@ -328,3 +328,70 @@ class setPreferences: NSScriptCommand {
         return nil
     }
 }
+
+/// Links the bundled `tinyrecorder` command into /usr/local/bin (on the default PATH), so it
+/// works in Terminal without Homebrew. Asks for an administrator password only when that
+/// folder isn't writable. Never replaces a file there that isn't a link.
+enum CommandLineTool {
+    static let linkPath = "/usr/local/bin/tinyrecorder"
+
+    static func install() {
+        NSApp.activate(ignoringOtherApps: true)
+        guard let tool = Bundle.main.path(forResource: "tinyrecorder", ofType: nil) else {
+            return fail("The command-line tool is missing from this copy of TinyRecorder. Download TinyRecorder again from tinyrecorder.app.".local)
+        }
+        // A quarantined app runs from a temporary, read-only copy; a link to it would break.
+        if Bundle.main.bundlePath.contains("/AppTranslocation/") {
+            return fail("Move TinyRecorder to the Applications folder, open it from there, then try again.".local)
+        }
+        let fm = FileManager.default
+        let current = try? fm.destinationOfSymbolicLink(atPath: linkPath)
+        if current == tool { return done() }
+        if current == nil && fm.fileExists(atPath: linkPath) {
+            return fail(String(format: "There is already a file at %@. Remove it, then try again.".local, linkPath))
+        }
+        do {
+            if current != nil { try fm.removeItem(atPath: linkPath) }
+            try fm.createDirectory(atPath: "/usr/local/bin", withIntermediateDirectories: true)
+            try fm.createSymbolicLink(atPath: linkPath, withDestinationPath: tool)
+            return done()
+        } catch {
+            // /usr/local/bin belongs to root on a fresh Mac: do it with the user's password.
+            let shell = "/bin/mkdir -p /usr/local/bin && /bin/ln -sfn \(shellQuoted(tool)) \(shellQuoted(linkPath))"
+            let source = "do shell script \"\(appleScriptEscaped(shell))\" with administrator privileges"
+            var info: NSDictionary?
+            NSAppleScript(source: source)?.executeAndReturnError(&info)
+            if let info {
+                if info[NSAppleScript.errorNumber] as? Int == -128 { return } // cancelled
+                return fail(info[NSAppleScript.errorMessage] as? String ?? "Unknown Error".local)
+            }
+            done()
+        }
+    }
+
+    private static func done() {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "Command-Line Tool Installed".local
+        alert.informativeText = "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do.".local
+        alert.addButton(withTitle: "OK".local)
+        alert.runModal()
+    }
+
+    private static func fail(_ message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Couldn't Install the Command-Line Tool".local
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK".local)
+        alert.runModal()
+    }
+
+    private static func shellQuoted(_ s: String) -> String {
+        "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    private static func appleScriptEscaped(_ s: String) -> String {
+        s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+    }
+}

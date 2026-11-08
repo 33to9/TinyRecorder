@@ -333,3 +333,15 @@
 /* Onboarding: usage statistics */
 "You can turn this off any time in Preferences → General." = "「設定」→「一般」でいつでもオフにできます。";
 "Privacy Details" = "プライバシーの詳細";
+
+/* Command-line tool installer */
+"Install Command-Line Tool…" = "コマンドラインツールをインストール…";
+"Command-Line Tool" = "コマンドラインツール";
+"Install…" = "インストール…";
+"Adds the tinyrecorder command to Terminal, so scripts and AI agents can control TinyRecorder." = "tinyrecorder コマンドを“ターミナル”に追加し、スクリプトや AI エージェントから TinyRecorder を操作できるようにします。";
+"The command-line tool is missing from this copy of TinyRecorder. Download TinyRecorder again from tinyrecorder.app." = "この TinyRecorder にはコマンドラインツールが含まれていません。tinyrecorder.app から TinyRecorder をもう一度ダウンロードしてください。";
+"Move TinyRecorder to the Applications folder, open it from there, then try again." = "TinyRecorder を“アプリケーション”フォルダに移動し、そこから開いてもう一度お試しください。";
+"There is already a file at %@. Remove it, then try again." = "%@ にはすでにファイルがあります。削除してから、もう一度お試しください。";
+"Command-Line Tool Installed" = "コマンドラインツールをインストールしました";
+"You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "“ターミナル”で tinyrecorder コマンドを使えるようになりました。“tinyrecorder help”を実行すると、できることを確認できます。";
+"Couldn't Install the Command-Line Tool" = "コマンドラインツールをインストールできませんでした";

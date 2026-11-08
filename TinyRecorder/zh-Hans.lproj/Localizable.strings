@@ -360,3 +360,15 @@
 /* Onboarding: usage statistics */
 "You can turn this off any time in Preferences → General." = "之后可随时在「偏好设置 → 一般设置」中关闭。";
 "Privacy Details" = "隐私详情";
+
+/* Command-line tool installer */
+"Install Command-Line Tool…" = "安装命令行工具…";
+"Command-Line Tool" = "命令行工具";
+"Install…" = "安装…";
+"Adds the tinyrecorder command to Terminal, so scripts and AI agents can control TinyRecorder." = "把 tinyrecorder 命令加入“终端”，让脚本和 AI 智能体可以控制 TinyRecorder。";
+"The command-line tool is missing from this copy of TinyRecorder. Download TinyRecorder again from tinyrecorder.app." = "这份 TinyRecorder 中缺少命令行工具。请从 tinyrecorder.app 重新下载 TinyRecorder。";
+"Move TinyRecorder to the Applications folder, open it from there, then try again." = "请先把 TinyRecorder 移到“应用程序”文件夹，从那里打开后再试一次。";
+"There is already a file at %@. Remove it, then try again." = "%@ 已有一个文件。请先删除它，然后再试一次。";
+"Command-Line Tool Installed" = "命令行工具已安装";
+"You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "现在可以在“终端”中使用 tinyrecorder 命令了。运行“tinyrecorder help”查看它能做什么。";
+"Couldn't Install the Command-Line Tool" = "无法安装命令行工具";

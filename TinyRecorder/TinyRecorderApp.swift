@@ -107,6 +107,7 @@ struct TinyRecorderApp: App {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
                 CheckForUpdatesView(updater: updaterController.updater)
+                Button("Install Command-Line Tool…") { CommandLineTool.install() }
             }
         }
     }
