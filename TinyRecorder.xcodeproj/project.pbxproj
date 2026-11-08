@@ -29,6 +29,7 @@
 		18A551FA2D0749C3008FC5F6 /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551F32D0749C3008FC5F6 /* WindowAccessor.swift */; };
 		18A551FB2D0749C3008FC5F6 /* WindowHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18A551F42D0749C3008FC5F6 /* WindowHighlighter.swift */; };
 		18A551FC2D0749C3008FC5F6 /* Scriptable.sdef in Resources */ = {isa = PBXBuildFile; fileRef = 18A551F02D0749C3008FC5F6 /* Scriptable.sdef */; };
+		C11A0001C11A0001C11A0001 /* tinyrecorder in Resources */ = {isa = PBXBuildFile; fileRef = C11A0002C11A0002C11A0002 /* tinyrecorder */; };
 		18AFF77B2D5F91F800C795A1 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 18AFF77A2D5F91F800C795A1 /* KeyboardShortcuts */; };
 		18CEED922D08312C00FBC4BF /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18CEED912D08312C00FBC4BF /* PreviewView.swift */; };
 		18D3BDEB2BCE5DC1006CFFC0 /* TinyRecorderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18D3BDEA2BCE5DC1006CFFC0 /* TinyRecorderApp.swift */; };
@@ -65,6 +66,7 @@
 		18A551EE2D0749C3008FC5F6 /* AppleScript.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleScript.swift; sourceTree = "<group>"; };
 		18A551EF2D0749C3008FC5F6 /* GroupForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GroupForm.swift; sourceTree = "<group>"; };
 		18A551F02D0749C3008FC5F6 /* Scriptable.sdef */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Scriptable.sdef; sourceTree = "<group>"; };
+		C11A0002C11A0002C11A0002 /* tinyrecorder */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = tinyrecorder; sourceTree = "<group>"; };
 		18A551F12D0749C3008FC5F6 /* SleepPreventer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepPreventer.swift; sourceTree = "<group>"; };
 		18A551F22D0749C3008FC5F6 /* Sparkle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sparkle.swift; sourceTree = "<group>"; };
 		A7E1C0DE2E00000000000001 /* Analytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Analytics.swift; sourceTree = "<group>"; };
@@ -140,6 +142,7 @@
 				18A551F02D0749C3008FC5F6 /* Scriptable.sdef */,
 				18A551F12D0749C3008FC5F6 /* SleepPreventer.swift */,
 				18A551F22D0749C3008FC5F6 /* Sparkle.swift */,
+				C11A0002C11A0002C11A0002 /* tinyrecorder */,
 				18A551F32D0749C3008FC5F6 /* WindowAccessor.swift */,
 				18A551F42D0749C3008FC5F6 /* WindowHighlighter.swift */,
 			);
@@ -298,6 +301,7 @@
 				18D3BDF22BCE5DC2006CFFC0 /* Preview Assets.xcassets in Resources */,
 				18D3BDFB2BCE5DF5006CFFC0 /* Localizable.strings in Resources */,
 				18A551FC2D0749C3008FC5F6 /* Scriptable.sdef in Resources */,
+				C11A0001C11A0001C11A0001 /* tinyrecorder in Resources */,
 				18D3BDEF2BCE5DC2006CFFC0 /* Assets.xcassets in Resources */,
 				1862BF8D2BD5494E003ED522 /* Credits.rtf in Resources */,
 				189BD5E62BDE34B80056D06C /* InfoPlist.strings in Resources */,

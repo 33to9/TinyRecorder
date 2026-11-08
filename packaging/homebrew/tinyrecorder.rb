@@ -20,6 +20,8 @@ cask "tinyrecorder" do
   depends_on macos: :monterey
 
   app "TinyRecorder.app"
+  # Command-line control (tinyrecorder help), also for AI agents
+  binary "#{appdir}/TinyRecorder.app/Contents/Resources/tinyrecorder"
 
   # The app is self-signed, not notarized by Apple: without this, Gatekeeper
   # blocks the first launch of the quarantined copy Homebrew downloaded.

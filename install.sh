@@ -87,10 +87,26 @@ main() {
     # curl downloads aren't quarantined, but clear it anyway in case the zip was.
     $sudo xattr -dr com.apple.quarantine "$DEST_DIR/$APP_NAME" 2>/dev/null || true
 
+    link_cli
+
     say "TinyRecorder ${tag} installed. Future updates: TinyRecorder → Check for Updates…"
     if [ -z "${TINYRECORDER_NO_OPEN:-}" ]; then
         open "$DEST_DIR/$APP_NAME"
     fi
+}
+
+# Links the `tinyrecorder` command into /usr/local/bin when that needs no password,
+# otherwise says how to do it. Never replaces a file that isn't our link.
+link_cli() {
+    local cli="$DEST_DIR/$APP_NAME/Contents/Resources/tinyrecorder"
+    local link="/usr/local/bin/tinyrecorder"
+    [ -x "$cli" ] || return 0
+    if [ -L "$link" ] || { [ ! -e "$link" ] && [ -d /usr/local/bin ] && [ -w /usr/local/bin ]; }; then
+        if [ ! -L "$link" ] || [ -w /usr/local/bin ]; then
+            ln -sf "$cli" "$link" && { say "Command-line tool: tinyrecorder (run 'tinyrecorder help')."; return 0; }
+        fi
+    fi
+    say "Command-line tool (optional): sudo ln -sf \"$cli\" $link"
 }
 
 main "$@"

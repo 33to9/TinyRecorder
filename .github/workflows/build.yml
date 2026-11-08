@@ -122,6 +122,8 @@ jobs:
           else
             echo "⚠️ MACOS_CERT_P12 not set — falling back to ad-hoc signing (permissions reset on every update)"
           fi
+          # The command-line tool (Homebrew links it into the PATH) must stay executable.
+          chmod +x "$APP_PATH/Contents/Resources/tinyrecorder"
           # Nested code (Sparkle framework, XPC services) first, then the app with its entitlements.
           # Previously the entitlements were dropped by the final re-sign.
           codesign --force --deep --sign "$SIGN_ID" "$APP_PATH"

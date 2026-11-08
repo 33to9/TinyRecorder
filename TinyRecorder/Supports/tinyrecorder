@@ -1,0 +1,363 @@
+#!/bin/bash
+# tinyrecorder: control TinyRecorder from the command line (and from AI agents).
+#
+# A thin wrapper around the app's AppleScript commands (README › Automation). It ships inside
+# TinyRecorder.app/Contents/Resources; the Homebrew cask links it into the PATH. To link it
+# yourself:
+#   ln -s /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+#
+# Written for the bash 3.2 that comes with macOS.
+
+JSON=0
+
+usage() {
+  cat <<'EOF'
+tinyrecorder: control TinyRecorder from the command line
+
+Usage:
+  tinyrecorder record screen [NUMBER]          Record a display (1 = main). No number: open the picker
+  tinyrecorder record window TITLE [--app APP] Record the window with this exact title
+  tinyrecorder record app NAME                 Record all windows of an app
+  tinyrecorder record area                     Drag the area to record with the mouse
+  tinyrecorder record audio [--mic|--no-mic]   Record system audio, with or without the microphone
+  tinyrecorder stop [--no-wait]                Stop, wait until the file is saved, print its path
+  tinyrecorder pause | resume                  Pause / resume the recording
+  tinyrecorder discard                         Stop and move the recording to the Trash
+  tinyrecorder status                          Print the state, kind and seconds recorded
+  tinyrecorder config [OPTIONS]                Change recording settings (see below)
+  tinyrecorder version                         Print the TinyRecorder version
+  tinyrecorder help                            Show this help
+
+Record options:
+  --duration SECONDS   Record this long, then stop and print the saved file's path.
+                       Ctrl-C stops early and still saves.
+  --no-wait            Return as soon as the command is sent. By default, record waits until
+                       the recording has started (after the countdown, if one is set).
+
+Config options:
+  --fps N              10, 15, 24, 30, 60, 90, 120, 144 or 240
+  --quality N          1 = low, 2 = medium, 3 = high
+  --hires on|off       Record at Retina resolution
+  --cursor on|off      Record the mouse pointer
+  --sound on|off       Record system / app sound
+  --mic on|off         Record the microphone
+  --mic-device NAME    Input device name, or "default"
+  --hdr on|off         Record in HDR (macOS 15 and later)
+  --folder PATH        Folder recordings are saved to (must exist)
+
+Global options:
+  --json               Print results as JSON (one object per command)
+
+Exit status: 0 on success, 1 if TinyRecorder reports an error, 2 for a usage error.
+Errors are printed to stderr.
+
+The first time, macOS asks whether your terminal may control TinyRecorder; click OK.
+You can change this in System Settings › Privacy & Security › Automation.
+
+Examples:
+  tinyrecorder record screen 1 --duration 10       # 10 s of the main display, prints the file
+  tinyrecorder record window "Untitled" --app TextEdit && sleep 5 && tinyrecorder stop
+  tinyrecorder status --json
+EOF
+}
+
+die() { echo "tinyrecorder: $*" >&2; exit 1; }
+usage_error() { echo "tinyrecorder: $*" >&2; echo "Run 'tinyrecorder help' for usage." >&2; exit 2; }
+
+# JSON string literal for $1.
+json_str() {
+  local s=$1
+  s=${s//\\/\\\\}; s=${s//\"/\\\"}
+  s=${s//$'\n'/\\n}; s=${s//$'\r'/\\r}; s=${s//$'\t'/\\t}
+  printf '"%s"' "$s"
+}
+
+# Runs an AppleScript, passing the remaining arguments as argv (never pasted into the
+# script, so titles and paths can contain any character). Prints the script's result.
+# On failure prints TinyRecorder's error message and exits 1.
+run_script() {
+  local script=$1; shift
+  local errfile out msg
+  errfile=$(mktemp "${TMPDIR:-/tmp}/tinyrecorder.XXXXXX") || die "can't create a temporary file"
+  if out=$(printf '%s\n' "$script" | osascript - "$@" 2>"$errfile"); then
+    rm -f "$errfile"
+    printf '%s' "$out"
+    return 0
+  fi
+  msg=$(cat "$errfile"); rm -f "$errfile"
+  case $msg in
+    *-1743*) die "not allowed to control TinyRecorder. Allow your terminal in System Settings › Privacy & Security › Automation." ;;
+    *-1728*|*-1708*) die "this TinyRecorder version doesn't support this command. Update the app (Check for Updates…)." ;;
+  esac
+  # "execution error: TinyRecorder got an error: No such window! (-10000)" → "No such window!"
+  msg=${msg#*execution error: }; msg=${msg#*got an error: }; msg=${msg% (-[0-9]*)}
+  die "$msg"
+}
+
+app_running() {
+  [ "$(osascript -e 'application id "com.33to9.TinyRecorder" is running' 2>/dev/null)" = "true" ]
+}
+
+# Prints "state<TAB>kind<TAB>elapsed-in-tenths" ("not-running" if the app isn't open).
+read_status() {
+  if ! app_running; then printf 'not-running\t\t'; return; fi
+  run_script 'on run argv
+	tell application id "com.33to9.TinyRecorder" to set s to recording status
+	using terms from application id "com.33to9.TinyRecorder"
+		set k to ""
+		set e to ""
+		try
+			set k to recording kind of s
+		end try
+		try
+			set e to round ((elapsed of s) * 10)
+		end try
+		return (state of s) & tab & k & tab & e
+	end using terms from
+end run'
+}
+
+current_state() {
+  local line
+  line=$(read_status) || exit 1
+  printf '%s' "$line" | cut -f1
+}
+
+cmd_status() {
+  local line state kind tenths elapsed=""
+  line=$(read_status) || exit 1
+  state=$(printf '%s' "$line" | cut -f1)
+  kind=$(printf '%s' "$line" | cut -f2)
+  tenths=$(printf '%s' "$line" | cut -f3)
+  [ -n "$tenths" ] && elapsed="$((tenths / 10)).$((tenths % 10))"
+  if [ $JSON = 1 ]; then
+    printf '{"state":%s' "$(json_str "$state")"
+    [ -n "$kind" ] && printf ',"kind":%s' "$(json_str "$kind")"
+    [ -n "$elapsed" ] && printf ',"elapsed":%s' "$elapsed"
+    printf '}\n'
+  else
+    echo "state: $state"
+    [ -n "$kind" ] && echo "kind: $kind"
+    [ -n "$elapsed" ] && echo "elapsed: $elapsed"
+  fi
+  return 0
+}
+
+# Stops and waits for the file; prints its path.
+stop_and_save() {
+  local file
+  file=$(run_script 'on run argv
+	with timeout of 3600 seconds
+		tell application id "com.33to9.TinyRecorder" to stop recording with waiting until saved
+	end timeout
+end run') || exit 1
+  if [ $JSON = 1 ]; then printf '{"file":%s}\n' "$(json_str "$file")"; else echo "$file"; fi
+}
+
+cmd_stop() {
+  local wait=1
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --no-wait) wait=0 ;;
+      *) usage_error "unknown option for stop: $1" ;;
+    esac
+    shift
+  done
+  if [ $wait = 1 ]; then
+    stop_and_save
+  else
+    run_script 'tell application id "com.33to9.TinyRecorder" to stop recording' >/dev/null || exit 1
+    [ $JSON = 1 ] && echo '{"state":"stopping"}'
+  fi
+  return 0
+}
+
+simple_command() { # simple_command <applescript command>
+  run_script "tell application id \"com.33to9.TinyRecorder\" to $1" >/dev/null || exit 1
+  [ $JSON = 1 ] && echo '{"ok":true}'
+  return 0
+}
+
+# Waits until the recording has started. $1 = timeout in seconds; $2 = 1 if the user is
+# choosing what to record (the app stays idle meanwhile), 0 if it should start by itself.
+wait_for_start() {
+  local limit=$(( $1 * 2 )) i=0 state
+  while [ $i -lt $limit ]; do
+    state=$(current_state) || exit 1
+    case $state in
+      recording|paused) return 0 ;;
+      idle) [ "$2" = 0 ] && [ $i -ge 4 ] && die "the recording didn't start (it was cancelled, or the window or display went away)" ;;
+    esac
+    sleep 0.5
+    i=$((i + 1))
+  done
+  die "the recording didn't start within $1 seconds"
+}
+
+cmd_record() {
+  local what=${1:-}; [ -n "$what" ] || usage_error "record what? screen, window, app, area or audio"
+  shift
+  local target="" app="" mic="" duration="" wait=1 script args
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --app) [ $# -ge 2 ] || usage_error "--app needs a name"; app=$2; shift ;;
+      --mic) mic=true ;;
+      --no-mic) mic=false ;;
+      --duration) [ $# -ge 2 ] || usage_error "--duration needs a number of seconds"; duration=$2; shift ;;
+      --no-wait) wait=0 ;;
+      -*) usage_error "unknown option for record: $1" ;;
+      *) [ -z "$target" ] || usage_error "unexpected argument: $1"; target=$1 ;;
+    esac
+    shift
+  done
+  if [ -n "$duration" ]; then
+    case $duration in ''|*[!0-9]*|0) usage_error "--duration must be a whole number of seconds (1 or more)" ;; esac
+    [ $wait = 1 ] || usage_error "--duration can't be combined with --no-wait"
+  fi
+
+  local tell='tell application id "com.33to9.TinyRecorder" to'
+  local interactive=0
+  case $what in
+    screen)
+      if [ -n "$target" ]; then
+        case $target in *[!0-9]*) usage_error "the screen number must be a number (1 = main display)" ;; esac
+        script="on run argv
+	$tell record screen numbered ((item 1 of argv) as integer)
+end run"
+      else
+        interactive=1; script="$tell record screen"
+      fi ;;
+    window)
+      if [ -n "$target" ] && [ -n "$app" ]; then
+        script="on run argv
+	$tell record window titled (item 1 of argv) in application (item 2 of argv)
+end run"
+      elif [ -n "$target" ]; then
+        script="on run argv
+	$tell record window titled (item 1 of argv)
+end run"
+      else
+        [ -z "$app" ] || usage_error "--app needs a window title too"
+        interactive=1; script="$tell record window"
+      fi ;;
+    app|application)
+      if [ -n "$target" ]; then
+        script="on run argv
+	$tell record application named (item 1 of argv)
+end run"
+      else
+        interactive=1; script="$tell record application"
+      fi ;;
+    area)
+      [ -z "$target" ] || usage_error "record area takes no argument; drag the area with the mouse"
+      interactive=1; script="$tell record screen area" ;;
+    audio)
+      [ -z "$target" ] || usage_error "record audio takes no argument"
+      if [ -n "$mic" ]; then script="$tell record system audio microphone $mic"; else script="$tell record system audio"; fi ;;
+    *) usage_error "can't record \"$what\"; use screen, window, app, area or audio" ;;
+  esac
+  [ "$what" = window ] || [ -z "$app" ] || usage_error "--app only goes with record window"
+  [ "$what" = audio ] || [ -z "$mic" ] || usage_error "--mic / --no-mic only go with record audio; use 'config --mic on' for video"
+
+  if [ -n "$target" ] && [ -n "$app" ]; then
+    run_script "$script" "$target" "$app" >/dev/null || exit 1
+  elif [ -n "$target" ] && [ "$what" != area ] && [ "$what" != audio ]; then
+    run_script "$script" "$target" >/dev/null || exit 1
+  else
+    run_script "$script" >/dev/null || exit 1
+  fi
+
+  # A picker or the area selector waits for the user: only wait for them with --duration.
+  if [ $wait = 0 ] || { [ $interactive = 1 ] && [ -z "$duration" ]; }; then
+    [ $JSON = 1 ] && echo '{"state":"requested"}'
+    [ $JSON = 1 ] || { [ $interactive = 1 ] && echo "Choose what to record in TinyRecorder." >&2; }
+    return 0
+  fi
+  if [ $interactive = 1 ]; then wait_for_start 600 1; else wait_for_start 120 0; fi
+
+  if [ -z "$duration" ]; then
+    if [ $JSON = 1 ]; then echo '{"state":"recording"}'; else echo "Recording. Run 'tinyrecorder stop' to finish." >&2; fi
+    return 0
+  fi
+  # Record for the given time; Ctrl-C ends early but still saves.
+  local stopped_early=0 s=0
+  trap 'stopped_early=1' INT TERM
+  while [ $s -lt "$duration" ] && [ $stopped_early = 0 ]; do
+    sleep 1
+    s=$((s + 1))
+  done
+  trap - INT TERM
+  stop_and_save
+}
+
+cmd_config() {
+  [ $# -gt 0 ] || usage_error "config needs at least one option"
+  local params="" n=0 args=() v
+  bool() {
+    case $1 in
+      on|true|yes|1) echo true ;;
+      off|false|no|0) echo false ;;
+      *) usage_error "expected on or off, got \"$1\"" ;;
+    esac
+  }
+  while [ $# -gt 0 ]; do
+    [ $# -ge 2 ] || usage_error "$1 needs a value"
+    n=$((n + 1))
+    case $1 in
+      --fps) params="$params fps ((item $n of argv) as integer)"; v=$2 ;;
+      --quality) params="$params quality ((item $n of argv) as integer)"; v=$2 ;;
+      --hires) params="$params hires ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
+      --cursor) params="$params cursor ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
+      --sound) params="$params sound ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
+      --mic) params="$params microphone ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
+      --hdr) params="$params hdr ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
+      --mic-device) params="$params mic device (item $n of argv)"; v=$2 ;;
+      --folder) params="$params save folder (item $n of argv)"; v=$2 ;;
+      *) usage_error "unknown config option: $1" ;;
+    esac
+    case $1 in --fps|--quality) case $v in ''|*[!0-9]*) usage_error "$1 must be a number" ;; esac ;; esac
+    args+=("$v")
+    shift 2
+  done
+  run_script "on run argv
+	tell application id \"com.33to9.TinyRecorder\" to configure$params
+end run" "${args[@]}" >/dev/null || exit 1
+  [ $JSON = 1 ] && echo '{"ok":true}'
+  return 0
+}
+
+cmd_version() {
+  # This script lives in TinyRecorder.app/Contents/Resources (possibly behind a symlink).
+  local src=$0 t plist version
+  while [ -L "$src" ]; do
+    t=$(readlink "$src")
+    case $t in /*) src=$t ;; *) src=$(dirname "$src")/$t ;; esac
+  done
+  plist="$(dirname "$src")/../Info.plist"
+  version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist" 2>/dev/null) || version=unknown
+  if [ $JSON = 1 ]; then printf '{"version":%s}\n' "$(json_str "$version")"; else echo "$version"; fi
+}
+
+# --json can go anywhere.
+ARGS=()
+for a in "$@"; do
+  if [ "$a" = --json ]; then JSON=1; else ARGS+=("$a"); fi
+done
+set -- ${ARGS[@]+"${ARGS[@]}"}
+
+[ "$(uname)" = Darwin ] || die "TinyRecorder runs on macOS only"
+
+cmd=${1:-help}
+[ $# -gt 0 ] && shift
+case $cmd in
+  record) cmd_record "$@" ;;
+  stop) cmd_stop "$@" ;;
+  pause) [ $# = 0 ] || usage_error "pause takes no arguments"; simple_command "pause recording" ;;
+  resume) [ $# = 0 ] || usage_error "resume takes no arguments"; simple_command "resume recording" ;;
+  discard) [ $# = 0 ] || usage_error "discard takes no arguments"; simple_command "discard recording" ;;
+  status) [ $# = 0 ] || usage_error "status takes no arguments"; cmd_status ;;
+  config|configure) cmd_config "$@" ;;
+  version|--version|-v) cmd_version ;;
+  help|--help|-h) usage ;;
+  *) usage_error "unknown command: $cmd" ;;
+esac
