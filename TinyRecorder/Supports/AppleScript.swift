@@ -373,7 +373,7 @@ enum CommandLineTool {
         let alert = NSAlert()
         alert.alertStyle = .informational
         alert.messageText = "Command-Line Tool Installed".local
-        alert.informativeText = "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do.".local
+        alert.informativeText = "Open a new Terminal window to use the tinyrecorder command (windows that were already open won't find it). Run “tinyrecorder help” to see what it can do.".local
         alert.addButton(withTitle: "OK".local)
         alert.runModal()
     }

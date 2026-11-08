@@ -370,7 +370,7 @@
 "Move TinyRecorder to the Applications folder, open it from there, then try again." = "请先把 TinyRecorder 移到“应用程序”文件夹，从那里打开后再试一次。";
 "There is already a file at %@. Remove it, then try again." = "%@ 已有一个文件。请先删除它，然后再试一次。";
 "Command-Line Tool Installed" = "命令行工具已安装";
-"You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "现在可以在“终端”中使用 tinyrecorder 命令了。运行“tinyrecorder help”查看它能做什么。";
+"Open a new Terminal window to use the tinyrecorder command (windows that were already open won't find it). Run “tinyrecorder help” to see what it can do." = "请打开一个新的“终端”窗口来使用 tinyrecorder 命令（之前已打开的窗口找不到它）。运行“tinyrecorder help”查看它能做什么。";
 "Couldn't Install the Command-Line Tool" = "无法安装命令行工具";
 
 /* B-frames setting */

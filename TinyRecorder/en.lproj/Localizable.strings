@@ -345,7 +345,7 @@
 "Move TinyRecorder to the Applications folder, open it from there, then try again." = "Move TinyRecorder to the Applications folder, open it from there, then try again.";
 "There is already a file at %@. Remove it, then try again." = "There is already a file at %@. Remove it, then try again.";
 "Command-Line Tool Installed" = "Command-Line Tool Installed";
-"You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do.";
+"Open a new Terminal window to use the tinyrecorder command (windows that were already open won't find it). Run “tinyrecorder help” to see what it can do." = "Open a new Terminal window to use the tinyrecorder command (windows that were already open won't find it). Run “tinyrecorder help” to see what it can do.";
 "Couldn't Install the Command-Line Tool" = "Couldn't Install the Command-Line Tool";
 
 /* B-frames setting */

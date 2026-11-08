@@ -343,7 +343,7 @@
 "Move TinyRecorder to the Applications folder, open it from there, then try again." = "TinyRecorder を“アプリケーション”フォルダに移動し、そこから開いてもう一度お試しください。";
 "There is already a file at %@. Remove it, then try again." = "%@ にはすでにファイルがあります。削除してから、もう一度お試しください。";
 "Command-Line Tool Installed" = "コマンドラインツールをインストールしました";
-"You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "“ターミナル”で tinyrecorder コマンドを使えるようになりました。“tinyrecorder help”を実行すると、できることを確認できます。";
+"Open a new Terminal window to use the tinyrecorder command (windows that were already open won't find it). Run “tinyrecorder help” to see what it can do." = "tinyrecorder コマンドは、新しい“ターミナル”ウインドウで使えます（すでに開いているウインドウでは見つかりません）。“tinyrecorder help”を実行すると、できることを確認できます。";
 "Couldn't Install the Command-Line Tool" = "コマンドラインツールをインストールできませんでした";
 
 /* B-frames setting */
