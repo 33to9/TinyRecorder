@@ -151,18 +151,21 @@ class SCContext {
 
     /// Callbacks waiting for a recording's file, by recording ID
     /// (AppleScript "stop recording with waiting until saved"). Main thread only.
-    private static var saveWaiters: [String: (_ file: URL?, _ error: String?) -> Void] = [:]
+    private static var saveWaiters: [String: [(_ file: URL?, _ error: String?) -> Void]] = [:]
 
     /// Calls `done` once the recording with this ID is saved (with its file) or has failed
     /// (with an error message). Call on the main thread, before stopping the recording.
     static func whenSaved(recordingID: String, _ done: @escaping (_ file: URL?, _ error: String?) -> Void) {
-        saveWaiters[recordingID] = done
+        // Two scripts may stop the same recording; both get the answer.
+        saveWaiters[recordingID, default: []].append(done)
     }
 
     /// Reports the outcome of saving a recording to whoever waits for it. Any thread.
     static func savingFinished(recordingID: String?, file: URL?, error: String?) {
         guard let id = recordingID else { return }
-        DispatchQueue.main.async { saveWaiters.removeValue(forKey: id)?(file, error) }
+        DispatchQueue.main.async {
+            for done in saveWaiters.removeValue(forKey: id) ?? [] { done(file, error) }
+        }
     }
     
     static func getSelf() -> SCRunningApplication? {

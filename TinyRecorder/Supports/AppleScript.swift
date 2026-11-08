@@ -74,10 +74,14 @@ extension NSScriptCommand {
         SCContext.refreshAvailableContent { ok in
             DispatchQueue.main.async {
                 guard ok else {
+                    Analytics.recordingSource = nil
                     self.resume(error: "Couldn't read the screens and windows. Check the Screen Recording permission.")
                     return
                 }
-                self.resume(error: start())
+                let error = start()
+                // Nothing will start, so don't let this command's source tag the next recording.
+                if error != nil { Analytics.recordingSource = nil }
+                self.resume(error: error)
             }
         }
         return nil

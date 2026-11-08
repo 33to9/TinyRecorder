@@ -151,6 +151,11 @@ stop_and_save() {
 		tell application id "com.33to9.TinyRecorder" to stop recording with waiting until saved
 	end timeout
 end run') || exit 1
+  # No file: the stop cancelled a countdown, so nothing was recorded.
+  if [ -z "$file" ]; then
+    if [ $JSON = 1 ]; then echo '{"state":"cancelled"}'; else echo "Cancelled the countdown; nothing was recorded." >&2; fi
+    return 0
+  fi
   if [ $JSON = 1 ]; then printf '{"file":%s}\n' "$(json_str "$file")"; else echo "$file"; fi
 }
 
