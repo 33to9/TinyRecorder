@@ -391,6 +391,7 @@ struct OutputView: View {
     @AppStorage("enableAEC")        private var enableAEC: Bool = false
     @AppStorage("AECLevel")         private var AECLevel: String = "mid"
     @AppStorage("withAlpha")        private var withAlpha: Bool = false
+    @AppStorage("allowBFrames")     private var allowBFrames: Bool = false
     @AppStorage("saveDirectory")    private var saveDirectory: String?
 
     var body: some View {
@@ -438,6 +439,16 @@ struct OutputView: View {
                     Text("H.264").tag(Encoder.h264)
                     Text("H.265").tag(Encoder.h265)
                 }.disabled(withAlpha)
+                SDivider()
+                SToggle("Smaller Files (B-Frames)", isOn: $allowBFrames,
+                        tips: "B-frames make recordings 10 to 30 percent smaller at the same quality, more so when the picture moves a lot. Playback is just as smooth. But after a long still period, some players built on ffmpeg (IINA, mpv, LosslessCut) may play the recording without sound. QuickTime, Safari and Final Cut Pro aren't affected.")
+                if allowBFrames {
+                    Label("Some players (IINA, mpv, LosslessCut) may lose the sound of recordings with long still periods.".local,
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundColor(.orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 SDivider()
                 SToggle("Recording with Alpha Channel", isOn: $withAlpha)
             }

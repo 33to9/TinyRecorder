@@ -345,3 +345,8 @@
 "Command-Line Tool Installed" = "コマンドラインツールをインストールしました";
 "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "“ターミナル”で tinyrecorder コマンドを使えるようになりました。“tinyrecorder help”を実行すると、できることを確認できます。";
 "Couldn't Install the Command-Line Tool" = "コマンドラインツールをインストールできませんでした";
+
+/* B-frames setting */
+"Smaller Files (B-Frames)" = "ファイルを小さくする（B フレーム）";
+"B-frames make recordings 10 to 30 percent smaller at the same quality, more so when the picture moves a lot. Playback is just as smooth. But after a long still period, some players built on ffmpeg (IINA, mpv, LosslessCut) may play the recording without sound. QuickTime, Safari and Final Cut Pro aren't affected." = "B フレームを使うと、同じ画質で録画ファイルが約 1〜3 割小さくなります（画面の動きが多いほど効果大）。再生の滑らかさは変わりません。ただし、画面が長く静止した録画では、ffmpeg ベースの一部のプレーヤー（IINA、mpv、LosslessCut）で音声が再生されないことがあります。QuickTime、Safari、Final Cut Pro には影響しません。";
+"Some players (IINA, mpv, LosslessCut) may lose the sound of recordings with long still periods." = "一部のプレーヤー（IINA、mpv、LosslessCut）では、長く静止した場面のある録画の音声が再生されないことがあります。";

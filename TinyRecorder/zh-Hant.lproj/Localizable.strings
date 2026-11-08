@@ -372,3 +372,8 @@
 "Command-Line Tool Installed" = "命令列工具已安裝";
 "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "現在可以在「終端機」中使用 tinyrecorder 指令了。執行「tinyrecorder help」查看它能做什麼。";
 "Couldn't Install the Command-Line Tool" = "無法安裝命令列工具";
+
+/* B-frames setting */
+"Smaller Files (B-Frames)" = "更小的檔案（B 幀）";
+"B-frames make recordings 10 to 30 percent smaller at the same quality, more so when the picture moves a lot. Playback is just as smooth. But after a long still period, some players built on ffmpeg (IINA, mpv, LosslessCut) may play the recording without sound. QuickTime, Safari and Final Cut Pro aren't affected." = "B 幀能讓錄製檔案在同等畫質下小約一到三成，畫面變化越多省得越多，播放流暢度不受影響。但畫面長時間靜止後，一些基於 ffmpeg 的播放器（IINA、mpv、LosslessCut）可能播放時沒有聲音。QuickTime、Safari 和 Final Cut Pro 不受影響。";
+"Some players (IINA, mpv, LosslessCut) may lose the sound of recordings with long still periods." = "一些播放器（IINA、mpv、LosslessCut）播放含長時間靜止畫面的錄製時可能沒有聲音。";

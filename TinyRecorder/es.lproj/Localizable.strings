@@ -346,3 +346,8 @@
 "Command-Line Tool Installed" = "Herramienta de línea de comandos instalada";
 "You can now use the tinyrecorder command in Terminal. Run “tinyrecorder help” to see what it can do." = "Ya puedes usar el comando tinyrecorder en Terminal. Ejecuta «tinyrecorder help» para ver lo que puede hacer.";
 "Couldn't Install the Command-Line Tool" = "No se pudo instalar la herramienta de línea de comandos";
+
+/* B-frames setting */
+"Smaller Files (B-Frames)" = "Archivos más pequeños (fotogramas B)";
+"B-frames make recordings 10 to 30 percent smaller at the same quality, more so when the picture moves a lot. Playback is just as smooth. But after a long still period, some players built on ffmpeg (IINA, mpv, LosslessCut) may play the recording without sound. QuickTime, Safari and Final Cut Pro aren't affected." = "Los fotogramas B hacen que las grabaciones ocupen entre un 10 y un 30 por ciento menos con la misma calidad, más cuanto más se mueve la imagen. La reproducción es igual de fluida. Pero tras un periodo largo con la imagen quieta, algunos reproductores basados en ffmpeg (IINA, mpv, LosslessCut) pueden reproducir la grabación sin sonido. QuickTime, Safari y Final Cut Pro no se ven afectados.";
+"Some players (IINA, mpv, LosslessCut) may lose the sound of recordings with long still periods." = "Algunos reproductores (IINA, mpv, LosslessCut) pueden perder el sonido de grabaciones con periodos largos de imagen quieta.";

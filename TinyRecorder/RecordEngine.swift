@@ -779,10 +779,11 @@ extension AppDelegate {
                 AVVideoProfileLevelKey: encoderIsH265 ? h265Level : h264Level,
                 AVVideoAverageBitRateKey: max(200000, Int(targetBitrate)),
                 AVVideoExpectedSourceFrameRateKey: frameRate,
-                // No B-frames: ScreenCaptureKit only delivers frames when the screen changes, and
-                // with frame reordering a long still period produced huge composition offsets
-                // that make ffmpeg-based players (IINA, mpv, LosslessCut) drop all audio (#291).
-                AVVideoAllowFrameReorderingKey: false,
+                // No B-frames by default: ScreenCaptureKit only delivers frames when the screen
+                // changes, and with frame reordering a long still period produced huge composition
+                // offsets that make ffmpeg-based players (IINA, mpv, LosslessCut) drop all audio
+                // (#291). Settings › Video › "Smaller Files (B-Frames)" turns them back on.
+                AVVideoAllowFrameReorderingKey: ud.bool(forKey: "allowBFrames"),
             ] as [String : Any]
         ]
         
