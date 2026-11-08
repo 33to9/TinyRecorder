@@ -173,6 +173,7 @@ class AVOutputClass: NSObject, AVCaptureFileOutputRecordingDelegate, AVCaptureVi
                                        id: "quickrecorder.completed.\(UUID().uuidString)")
         } else {
             Analytics.recordingFailed(stage: "saving", type: .idevice, error: error, id: savingRecordingID)
+            SCContext.savingFinished(recordingID: savingRecordingID, file: nil, error: error?.localizedDescription ?? "Unknown Error".local)
             SCContext.showNotification(title: "Failed to save file".local,
                                        body: error?.localizedDescription ?? "Unknown Error".local,
                                        id: "quickrecorder.error.\(UUID().uuidString)")

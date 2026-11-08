@@ -128,6 +128,8 @@ La prima volta macOS chiede se l'app che esegue lo script (per esempio Terminale
 | `record system audio` | Registra solo l'audio di sistema. Aggiungi `microphone true` per includere il microfono in questa registrazione |
 | `pause recording` / `resume recording` | Mette in pausa / riprende la registrazione |
 | `stop recording` | Ferma e salva la registrazione |
+| `stop recording with waiting until saved` | Interrompe la registrazione, attende che il file sia salvato (incluso il missaggio o la conversione dell'audio) e ne restituisce il percorso. Se il salvataggio non riesce, restituisce un errore. |
+| `recording status` | Restituisce lo stato (idle, countdown, starting, recording o paused) e, durante la registrazione, il tipo e i secondi registrati. |
 | `discard recording` | Ferma la registrazione e la sposta nel Cestino |
 | `configure …` | Modifica le impostazioni di registrazione (vedi sotto) |
 
@@ -159,8 +161,8 @@ tell application "TinyRecorder" to stop recording
 Da sapere:
 - I comandi di registrazione ritornano subito. Se è impostato **Ritardo prima della registrazione** (Impostazioni → Registrazione), la registrazione parte dopo il conto alla rovescia: aggiungi quel tempo a `delay`.
 - Durante il conto alla rovescia, `stop recording` o `discard recording` annullano la registrazione prima che inizi; un altro comando di registrazione viene rifiutato come se fosse già in corso.
-- Se un nome corrisponde a più finestre, o l'app ha finestre su più schermi, TinyRecorder apre la scelta per farti selezionare manualmente.
-- Gli errori (registrazione già in corso, nessuna registrazione attiva, permesso di registrazione schermo mancante) vengono restituiti allo script, quindi `osascript` termina con un errore.
+- Se un nome corrisponde a più finestre, o l'app ha finestre su più schermi, TinyRecorder apre la scelta per farti selezionare manualmente. In questo caso il comando restituisce un errore.
+- Gli errori (registrazione già in corso, nessuna registrazione attiva, permesso di registrazione schermo mancante) vengono restituiti allo script, quindi `osascript` termina con un errore. Lo stesso vale per un numero di schermo non valido o un'app o finestra non trovata; non compare alcuna finestra di dialogo.
 - `pause`, `resume` e `discard` non funzionano per le registrazioni di iPhone / iPad; `stop recording` sì.
 
 ## Compilazione dal codice sorgente

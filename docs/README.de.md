@@ -128,6 +128,8 @@ Beim ersten Mal fragt macOS, ob die App, die das Skript ausführt (z. B. Termina
 | `record system audio` | Nimmt nur den Systemton auf. Mit `microphone true` wird bei dieser Aufnahme auch das Mikrofon aufgenommen |
 | `pause recording` / `resume recording` | Pausiert / setzt die Aufnahme fort |
 | `stop recording` | Stoppt und speichert die Aufnahme |
+| `stop recording with waiting until saved` | Stoppt die Aufnahme, wartet, bis die Datei gespeichert ist (einschließlich Audio-Mischung oder Umwandlung), und gibt ihren Pfad zurück. Schlägt das Speichern fehl, kommt ein Fehler zurück. |
+| `recording status` | Gibt den Status zurück (idle, countdown, starting, recording oder paused) und während einer Aufnahme ihre Art und die bisher aufgenommenen Sekunden. |
 | `discard recording` | Stoppt die Aufnahme und legt sie in den Papierkorb |
 | `configure …` | Ändert Aufnahmeeinstellungen (siehe unten) |
 
@@ -159,8 +161,8 @@ tell application "TinyRecorder" to stop recording
 Gut zu wissen:
 - Die Aufnahmebefehle kehren sofort zurück. Ist **Verzögerung vor der Aufnahme** eingestellt (Einstellungen → Aufnahme), beginnt die Aufnahme erst nach dem Countdown – rechne diese Zeit zu `delay` hinzu.
 - Während des Countdowns bricht `stop recording` oder `discard recording` die Aufnahme ab, bevor sie beginnt; ein weiterer Aufnahmebefehl wird abgelehnt, als liefe bereits eine Aufnahme.
-- Passt ein Name auf mehrere Fenster oder hat die App Fenster auf mehreren Bildschirmen, öffnet TinyRecorder die Auswahl, damit du selbst wählst.
-- Fehler (Aufnahme läuft bereits, keine Aufnahme aktiv, keine Berechtigung für Bildschirmaufnahme) werden an das Skript zurückgegeben; `osascript` endet dann mit einem Fehler.
+- Passt ein Name auf mehrere Fenster oder hat die App Fenster auf mehreren Bildschirmen, öffnet TinyRecorder die Auswahl, damit du selbst wählst. Der Befehl gibt dann einen Fehler zurück.
+- Fehler (Aufnahme läuft bereits, keine Aufnahme aktiv, keine Berechtigung für Bildschirmaufnahme) werden an das Skript zurückgegeben; `osascript` endet dann mit einem Fehler. Das gilt auch für eine ungültige Bildschirmnummer und eine App oder ein Fenster, das nicht gefunden wird; es erscheint kein Dialog.
 - `pause`, `resume` und `discard` funktionieren nicht bei iPhone-/iPad-Aufnahmen; `stop recording` schon.
 
 ## Aus dem Quellcode kompilieren

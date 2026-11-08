@@ -39,6 +39,27 @@
         
         <command name="stop recording" code="QKrdSTop" description="Stop the current recording and save it">
             <cocoa class="stopRecordingCommand"/>
+            <parameter name="waiting until saved" code="WAsv" type="boolean" description="Wait until the file is saved (and its audio mixed or converted), then return its path. Raises an error if saving fails. Without it the command returns right away." optional="yes">
+                <cocoa key="wait"/>
+            </parameter>
+            <result type="text" description="With waiting until saved: the POSIX path of the saved file"/>
+        </command>
+
+        <record-type name="recording info" code="QKri" description="What TinyRecorder is doing">
+            <property name="state" code="QKst" type="text" description="idle, countdown, starting, recording or paused">
+                <cocoa key="state"/>
+            </property>
+            <property name="recording kind" code="QKkd" type="text" description="screen, window, windows, application, screenarea, systemaudio or idevice (only while recording)">
+                <cocoa key="kind"/>
+            </property>
+            <property name="elapsed" code="QKel" type="real" description="Seconds recorded so far, not counting pauses (only while recording)">
+                <cocoa key="elapsed"/>
+            </property>
+        </record-type>
+
+        <command name="recording status" code="QKrdSTat" description="Tell whether TinyRecorder is recording">
+            <cocoa class="recordingStatusCommand"/>
+            <result type="recording info"/>
         </command>
 
         <command name="pause recording" code="QKrdPAus" description="Pause the current recording">

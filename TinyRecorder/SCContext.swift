@@ -122,9 +122,16 @@ class SCContext {
     }
     
     static func updateAvailableContent(completion: @escaping () -> Void) {
+        refreshAvailableContent { ok in if ok { completion() } }
+    }
+
+    /// Like updateAvailableContent(completion:), but also calls back (with false) when the
+    /// content can't be read, for callers that must answer either way (AppleScript).
+    static func refreshAvailableContent(_ completion: @escaping (Bool) -> Void) {
         // 无权限时直接引导用户去授权，而不是调用 SCK（会再次触发系统授权框）
         guard CGPreflightScreenCaptureAccess() else {
             requestPermissions()
+            completion(false)
             return
         }
         SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { content, error in
@@ -133,12 +140,29 @@ class SCContext {
                 case SCStreamError.userDeclined: requestPermissions()
                 default: print("Error: failed to fetch available content: ".local, error.localizedDescription)
                 }
+                completion(false)
                 return
             }
             availableContent = content
             assert(availableContent?.displays.isEmpty != nil, "There needs to be at least one display connected!".local)
-            completion()
+            completion(true)
         }
+    }
+
+    /// Callbacks waiting for a recording's file, by recording ID
+    /// (AppleScript "stop recording with waiting until saved"). Main thread only.
+    private static var saveWaiters: [String: (_ file: URL?, _ error: String?) -> Void] = [:]
+
+    /// Calls `done` once the recording with this ID is saved (with its file) or has failed
+    /// (with an error message). Call on the main thread, before stopping the recording.
+    static func whenSaved(recordingID: String, _ done: @escaping (_ file: URL?, _ error: String?) -> Void) {
+        saveWaiters[recordingID] = done
+    }
+
+    /// Reports the outcome of saving a recording to whoever waits for it. Any thread.
+    static func savingFinished(recordingID: String?, file: URL?, error: String?) {
+        guard let id = recordingID else { return }
+        DispatchQueue.main.async { saveWaiters.removeValue(forKey: id)?(file, error) }
     }
     
     static func getSelf() -> SCRunningApplication? {
@@ -575,6 +599,7 @@ class SCContext {
         let err = error?.localizedDescription ?? "No content was captured.".local
         print("Failed to save recording: \(err)")
         Analytics.recordingFailed(stage: "saving", type: type ?? streamType, error: error, id: recordingID)
+        savingFinished(recordingID: recordingID, file: nil, error: err)
         showNotification(title: "Failed to save file".local, body: err, id: "quickrecorder.error.\(UUID().uuidString)")
     }
     
@@ -629,6 +654,7 @@ class SCContext {
     /// clipboard (#289). `recordingID` is the one captured when the recording stopped.
     static func recordingSaved(_ url: URL, type: StreamType?, recordingID: String?) {
         Analytics.recordingSaved(type, id: recordingID)
+        savingFinished(recordingID: recordingID, file: url, error: nil)
         copyRecordingToClipboard(url)
     }
 
@@ -672,6 +698,7 @@ class SCContext {
         let recordingID = Analytics.recordingID
         if discardRequested {
             Analytics.recordingDiscarded(currentType)
+            savingFinished(recordingID: recordingID, file: nil, error: "The recording was discarded.")
             Analytics.recordingID = nil
             discardRequested = false
             if let writer = vW, writer.status == .writing { writer.cancelWriting() }
@@ -802,6 +829,7 @@ class SCContext {
                         }
                     } catch {
                         Analytics.recordingFailed(stage: "converting", type: currentType, error: error, id: recordingID)
+                        savingFinished(recordingID: recordingID, file: nil, error: error.localizedDescription)
                         showNotification(title: "Failed to save file".local, body: "\(error.localizedDescription)", id: "quickrecorder.error.\(UUID().uuidString)")
                     }
                 }
@@ -853,6 +881,7 @@ class SCContext {
         guard micSaved else {
             Analytics.recordingFailed(stage: "saving", type: .systemaudio, error: error, id: recordingID)
             let err = error?.localizedDescription ?? "No content was captured.".local
+            savingFinished(recordingID: recordingID, file: nil, error: err)
             let body = String(format: "File saved to: %@".local, path) + "\n" + err
             showNotification(title: "Failed to save file".local, body: body, id: "quickrecorder.error.\(UUID().uuidString)")
             return
@@ -860,6 +889,7 @@ class SCContext {
         // The .qma package (system audio + microphone) is saved; mixing it into one file
         // below is an export of that package
         Analytics.recordingSaved(.systemaudio, id: recordingID)
+        savingFinished(recordingID: recordingID, file: path.url, error: nil)
         if remux {
             let fileURL = path.url
             do {

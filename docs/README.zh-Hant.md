@@ -128,6 +128,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `record system audio` | 只錄製系統聲音。加上 `microphone true` 時本次同時錄製麥克風 |
 | `pause recording` / `resume recording` | 暫停 / 繼續錄製 |
 | `stop recording` | 停止並儲存 |
+| `stop recording with waiting until saved` | 停止錄製，等檔案儲存完成（包括混音或轉換）後回傳檔案路徑；儲存失敗時回傳錯誤。 |
+| `recording status` | 回傳目前狀態（idle、countdown、starting、recording 或 paused），錄製中還會回傳錄製類型和已錄秒數。 |
 | `discard recording` | 停止錄製，並將檔案移到垃圾桶 |
 | `configure …` | 修改錄製設定（見下表） |
 
@@ -159,8 +161,8 @@ tell application "TinyRecorder" to stop recording
 注意：
 - 錄製指令會立即返回。如果設定了「**開始錄製前倒數**」（設定 → 錄製設定），錄製會在倒數結束後才開始，`delay` 要加上這段時間。
 - 倒數期間傳送 `stop recording` 或 `discard recording` 會取消這次錄製；再傳送錄製指令會被視為「已在錄製」而拒絕。
-- 名稱符合多個視窗，或應用程式的視窗分布在多個螢幕上時，TinyRecorder 會開啟選擇視窗讓你手動選擇。
-- 出錯時（已經在錄製、沒有在錄製、沒有螢幕錄製權限）會將錯誤傳回給腳本，`osascript` 會以錯誤狀態結束。
+- 名稱符合多個視窗，或應用程式的視窗分布在多個螢幕上時，TinyRecorder 會開啟選擇視窗讓你手動選擇。此時命令會回傳錯誤。
+- 出錯時（已經在錄製、沒有在錄製、沒有螢幕錄製權限）會將錯誤傳回給腳本，`osascript` 會以錯誤狀態結束。螢幕編號無效、找不到應用程式或視窗時也一樣，不會跳出對話框。
 - 錄製 iPhone / iPad 時不支援 `pause`、`resume` 和 `discard`，`stop recording` 可以使用。
 
 ## 從原始碼建置

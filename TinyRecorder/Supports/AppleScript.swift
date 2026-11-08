@@ -50,171 +50,152 @@ extension NSScriptCommand {
         Analytics.recordingSource = "script"
         return nil
     }
+
+    /// Ends a command suspended with suspendExecution(): reports `error` to the script, or
+    /// returns `result`. Main thread.
+    func resume(error: String? = nil, result: Any? = nil) {
+        if let error {
+            scriptErrorNumber = -10000 // errAEEventFailed
+            scriptErrorString = error
+        }
+        resumeExecution(withResult: result)
+    }
+
+    /// Runs a recording command: checks the preconditions, refreshes the screens and windows,
+    /// then runs `start` on the main queue. `start` returns an error message, or nil once the
+    /// countdown, the recording or a selector window is on its way. Errors go back to the
+    /// script instead of an alert, so a script (or an AI agent driving it) never waits on a
+    /// dialog nobody sees.
+    func runRecordingCommand(_ start: @escaping () -> String?) -> Any? {
+        if let error = scriptRecordingPrecondition() { return scriptFail(error) }
+        suspendExecution()
+        SCContext.refreshAvailableContent { ok in
+            DispatchQueue.main.async {
+                guard ok else {
+                    self.resume(error: "Couldn't read the screens and windows. Check the Screen Recording permission.")
+                    return
+                }
+                self.resume(error: start())
+            }
+        }
+        return nil
+    }
 }
 
 @objc(selectScreen)
 class selectScreen: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if let error = scriptRecordingPrecondition() { return scriptFail(error) }
-        SCContext.updateAvailableContent {
-            DispatchQueue.main.async {
-                closeAllWindow()
-                if var index = self.scriptArgs["index"] as? Int {
-                    guard let screens = SCContext.availableContent?.displays else { return }
-                    index -= 1
-                    closeAllWindow()
-                    if index >= screens.count || index < 0 {
-                        createAlert(title: "Error".local, message: "Invalid screen number!".local, button1: "OK".local).runModal()
-                        return
-                    } else {
-                        let screen = screens[index]
-                        AppDelegate.shared.createCountdownPanel(screen: screen) {
-                            AppDelegate.shared.prepRecord(type: "display", screens: screen, windows: nil, applications: nil)
-                        }
-                    }
-                } else {
-                    closeAllWindow()
-                    AppDelegate.shared.createNewWindow(view: ScreenSelector(), title: "Screen Selector".local)
-                }
+        let index = scriptArgs["index"] as? Int
+        return runRecordingCommand {
+            closeAllWindow()
+            guard let index else {
+                AppDelegate.shared.createNewWindow(view: ScreenSelector(), title: "Screen Selector".local)
+                return nil
             }
+            guard let screens = SCContext.availableContent?.displays, screens.indices.contains(index - 1) else {
+                return "Invalid screen number!".local
+            }
+            let screen = screens[index - 1]
+            AppDelegate.shared.createCountdownPanel(screen: screen) {
+                AppDelegate.shared.prepRecord(type: "display", screens: screen, windows: nil, applications: nil)
+            }
+            return nil
         }
-        return nil
     }
 }
 
 @objc(selectArea)
 class selectArea: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if let error = scriptRecordingPrecondition() { return scriptFail(error) }
-        SCContext.updateAvailableContent {
-            DispatchQueue.main.async {
-                closeAllWindow()
-                DispatchQueue.main.async {
-                    AppDelegate.shared.startAreaSelection()
-                }
-            }
+        runRecordingCommand {
+            closeAllWindow()
+            DispatchQueue.main.async { AppDelegate.shared.startAreaSelection() }
+            return nil
         }
-        return nil
     }
 }
 
 @objc(selectApps)
 class selectApps: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if let error = scriptRecordingPrecondition() { return scriptFail(error) }
-        SCContext.updateAvailableContent {
-            DispatchQueue.main.async {
-                closeAllWindow()
-                if let name = self.scriptArgs["name"] as? String {
-                    guard let app = SCContext.availableContent?.applications.first(where: { $0.applicationName == name }) else {
-                        createAlert(title: "Error".local, message: "No such application!".local, button1: "OK".local).runModal()
-                        return
-                    }
-                    closeAllWindow()
-                    guard let screens = SCContext.availableContent?.displays else { return }
-                    guard let windows = SCContext.availableContent?.windows.filter({
-                        guard let title = $0.title else { return false }
-                        return !title.contains("Item-0")
-                        && title != "Window"
-                        && $0.frame.width > 40
-                        && $0.frame.height > 40
-                    }) else { return }
-                    var s = [SCDisplay]()
-                    for screen in screens {
-                        for w in windows {
-                            if NSIntersectsRect(screen.frame, w.frame) { if !s.contains(screen) { s.append(screen) }}
-                        }
-                    }
-                    if s.isEmpty {
-                        createAlert(title: "Error".local, message: "This application has no windows!".local, button1: "OK".local).runModal()
-                        return
-                    }
-                    if s.count != 1 {
-                        AppDelegate.shared.createNewWindow(view: AppSelector(), title: "App Selector".local)
-                        createAlert(title: "Error".local, message: "This app exists in multiple screens, please select it manually!".local, button1: "OK".local).runModal()
-                    } else {
-                        AppDelegate.shared.createCountdownPanel(screen: s.first!) {
-                            AppDelegate.shared.prepRecord(type: "application", screens: s.first!, windows: nil, applications: [app])
-                        }
-                    }
-                } else {
-                    closeAllWindow()
-                    AppDelegate.shared.createNewWindow(view: AppSelector(), title: "App Selector".local)
-                }
+        let name = scriptArgs["name"] as? String
+        return runRecordingCommand {
+            closeAllWindow()
+            guard let name else {
+                AppDelegate.shared.createNewWindow(view: AppSelector(), title: "App Selector".local)
+                return nil
             }
+            guard let content = SCContext.availableContent else { return "Couldn't read the screens and windows." }
+            guard let app = content.applications.first(where: { $0.applicationName == name }) else {
+                return "No such application!".local
+            }
+            let windows = content.windows.filter {
+                guard let title = $0.title else { return false }
+                return !title.contains("Item-0") && title != "Window" && $0.frame.width > 40 && $0.frame.height > 40
+            }
+            var s = [SCDisplay]()
+            for screen in content.displays {
+                for w in windows where NSIntersectsRect(screen.frame, w.frame) && !s.contains(screen) { s.append(screen) }
+            }
+            if s.isEmpty { return "This application has no windows!".local }
+            if s.count != 1 {
+                AppDelegate.shared.createNewWindow(view: AppSelector(), title: "App Selector".local)
+                return "This app exists in multiple screens, please select it manually!".local
+            }
+            AppDelegate.shared.createCountdownPanel(screen: s[0]) {
+                AppDelegate.shared.prepRecord(type: "application", screens: s[0], windows: nil, applications: [app])
+            }
+            return nil
         }
-        return nil
     }
 }
 
 @objc(selectWindows)
 class selectWindows: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if let error = scriptRecordingPrecondition() { return scriptFail(error) }
-        SCContext.updateAvailableContent {
-            DispatchQueue.main.async {
-                closeAllWindow()
-                if let title = self.scriptArgs["title"] as? String {
-                    var windows = [SCWindow]()
-                    guard let w = SCContext.availableContent?.windows.filter({ $0.title == title }) else { return }
-                    windows = w
-                    if let app = self.scriptArgs["app"] as? String {
-                        guard let w = SCContext.availableContent?.windows.filter({ $0.title == title && $0.owningApplication?.applicationName == app }) else { return }
-                        windows = w
-                    }
-                    closeAllWindow()
-                    if windows.isEmpty {
-                        createAlert(title: "Error".local, message: "No such window!".local, button1: "OK".local).runModal()
-                        return
-                    }
-                    if windows.count > 1 {
-                        AppDelegate.shared.createNewWindow(view: WinSelector(), title: "Window Selector".local)
-                        createAlert(title: "Error".local, message: "Duplicate window exists, please select it manually!".local, button1: "OK".local).runModal()
-                        return
-                    }
-                    let window = windows.first!
-                    guard let screens = SCContext.availableContent?.displays else { return }
-                    var s = [SCDisplay]()
-                    for screen in screens {
-                        if NSIntersectsRect(screen.frame, window.frame) { if !s.contains(screen) { s.append(screen) }}
-                    }
-                    if s.isEmpty {
-                        createAlert(title: "Error".local, message: "Unable to find the screen this window belongs to!".local, button1: "OK".local).runModal()
-                        return
-                    }
-                    // Show the countdown on the pointer's screen if the window is on it, else on
-                    // the window's screen. (Previously nothing happened when the pointer's screen
-                    // couldn't be determined.)
-                    let countdownScreen = SCContext.getSCDisplayWithMouse().flatMap { s.contains($0) ? $0 : nil } ?? s.first!
-                    AppDelegate.shared.createCountdownPanel(screen: countdownScreen) {
-                        AppDelegate.shared.prepRecord(type: "window" , screens: s.first!, windows: [window], applications: nil)
-                    }
-                } else {
-                    closeAllWindow()
-                    AppDelegate.shared.createNewWindow(view: WinSelector(), title: "Window Selector".local)
-                }
+        let title = scriptArgs["title"] as? String
+        let appName = scriptArgs["app"] as? String
+        return runRecordingCommand {
+            closeAllWindow()
+            guard let title else {
+                AppDelegate.shared.createNewWindow(view: WinSelector(), title: "Window Selector".local)
+                return nil
             }
+            guard let content = SCContext.availableContent else { return "Couldn't read the screens and windows." }
+            let windows = content.windows.filter {
+                $0.title == title && (appName == nil || $0.owningApplication?.applicationName == appName)
+            }
+            if windows.isEmpty { return "No such window!".local }
+            if windows.count > 1 {
+                AppDelegate.shared.createNewWindow(view: WinSelector(), title: "Window Selector".local)
+                return "Duplicate window exists, please select it manually!".local
+            }
+            let window = windows[0]
+            let s = content.displays.filter { NSIntersectsRect($0.frame, window.frame) }
+            if s.isEmpty { return "Unable to find the screen this window belongs to!".local }
+            // Show the countdown on the pointer's screen if the window is on it, else on
+            // the window's screen.
+            let countdownScreen = SCContext.getSCDisplayWithMouse().flatMap { s.contains($0) ? $0 : nil } ?? s[0]
+            AppDelegate.shared.createCountdownPanel(screen: countdownScreen) {
+                AppDelegate.shared.prepRecord(type: "window", screens: s[0], windows: [window], applications: nil)
+            }
+            return nil
         }
-        return nil
     }
 }
 
 @objc(recordAudio)
 class recordAudio: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
-        if let error = scriptRecordingPrecondition() { return scriptFail(error) }
-        SCContext.updateAvailableContent {
-            DispatchQueue.main.async {
-                let m = UserDefaults.standard.bool(forKey: "recordMic")
-                if let mic = self.scriptArgs["mic"] as? Bool {
-                    UserDefaults.standard.set(mic, forKey: "recordMic")
-                }
-                closeAllWindow()
-                AppDelegate.shared.prepRecord(type: "audio", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil)
-                UserDefaults.standard.set(m, forKey: "recordMic")
-            }
+        let mic = scriptArgs["mic"] as? Bool
+        return runRecordingCommand {
+            let m = UserDefaults.standard.bool(forKey: "recordMic")
+            if let mic { UserDefaults.standard.set(mic, forKey: "recordMic") }
+            closeAllWindow()
+            AppDelegate.shared.prepRecord(type: "audio", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil)
+            UserDefaults.standard.set(m, forKey: "recordMic")
+            return nil
         }
-        return nil
     }
 }
 
@@ -227,8 +208,45 @@ class stopRecordingCommand: NSScriptCommand {
             // Stopping during the countdown cancels the recording before it starts.
             return cancelPendingCountdown() ? nil : scriptFail("Not recording.")
         }
+        guard scriptArgs["wait"] as? Bool == true else {
+            DispatchQueue.main.async { stopActiveRecording() }
+            return nil
+        }
+        // "with waiting until saved": answer with the saved file once it's written (and mixed
+        // or converted), or with the error if saving failed.
+        guard let id = Analytics.recordingID else {
+            return scriptFail("The recording is still starting. Try again in a moment.")
+        }
+        suspendExecution()
+        SCContext.whenSaved(recordingID: id) { file, error in
+            self.resume(error: error, result: file?.path)
+        }
         DispatchQueue.main.async { stopActiveRecording() }
         return nil
+    }
+}
+
+/// "recording status": what TinyRecorder is doing, for scripts and agents that need to check
+/// before or while they drive a recording.
+@objc(recordingStatusCommand)
+class recordingStatusCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        guard let type = SCContext.streamType else {
+            return ["state": countdownPanel.isVisible ? "countdown" : "idle"] as NSDictionary
+        }
+        let state: String
+        let elapsed: TimeInterval
+        if SCContext.isPaused {
+            state = "paused"
+            elapsed = SCContext.timePassed
+        } else if let start = SCContext.startTime {
+            state = "recording"
+            elapsed = Date.now.timeIntervalSince(start)
+        } else {
+            state = "starting"
+            elapsed = 0
+        }
+        return ["state": state, "kind": String(describing: type), "elapsed": (elapsed * 10).rounded() / 10] as NSDictionary
     }
 }
 

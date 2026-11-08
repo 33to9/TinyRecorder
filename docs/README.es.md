@@ -128,6 +128,8 @@ La primera vez, macOS pregunta si la app que ejecuta el script (por ejemplo, Ter
 | `record system audio` | Graba solo el audio del sistema. Añade `microphone true` para incluir el micrófono en esta grabación |
 | `pause recording` / `resume recording` | Pausa / reanuda la grabación |
 | `stop recording` | Detiene y guarda la grabación |
+| `stop recording with waiting until saved` | Detiene la grabación, espera a que se guarde el archivo (incluida la mezcla o conversión del audio) y devuelve su ruta. Si no se puede guardar, devuelve un error. |
+| `recording status` | Devuelve el estado (idle, countdown, starting, recording o paused) y, mientras se graba, el tipo de grabación y los segundos grabados. |
 | `discard recording` | Detiene la grabación y la mueve a la Papelera |
 | `configure …` | Cambia los ajustes de grabación (ver abajo) |
 
@@ -159,8 +161,8 @@ tell application "TinyRecorder" to stop recording
 Conviene saber:
 - Los comandos de grabación vuelven de inmediato. Si tienes configurado **Retardo antes de grabar** (Preferencias → Grabación), la grabación empieza tras la cuenta atrás: suma ese tiempo a `delay`.
 - Durante la cuenta atrás, `stop recording` o `discard recording` cancelan la grabación antes de que empiece, y otro comando de grabación se rechaza como si ya se estuviera grabando.
-- Si un nombre coincide con varias ventanas, o la app tiene ventanas en más de una pantalla, TinyRecorder abre el selector para que elijas tú.
-- Los errores (ya se está grabando, no se está grabando, falta el permiso de grabación de pantalla) se devuelven al script, así que `osascript` termina con error.
+- Si un nombre coincide con varias ventanas, o la app tiene ventanas en más de una pantalla, TinyRecorder abre el selector para que elijas tú. En ese caso el comando devuelve un error.
+- Los errores (ya se está grabando, no se está grabando, falta el permiso de grabación de pantalla) se devuelven al script, así que `osascript` termina con error. Lo mismo ocurre con un número de pantalla no válido o una app o ventana que no se encuentra; no aparece ningún diálogo.
 - `pause`, `resume` y `discard` no funcionan con grabaciones de iPhone / iPad; `stop recording` sí.
 
 ## Compilar desde el código fuente

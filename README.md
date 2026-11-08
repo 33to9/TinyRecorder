@@ -128,6 +128,8 @@ The first time, macOS asks whether the app running the script (for example Termi
 | `record system audio` | Records system audio only. Add `microphone true` to include the microphone in this recording |
 | `pause recording` / `resume recording` | Pauses / resumes the recording |
 | `stop recording` | Stops and saves the recording |
+| `stop recording with waiting until saved` | Stops, waits until the file is saved (and its audio mixed or converted), then returns its path. Returns an error if saving failed. |
+| `recording status` | Returns the state (idle, countdown, starting, recording or paused) and, while recording, its kind and the seconds recorded. |
 | `discard recording` | Stops the recording and moves it to the Trash |
 | `configure …` | Changes recording settings (see below) |
 
@@ -159,8 +161,8 @@ tell application "TinyRecorder" to stop recording
 Good to know:
 - The record commands return right away. If **Delay Before Recording** is set (Preferences → Recorder), recording starts after the countdown, so add that time to `delay`.
 - During the countdown, `stop recording` or `discard recording` cancels the recording before it starts, and another record command is refused as already recording.
-- If a name matches several windows, or the app has windows on more than one screen, TinyRecorder opens the picker so you can choose.
-- Errors (already recording, not recording, no Screen Recording permission) are returned to the script, so `osascript` exits with an error.
+- If a name matches several windows, or the app has windows on more than one screen, TinyRecorder opens the picker so you can choose. The command then returns an error.
+- Errors (already recording, not recording, no Screen Recording permission) are returned to the script, so `osascript` exits with an error. So are an invalid screen number and an app or window that can't be found; no dialog is shown.
 - `pause`, `resume` and `discard` don't work for iPhone / iPad recordings; `stop recording` does.
 
 ## Building from source

@@ -128,6 +128,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `record system audio` | システムオーディオのみ録音。`microphone true` を付けると今回はマイクも録音します |
 | `pause recording` / `resume recording` | 録画を一時停止 / 再開 |
 | `stop recording` | 録画を停止して保存 |
+| `stop recording with waiting until saved` | 録画を停止し、ファイルの保存（音声のミックスや変換を含む）が終わるまで待ってからパスを返します。保存に失敗した場合はエラーを返します。 |
+| `recording status` | 現在の状態（idle、countdown、starting、recording、paused）を返します。収録中は収録の種類と経過秒数も返します。 |
 | `discard recording` | 録画を停止し、ファイルをゴミ箱に移動 |
 | `configure …` | 録画設定を変更（下の表を参照） |
 
@@ -159,8 +161,8 @@ tell application "TinyRecorder" to stop recording
 補足：
 - 録画コマンドはすぐに戻ります。「**録画開始までの待ち時間**」（環境設定 → 録画）を設定している場合、録画はカウントダウン後に始まるので、その分を `delay` に足してください。
 - カウントダウン中に `stop recording` または `discard recording` を送ると、録画は開始前に取り消されます。別の録画コマンドは「録画中」として拒否されます。
-- 名前が複数のウインドウに一致する場合や、App のウインドウが複数の画面にある場合は、選択画面が開くので手動で選んでください。
-- エラー（すでに録画中、録画していない、画面収録の権限がない）はスクリプトに返され、`osascript` はエラーで終了します。
+- 名前が複数のウインドウに一致する場合や、App のウインドウが複数の画面にある場合は、選択画面が開くので手動で選んでください。このときコマンドはエラーを返します。
+- エラー（すでに録画中、録画していない、画面収録の権限がない）はスクリプトに返され、`osascript` はエラーで終了します。画面番号が無効な場合や、アプリやウインドウが見つからない場合も同様で、ダイアログは表示されません。
 - iPhone / iPad の録画では `pause`、`resume`、`discard` は使えません。`stop recording` は使えます。
 
 ## ソースからのビルド
