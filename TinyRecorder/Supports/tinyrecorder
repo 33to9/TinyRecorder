@@ -216,44 +216,46 @@ cmd_record() {
   fi
 
   local tell='tell application id "com.33to9.TinyRecorder" to'
+  # Lets TinyRecorder's usage statistics tell this tool apart from other scripts.
+  local CLIENT=' client "cli"'
   local interactive=0
   case $what in
     screen)
       if [ -n "$target" ]; then
         case $target in *[!0-9]*) usage_error "the screen number must be a number (1 = main display)" ;; esac
         script="on run argv
-	$tell record screen numbered ((item 1 of argv) as integer)
+	$tell record screen numbered ((item 1 of argv) as integer)$CLIENT
 end run"
       else
-        interactive=1; script="$tell record screen"
+        interactive=1; script="$tell record screen$CLIENT"
       fi ;;
     window)
       if [ -n "$target" ] && [ -n "$app" ]; then
         script="on run argv
-	$tell record window titled (item 1 of argv) in application (item 2 of argv)
+	$tell record window titled (item 1 of argv) in application (item 2 of argv)$CLIENT
 end run"
       elif [ -n "$target" ]; then
         script="on run argv
-	$tell record window titled (item 1 of argv)
+	$tell record window titled (item 1 of argv)$CLIENT
 end run"
       else
         [ -z "$app" ] || usage_error "--app needs a window title too"
-        interactive=1; script="$tell record window"
+        interactive=1; script="$tell record window$CLIENT"
       fi ;;
     app|application)
       if [ -n "$target" ]; then
         script="on run argv
-	$tell record application named (item 1 of argv)
+	$tell record application named (item 1 of argv)$CLIENT
 end run"
       else
-        interactive=1; script="$tell record application"
+        interactive=1; script="$tell record application$CLIENT"
       fi ;;
     area)
       [ -z "$target" ] || usage_error "record area takes no argument; drag the area with the mouse"
-      interactive=1; script="$tell record screen area" ;;
+      interactive=1; script="$tell record screen area$CLIENT" ;;
     audio)
       [ -z "$target" ] || usage_error "record audio takes no argument"
-      if [ -n "$mic" ]; then script="$tell record system audio microphone $mic"; else script="$tell record system audio"; fi ;;
+      if [ -n "$mic" ]; then script="$tell record system audio microphone $mic$CLIENT"; else script="$tell record system audio$CLIENT"; fi ;;
     *) usage_error "can't record \"$what\"; use screen, window, app, area or audio" ;;
   esac
   [ "$what" = window ] || [ -z "$app" ] || usage_error "--app only goes with record window"

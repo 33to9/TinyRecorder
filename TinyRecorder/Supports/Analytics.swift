@@ -71,10 +71,35 @@ enum Analytics {
 
     // MARK: Where recordings start
 
-    /// Where the user started the next recording from: "toolbar", "menuBar", "hotkey" or
-    /// "script". Set by each entry point, sent and cleared by `recordingStarted`, so a path
-    /// that doesn't set it shows up as "unknown".
+    /// Where the user started the next recording from: "toolbar", "menuBar", "hotkey",
+    /// "script" (AppleScript) or "cli" (the tinyrecorder command). Set by each entry point,
+    /// taken by `recordingStarted`, so a path that doesn't set it shows up as "unknown".
     static var recordingSource: String?
+
+    /// The source of each recording, by recording ID, so its later signals (finished, saved,
+    /// failed, discarded) carry it too and automated recordings can be filtered out without
+    /// joining on the ID. Written from several threads, hence the lock.
+    private static var sources: [String: String] = [:]
+    private static let sourcesLock = NSLock()
+
+    private static func source(of id: String) -> String? {
+        sourcesLock.lock(); defer { sourcesLock.unlock() }
+        return sources[id]
+    }
+
+    private static func setSource(_ source: String, of id: String) {
+        sourcesLock.lock(); defer { sourcesLock.unlock() }
+        // A recording that never reports its end (crash, quit while saving) would stay here
+        if sources.count > 20 { sources.removeAll() }
+        sources[id] = source
+    }
+
+    /// The recording has nothing more to report.
+    private static func forgetSource(of id: String?) {
+        guard let id else { return }
+        sourcesLock.lock(); defer { sourcesLock.unlock() }
+        sources[id] = nil
+    }
     /// How the toolbar now on screen was opened, sent with recordings started from it.
     private static var toolbarOpenedFrom = "reopen"
     /// Set right before an in-app call opens the toolbar: "hotkey", "onboarding" or "launch".
@@ -109,13 +134,19 @@ enum Analytics {
 
     private static func baseParams(_ type: StreamType?, id: String?) -> [String: String] {
         var params = ["recordingType": name(type)]
-        if let id { params["recordingID"] = id }
+        if let id {
+            params["recordingID"] = id
+            if let source = source(of: id) { params["source"] = source }
+        }
         return params
     }
 
     static func recordingStarted(_ type: StreamType?) {
         let id = UUID().uuidString
         recordingID = id
+        let source = recordingSource ?? "unknown"
+        recordingSource = nil
+        setSource(source, of: id)
         var params = baseParams(type, id: id)
         params["format"] = format(type)
         if type != .systemaudio, type != .idevice {
@@ -126,9 +157,7 @@ enum Analytics {
         // microphone for one recording); iPhone/iPad recordings read the setting directly.
         let mic = type == .idevice ? ud.bool(forKey: "recordMic") : SCContext.recMic
         params["microphone"] = mic ? "on" : "off"
-        params["source"] = recordingSource ?? "unknown"
-        if recordingSource == "toolbar" { params["toolbarOpenedFrom"] = toolbarOpenedFrom }
-        recordingSource = nil
+        if source == "toolbar" { params["toolbarOpenedFrom"] = toolbarOpenedFrom }
         if ud.string(forKey: firstRecordingKey) == "pending" {
             params["firstRecording"] = "true"
             ud.set("done", forKey: firstRecordingKey)
@@ -151,10 +180,12 @@ enum Analytics {
         var params = baseParams(type, id: id)
         params["format"] = format(type)
         signal("Recording.saved", parameters: params)
+        forgetSource(of: id)
     }
 
     static func recordingDiscarded(_ type: StreamType?) {
         signal("Recording.discarded", parameters: baseParams(type, id: recordingID))
+        forgetSource(of: recordingID)
     }
 
     /// `stage`: "start", "writing", "saving", "mixing" (the file is kept without the mixed
@@ -168,6 +199,8 @@ enum Analytics {
             params["errorCode"] = String(error.code)
         }
         signal("Recording.failed", parameters: params)
+        // "writing" is followed by the stop and save, "mixing" by Recording.saved
+        if ["start", "saving", "converting"].contains(stage) { forgetSource(of: id) }
     }
 
     // MARK: - First-run funnel

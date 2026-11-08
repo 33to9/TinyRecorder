@@ -47,7 +47,9 @@ extension NSScriptCommand {
             DispatchQueue.main.async { AppDelegate.shared.showScreenPermissionGuide() }
             return "Screen Recording Permission".local
         }
-        Analytics.recordingSource = "script"
+        // The tinyrecorder command passes the hidden client "cli" parameter; only that value
+        // is recognised, so a script can't put arbitrary text into the statistics.
+        Analytics.recordingSource = scriptArgs["client"] as? String == "cli" ? "cli" : "script"
         return nil
     }
 
