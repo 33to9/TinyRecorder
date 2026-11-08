@@ -108,7 +108,7 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 
 ## 命令行工具
 
-TinyRecorder 自带 `tinyrecorder` 命令。用 Homebrew 安装时会自动配置好；一键安装脚本在不需要密码时也会自动链接。否则运行一次下面的命令：
+TinyRecorder 自带 `tinyrecorder` 命令。用 Homebrew 安装时会自动配置好；一键安装脚本在不需要密码时也会自动链接。否则选择 **TinyRecorder › 安装命令行工具…**（1.8.22 及以上版本，设置 › 一般设置中也有），或运行一次下面的命令：
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder

@@ -108,7 +108,7 @@ brew install --cask 33to9/tap/tinyrecorder
 
 ## 命令列工具
 
-TinyRecorder 內建 `tinyrecorder` 指令。用 Homebrew 安裝時會自動設定好；一鍵安裝指令碼在不需要密碼時也會自動連結。否則請執行一次下面的指令：
+TinyRecorder 內建 `tinyrecorder` 指令。用 Homebrew 安裝時會自動設定好；一鍵安裝指令碼在不需要密碼時也會自動連結。否則請選擇 **TinyRecorder › 安裝命令列工具…**（1.8.22 及以上版本，設定 › 一般設定中也有），或執行一次下面的指令：
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder

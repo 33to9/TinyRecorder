@@ -108,7 +108,7 @@ TinyRecorder のスイッチがすでにオンになっている、オンのま�
 
 ## コマンドラインツール
 
-TinyRecorder には `tinyrecorder` コマンドが付属しています。Homebrew でインストールすると自動で使えるようになり、ワンライナーのインストーラもパスワードが不要な場合はリンクを作成します。それ以外の場合は、次のコマンドを一度実行してください：
+TinyRecorder には `tinyrecorder` コマンドが付属しています。Homebrew でインストールすると自動で使えるようになり、ワンライナーのインストーラもパスワードが不要な場合はリンクを作成します。それ以外の場合は、**TinyRecorder › コマンドラインツールをインストール…**（バージョン 1.8.22 以降。設定 › 一般 にもあります）を選ぶか、次のコマンドを一度実行してください：
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder

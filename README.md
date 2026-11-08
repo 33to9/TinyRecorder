@@ -108,7 +108,7 @@ Usage statistics are on by default. Full details: [privacy page](https://www.tin
 
 ## Command-line tool
 
-TinyRecorder includes a `tinyrecorder` command. Homebrew sets it up when it installs the app, and the one-line installer links it when that needs no password. Otherwise, run this once:
+TinyRecorder includes a `tinyrecorder` command. Homebrew sets it up when it installs the app, and the one-line installer links it when that needs no password. Otherwise, choose **TinyRecorder › Install Command-Line Tool…** (also in Settings › General, version 1.8.22 and later), or run this once:
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder

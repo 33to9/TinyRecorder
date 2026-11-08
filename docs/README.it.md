@@ -108,7 +108,7 @@ Le statistiche d'uso sono attive per impostazione predefinita. Tutti i dettagli:
 
 ## Strumento da riga di comando
 
-TinyRecorder include il comando `tinyrecorder`. Homebrew lo configura quando installa l'app, e il programma di installazione su una riga lo collega se non serve la password. Altrimenti esegui una volta:
+TinyRecorder include il comando `tinyrecorder`. Homebrew lo configura quando installa l'app, e il programma di installazione su una riga lo collega se non serve la password. Altrimenti scegli **TinyRecorder › Installa strumento da riga di comando…** (anche in Impostazioni › Generali, dalla versione 1.8.22) oppure esegui una volta:
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder

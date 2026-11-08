@@ -108,7 +108,7 @@ Las estadísticas de uso están activadas de forma predeterminada. Todos los det
 
 ## Herramienta de línea de comandos
 
-TinyRecorder incluye el comando `tinyrecorder`. Homebrew lo deja listo al instalar la app, y el instalador de una línea lo enlaza si no hace falta contraseña. Si no, ejecuta esto una vez:
+TinyRecorder incluye el comando `tinyrecorder`. Homebrew lo deja listo al instalar la app, y el instalador de una línea lo enlaza si no hace falta contraseña. Si no, elige **TinyRecorder › Instalar herramienta de línea de comandos…** (también en Ajustes › General, desde la versión 1.8.22) o ejecuta esto una vez:
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder

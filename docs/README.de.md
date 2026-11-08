@@ -108,7 +108,7 @@ Die Nutzungsstatistik ist standardmäßig eingeschaltet. Alle Details: [Datensch
 
 ## Befehlszeilenwerkzeug
 
-TinyRecorder bringt den Befehl `tinyrecorder` mit. Homebrew richtet ihn bei der Installation ein, und das Ein-Zeilen-Installationsskript verlinkt ihn, wenn dafür kein Passwort nötig ist. Andernfalls einmal ausführen:
+TinyRecorder bringt den Befehl `tinyrecorder` mit. Homebrew richtet ihn bei der Installation ein, und das Ein-Zeilen-Installationsskript verlinkt ihn, wenn dafür kein Passwort nötig ist. Andernfalls wähle **TinyRecorder › Befehlszeilenwerkzeug installieren …** (auch unter Einstellungen › Allgemein, ab Version 1.8.22) oder führe einmal aus:
 
 ```bash
 sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
