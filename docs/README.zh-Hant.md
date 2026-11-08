@@ -106,6 +106,40 @@ brew install --cask 33to9/tap/tinyrecorder
 
 使用統計預設為開啟。詳細說明：[隱私權頁面](https://www.tinyrecorder.app/zh-Hant/privacy)。
 
+## 命令列工具
+
+TinyRecorder 內建 `tinyrecorder` 指令。用 Homebrew 安裝時會自動設定好；一鍵安裝指令碼在不需要密碼時也會自動連結。否則請執行一次下面的指令：
+
+```bash
+sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+```
+
+之後就可以這樣使用：
+
+```bash
+tinyrecorder record screen 1 --duration 10
+tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder status
+tinyrecorder stop
+```
+
+`record` 會等錄製真正開始後才回傳，`stop` 會等檔案儲存完成後印出檔案路徑，加上 `--json` 時每個指令輸出一個 JSON 物件。執行 `tinyrecorder help` 查看所有指令和選項。
+
+### 搭配 AI 代理使用
+
+Claude Code、Codex、Cursor 等程式設計代理能執行終端機指令，所以可以用 `tinyrecorder` 錄製螢幕，例如錄下它重現的 bug，或它剛完成的功能的示範。把下面這段加到專案的 `CLAUDE.md` 或 `AGENTS.md` 裡，代理就知道怎麼使用：
+
+```markdown
+## 錄製螢幕
+本機已安裝 TinyRecorder，可以用 `tinyrecorder` 指令錄製螢幕：
+- `tinyrecorder record screen 1 --duration 15 --json`：錄製主螢幕 15 秒，輸出 {"file": "<路徑>"}。
+- `tinyrecorder record window "<視窗完整標題>" --app "<應用程式名稱>"`：開始錄製一個視窗；`tinyrecorder stop --json` 停止並輸出檔案路徑。
+- `tinyrecorder status --json`：查看是否正在錄製。
+出錯時錯誤訊息寫到 stderr，結束代碼不為 0。執行 `tinyrecorder help` 查看所有選項。
+```
+
+macOS 仍會請你授權一次螢幕錄製，以及允許終端機控制 TinyRecorder；錄製時選單列會顯示正在錄製，所以不會在你不知情的情況下錄製螢幕。
+
 ## 自動化（AppleScript）
 
 TinyRecorder 支援 AppleScript，可以在終端機、捷徑（「**執行 AppleScript**」動作）、Raycast、Alfred、Keyboard Maestro 或你自己的腳本中開始和停止錄製。

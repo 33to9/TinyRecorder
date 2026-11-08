@@ -106,6 +106,40 @@ TinyRecorder のスイッチがすでにオンになっている、オンのま�
 
 使用状況データの送信は初期設定でオンになっています。詳しくは[プライバシーページ](https://www.tinyrecorder.app/ja/privacy)をご覧ください。
 
+## コマンドラインツール
+
+TinyRecorder には `tinyrecorder` コマンドが付属しています。Homebrew でインストールすると自動で使えるようになり、ワンライナーのインストーラもパスワードが不要な場合はリンクを作成します。それ以外の場合は、次のコマンドを一度実行してください：
+
+```bash
+sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+```
+
+使い方の例：
+
+```bash
+tinyrecorder record screen 1 --duration 10
+tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder status
+tinyrecorder stop
+```
+
+`record` は収録が実際に始まるまで待ってから戻り、`stop` はファイルの保存が終わるまで待ってからパスを表示します。`--json` を付けると、各コマンドが JSON オブジェクトを 1 つ出力します。すべてのコマンドとオプションは `tinyrecorder help` で確認できます。
+
+### AI エージェントから使う
+
+Claude Code、Codex、Cursor などのコーディングエージェントはターミナルのコマンドを実行できるので、`tinyrecorder` で画面を収録できます。たとえば再現したバグや、作ったばかりの機能のデモを収録できます。プロジェクトの `CLAUDE.md` または `AGENTS.md` に次の内容を追加すると、エージェントが使い方を把握できます：
+
+```markdown
+## 画面収録
+この Mac には TinyRecorder がインストールされています。`tinyrecorder` コマンドで画面を収録できます：
+- `tinyrecorder record screen 1 --duration 15 --json`：メインディスプレイを 15 秒収録し、{"file": "<パス>"} を出力します。
+- `tinyrecorder record window "<ウインドウの正確なタイトル>" --app "<アプリ名>"`：ウインドウの収録を開始します。`tinyrecorder stop --json` で停止し、ファイルのパスを出力します。
+- `tinyrecorder status --json`：収録中かどうかを確認します。
+エラーは stderr に出力され、終了ステータスは 0 以外になります。すべてのオプションは `tinyrecorder help` で確認できます。
+```
+
+macOS は画面収録の許可と、ターミナルが TinyRecorder を操作する許可を一度だけ求めます。収録中はメニューバーに表示されるので、知らないうちに収録されることはありません。
+
 ## 自動化（AppleScript）
 
 TinyRecorder は AppleScript で操作できます。ターミナル、ショートカット（「**AppleScript を実行**」アクション）、Raycast、Alfred、Keyboard Maestro、自作のスクリプトから録画を開始・停止できます。

@@ -106,6 +106,40 @@ App 未经 Apple 公证，第一次打开会被拦截一次：
 
 使用统计默认开启。详细说明：[隐私页](https://www.tinyrecorder.app/zh-Hans/privacy)。
 
+## 命令行工具
+
+TinyRecorder 自带 `tinyrecorder` 命令。用 Homebrew 安装时会自动配置好；一键安装脚本在不需要密码时也会自动链接。否则运行一次下面的命令：
+
+```bash
+sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+```
+
+之后就可以这样用：
+
+```bash
+tinyrecorder record screen 1 --duration 10
+tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder status
+tinyrecorder stop
+```
+
+`record` 会等录制真正开始后才返回，`stop` 会等文件保存完成后打印文件路径，加上 `--json` 时每条命令输出一个 JSON 对象。运行 `tinyrecorder help` 查看所有命令和选项。
+
+### 配合 AI 智能体使用
+
+Claude Code、Codex、Cursor 等编程智能体能执行终端命令，所以可以用 `tinyrecorder` 录屏，比如录下它复现的 bug，或它刚做好的功能的演示。把下面这段加到项目的 `CLAUDE.md` 或 `AGENTS.md` 里，智能体就知道怎么用：
+
+```markdown
+## 录屏
+本机已安装 TinyRecorder，可以用 `tinyrecorder` 命令录屏：
+- `tinyrecorder record screen 1 --duration 15 --json`：录主屏幕 15 秒，输出 {"file": "<路径>"}。
+- `tinyrecorder record window "<窗口完整标题>" --app "<应用名>"`：开始录制一个窗口；`tinyrecorder stop --json` 停止并输出文件路径。
+- `tinyrecorder status --json`：查看是否正在录制。
+出错时错误信息写到 stderr，退出码不为 0。运行 `tinyrecorder help` 查看所有选项。
+```
+
+macOS 仍会请你授权一次屏幕录制，以及允许终端控制 TinyRecorder；录制时菜单栏会显示正在录制，所以不会在你不知情的情况下录屏。
+
 ## 自动化（AppleScript）
 
 TinyRecorder 支持 AppleScript，可以在终端、快捷指令（**运行 AppleScript** 操作）、Raycast、Alfred、Keyboard Maestro 或你自己的脚本里开始和停止录制。

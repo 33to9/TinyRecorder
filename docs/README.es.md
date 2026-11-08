@@ -106,6 +106,40 @@ Tus grabaciones nunca salen de tu Mac. Para mejorar la app, TinyRecorder envía 
 
 Las estadísticas de uso están activadas de forma predeterminada. Todos los detalles: [página de privacidad](https://www.tinyrecorder.app/es/privacy).
 
+## Herramienta de línea de comandos
+
+TinyRecorder incluye el comando `tinyrecorder`. Homebrew lo deja listo al instalar la app, y el instalador de una línea lo enlaza si no hace falta contraseña. Si no, ejecuta esto una vez:
+
+```bash
+sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+```
+
+Después, por ejemplo:
+
+```bash
+tinyrecorder record screen 1 --duration 10
+tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder status
+tinyrecorder stop
+```
+
+`record` espera a que la grabación haya empezado, `stop` espera a que se guarde el archivo e imprime su ruta, y con `--json` cada comando imprime un objeto JSON. Ejecuta `tinyrecorder help` para ver todos los comandos y opciones.
+
+### Uso con agentes de IA
+
+Los agentes de programación como Claude Code, Codex o Cursor ejecutan comandos de terminal, así que pueden grabar la pantalla con `tinyrecorder`: por ejemplo, un error que reproducen o una demo de una función que acaban de crear. Para que un agente lo sepa, añade esto al `CLAUDE.md` o `AGENTS.md` de tu proyecto:
+
+```markdown
+## Grabación de pantalla
+TinyRecorder está instalado. Usa el comando `tinyrecorder` para grabar la pantalla:
+- `tinyrecorder record screen 1 --duration 15 --json` graba la pantalla principal durante 15 segundos e imprime {"file": "<RUTA>"}.
+- `tinyrecorder record window "<TÍTULO EXACTO>" --app "<NOMBRE DE LA APP>"` empieza a grabar una ventana; `tinyrecorder stop --json` la detiene e imprime el archivo.
+- `tinyrecorder status --json` indica si hay una grabación en curso.
+Los errores van a stderr con un estado de salida distinto de 0. Ejecuta `tinyrecorder help` para ver todas las opciones.
+```
+
+macOS sigue pidiéndote una vez el permiso de grabación de pantalla y el permiso para que la terminal controle TinyRecorder, y la barra de menús muestra cuándo hay una grabación en curso, así que no se graba nada sin que lo veas.
+
 ## Automatización (AppleScript)
 
 TinyRecorder se puede controlar con AppleScript, así que puedes iniciar y detener grabaciones desde Terminal, la app Atajos (acción **Ejecutar AppleScript**), Raycast, Alfred, Keyboard Maestro o tus propios scripts.

@@ -106,6 +106,40 @@ Your recordings never leave your Mac. To help improve the app, TinyRecorder send
 
 Usage statistics are on by default. Full details: [privacy page](https://www.tinyrecorder.app/en/privacy).
 
+## Command-line tool
+
+TinyRecorder includes a `tinyrecorder` command. Homebrew sets it up when it installs the app, and the one-line installer links it when that needs no password. Otherwise, run this once:
+
+```bash
+sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+```
+
+Then, for example:
+
+```bash
+tinyrecorder record screen 1 --duration 10
+tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder status
+tinyrecorder stop
+```
+
+`record` waits until the recording has started, `stop` waits until the file is saved and prints its path, and with `--json` every command prints one JSON object. Run `tinyrecorder help` for all commands and options.
+
+### Use with AI agents
+
+Coding agents such as Claude Code, Codex or Cursor run terminal commands, so they can record your screen with `tinyrecorder`: for example a bug they reproduce, or a demo of a feature they just built. To tell an agent about it, add this to your project's `CLAUDE.md` or `AGENTS.md`:
+
+```markdown
+## Screen recording
+TinyRecorder is installed. Use the `tinyrecorder` command to record the screen:
+- `tinyrecorder record screen 1 --duration 15 --json` records the main display for 15 seconds and prints {"file": "<PATH>"}.
+- `tinyrecorder record window "<EXACT TITLE>" --app "<APP NAME>"` starts recording one window; `tinyrecorder stop --json` stops it and prints the file.
+- `tinyrecorder status --json` tells whether a recording is running.
+Errors go to stderr with a non-zero exit status. Run `tinyrecorder help` for all options.
+```
+
+macOS still asks you once for the Screen Recording permission and for permission to control TinyRecorder, and the menu bar shows while a recording runs, so nothing is recorded without you seeing it.
+
 ## Automation (AppleScript)
 
 TinyRecorder can be controlled with AppleScript, so you can start and stop recordings from Terminal, the Shortcuts app (**Run AppleScript** action), Raycast, Alfred, Keyboard Maestro or your own scripts.

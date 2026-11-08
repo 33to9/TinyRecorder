@@ -106,6 +106,40 @@ Deine Aufnahmen verlassen nie deinen Mac. Um die App zu verbessern, sendet TinyR
 
 Die Nutzungsstatistik ist standardmäßig eingeschaltet. Alle Details: [Datenschutzseite](https://www.tinyrecorder.app/de/privacy).
 
+## Befehlszeilenwerkzeug
+
+TinyRecorder bringt den Befehl `tinyrecorder` mit. Homebrew richtet ihn bei der Installation ein, und das Ein-Zeilen-Installationsskript verlinkt ihn, wenn dafür kein Passwort nötig ist. Andernfalls einmal ausführen:
+
+```bash
+sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Contents/Resources/tinyrecorder /usr/local/bin/tinyrecorder
+```
+
+Danach zum Beispiel:
+
+```bash
+tinyrecorder record screen 1 --duration 10
+tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder status
+tinyrecorder stop
+```
+
+`record` wartet, bis die Aufnahme wirklich läuft, `stop` wartet, bis die Datei gespeichert ist, und gibt ihren Pfad aus, und mit `--json` gibt jeder Befehl ein JSON-Objekt aus. Alle Befehle und Optionen zeigt `tinyrecorder help`.
+
+### Mit KI-Agenten nutzen
+
+Coding-Agenten wie Claude Code, Codex oder Cursor führen Terminalbefehle aus und können deshalb mit `tinyrecorder` den Bildschirm aufnehmen, etwa einen nachgestellten Fehler oder eine Demo einer gerade gebauten Funktion. Damit ein Agent davon weiß, füge Folgendes in die `CLAUDE.md` oder `AGENTS.md` deines Projekts ein:
+
+```markdown
+## Bildschirmaufnahme
+TinyRecorder ist installiert. Mit dem Befehl `tinyrecorder` lässt sich der Bildschirm aufnehmen:
+- `tinyrecorder record screen 1 --duration 15 --json` nimmt den Hauptbildschirm 15 Sekunden lang auf und gibt {"file": "<PFAD>"} aus.
+- `tinyrecorder record window "<GENAUER FENSTERTITEL>" --app "<APP-NAME>"` startet die Aufnahme eines Fensters; `tinyrecorder stop --json` beendet sie und gibt die Datei aus.
+- `tinyrecorder status --json` zeigt, ob gerade aufgenommen wird.
+Fehler gehen nach stderr, der Exit-Status ist dann ungleich 0. Alle Optionen zeigt `tinyrecorder help`.
+```
+
+macOS fragt trotzdem einmal nach der Berechtigung für die Bildschirmaufnahme und danach, ob das Terminal TinyRecorder steuern darf, und die Menüleiste zeigt eine laufende Aufnahme an. Es wird also nichts aufgenommen, ohne dass du es siehst.
+
 ## Automatisierung (AppleScript)
 
 TinyRecorder lässt sich per AppleScript steuern. So kannst du Aufnahmen aus dem Terminal, der Kurzbefehle-App (Aktion **AppleScript ausführen**), Raycast, Alfred, Keyboard Maestro oder eigenen Skripten starten und stoppen.
