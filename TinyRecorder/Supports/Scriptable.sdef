@@ -10,6 +10,12 @@
             <parameter name="numbered" code="NUMb" type="integer" description="Screen number" optional="yes">
                 <cocoa key="index"/>
             </parameter>
+            <parameter name="countdown" code="CDwn" type="integer" description="Seconds to count down before recording starts, instead of the Delay Before Recording setting (0 = none)" optional="yes">
+                <cocoa key="countdown"/>
+            </parameter>
+            <parameter name="showing preview" code="PRvw" type="boolean" description="false: no preview, trimmer or Recording Completed notification after this recording is saved" optional="yes">
+                <cocoa key="preview"/>
+            </parameter>
             <parameter name="saving to" code="OUtp" type="text" description="POSIX path to save the recording as. TinyRecorder adds the extension of the current format; the folder must exist" optional="yes">
                 <cocoa key="output"/>
             </parameter>
@@ -26,6 +32,12 @@
             <parameter name="display number" code="DIar" type="integer" description="Display number for the rectangle (1 if omitted)" optional="yes">
                 <cocoa key="display"/>
             </parameter>
+            <parameter name="countdown" code="CDwn" type="integer" description="Seconds to count down before recording starts, instead of the Delay Before Recording setting (0 = none)" optional="yes">
+                <cocoa key="countdown"/>
+            </parameter>
+            <parameter name="showing preview" code="PRvw" type="boolean" description="false: no preview, trimmer or Recording Completed notification after this recording is saved" optional="yes">
+                <cocoa key="preview"/>
+            </parameter>
             <parameter name="saving to" code="OUtp" type="text" description="POSIX path to save the recording as. TinyRecorder adds the extension of the current format; the folder must exist" optional="yes">
                 <cocoa key="output"/>
             </parameter>
@@ -38,6 +50,12 @@
             </parameter>
             <parameter name="named" code="NAmd" type="text" description="Application Name" optional="yes">
                 <cocoa key="name"/>
+            </parameter>
+            <parameter name="countdown" code="CDwn" type="integer" description="Seconds to count down before recording starts, instead of the Delay Before Recording setting (0 = none)" optional="yes">
+                <cocoa key="countdown"/>
+            </parameter>
+            <parameter name="showing preview" code="PRvw" type="boolean" description="false: no preview, trimmer or Recording Completed notification after this recording is saved" optional="yes">
+                <cocoa key="preview"/>
             </parameter>
             <parameter name="saving to" code="OUtp" type="text" description="POSIX path to save the recording as. TinyRecorder adds the extension of the current format; the folder must exist" optional="yes">
                 <cocoa key="output"/>
@@ -58,6 +76,12 @@
             <parameter name="identified by" code="WIid" type="integer" description="Window ID, as listed by list targets showing &quot;windows&quot;" optional="yes">
                 <cocoa key="id"/>
             </parameter>
+            <parameter name="countdown" code="CDwn" type="integer" description="Seconds to count down before recording starts, instead of the Delay Before Recording setting (0 = none)" optional="yes">
+                <cocoa key="countdown"/>
+            </parameter>
+            <parameter name="showing preview" code="PRvw" type="boolean" description="false: no preview, trimmer or Recording Completed notification after this recording is saved" optional="yes">
+                <cocoa key="preview"/>
+            </parameter>
             <parameter name="saving to" code="OUtp" type="text" description="POSIX path to save the recording as. TinyRecorder adds the extension of the current format; the folder must exist" optional="yes">
                 <cocoa key="output"/>
             </parameter>
@@ -70,6 +94,9 @@
             </parameter>
             <parameter name="microphone" code="MIcp" type="boolean" description="Whether to record the microphone at the same time" optional="yes">
                 <cocoa key="mic"/>
+            </parameter>
+            <parameter name="showing preview" code="PRvw" type="boolean" description="false: no preview, trimmer or Recording Completed notification after this recording is saved" optional="yes">
+                <cocoa key="preview"/>
             </parameter>
             <parameter name="saving to" code="OUtp" type="text" description="POSIX path to save the recording as. TinyRecorder adds the extension of the current format; the folder must exist" optional="yes">
                 <cocoa key="output"/>
@@ -150,6 +177,40 @@
             <result type="text" description="POSIX path of the saved image"/>
         </command>
 
+        <command name="diagnose" code="QKrdDIag" description="Check what TinyRecorder needs to work (permissions, save folder) and list its settings">
+            <cocoa class="diagnoseCommand"/>
+            <parameter name="json" code="JSon" type="boolean" description="Return JSON instead of tab-separated lines (kind, status, name, value)" optional="yes">
+                <cocoa key="json"/>
+            </parameter>
+            <result type="text" description="One line per check or setting, or a JSON array"/>
+        </command>
+
+        <command name="extract frames" code="QKrdFRam" description="Save still images from a recording, so its content can be checked without playing it">
+            <cocoa class="extractFramesCommand"/>
+            <parameter name="from file" code="FIle" type="text" description="POSIX path of the video">
+                <cocoa key="file"/>
+            </parameter>
+            <parameter name="interval" code="INtv" type="real" description="One frame every this many seconds" optional="yes">
+                <cocoa key="interval"/>
+            </parameter>
+            <parameter name="frame count" code="FRct" type="integer" description="This many frames, evenly spread (8 if neither this nor interval is given; 12 for a contact sheet)" optional="yes">
+                <cocoa key="count"/>
+            </parameter>
+            <parameter name="contact sheet" code="SHet" type="boolean" description="Save all frames in one image, each with its time" optional="yes">
+                <cocoa key="sheet"/>
+            </parameter>
+            <parameter name="maximum width" code="MXwd" type="integer" description="Largest width of each frame in pixels (1280; 480 on a contact sheet)" optional="yes">
+                <cocoa key="width"/>
+            </parameter>
+            <parameter name="saving to" code="OUtp" type="text" description="POSIX path of the folder for the images (default: a &quot;NAME frames&quot; folder next to the video)" optional="yes">
+                <cocoa key="output"/>
+            </parameter>
+            <parameter name="json" code="JSon" type="boolean" description="Return a JSON array instead of one path per line" optional="yes">
+                <cocoa key="json"/>
+            </parameter>
+            <result type="text" description="Paths of the saved images"/>
+        </command>
+
         <command name="configure" code="QKrdSEtt" description="Modify recording settings">
             <cocoa class="setPreferences"/>
             <parameter name="hires" code="REsl" type="boolean" description="Recording in Retina resolution" optional="yes">
@@ -184,6 +245,12 @@
             </parameter>
             <parameter name="video codec" code="VCdc" type="text" description="Video codec: h264 or h265" optional="yes">
                 <cocoa key="codec"/>
+            </parameter>
+            <parameter name="countdown" code="CDwn" type="integer" description="Delay Before Recording, in seconds (0 to 99)" optional="yes">
+                <cocoa key="countdown"/>
+            </parameter>
+            <parameter name="show preview" code="SPrv" type="boolean" description="Show the preview thumbnail after a recording is saved" optional="yes">
+                <cocoa key="preview"/>
             </parameter>
         </command>
     </suite>

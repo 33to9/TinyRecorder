@@ -15,6 +15,7 @@ usage() {
 tinyrecorder: control TinyRecorder from the command line
 
 Usage:
+  tinyrecorder doctor                          Check that everything needed is in place (permissions, folder)
   tinyrecorder list displays|windows|apps      List what can be recorded (window IDs, display numbers)
   tinyrecorder record screen [NUMBER]          Record a display (1 = main). No number: open the picker
   tinyrecorder record window TITLE [--app APP] Record the window with this exact title
@@ -33,7 +34,9 @@ Usage:
                                                window TITLE [--app APP], window --id ID, or
                                                area X,Y,W,H [--display N]. Default: display 1.
                                                Needs macOS 14 or later
+  tinyrecorder frames FILE [OPTIONS]           Save still images from a recording (see below)
   tinyrecorder config [OPTIONS]                Change recording settings (see below)
+  tinyrecorder config --show                   Print the current settings
   tinyrecorder version                         Print the TinyRecorder version
   tinyrecorder help                            Show this help
 
@@ -42,12 +45,27 @@ Record options:
                        (.mp4 or .mov; audio: .m4a, .mp3, .flac, .ogg, or .qma with the microphone);
                        if PATH has one, it must match. The folder must exist; existing files are
                        never replaced.
+  --quiet, -q          Same as --no-countdown --no-preview: nothing shows up on screen that
+                       could get in the way of the recording or of the next screenshot.
+  --no-countdown       Start right away, whatever Delay Before Recording is set to.
+  --countdown SECONDS  Count down this long first, instead of the setting.
+  --no-preview         No preview thumbnail, trimmer or notification after saving.
   --duration SECONDS   Record this long, then stop and print the saved file's path.
                        Ctrl-C stops early and still saves.
   --no-wait            Return as soon as the command is sent. By default, record waits until
                        the recording has started (after the countdown, if one is set).
 
+Frames options (default: 8 frames spread over the recording, saved as PNGs in a
+"NAME frames" folder next to it; prints their paths):
+  --every SECONDS      One frame every SECONDS (e.g. 2 or 0.5), at most 200
+  --count N            N frames, evenly spread (1 to 200)
+  --sheet              One contact sheet with all frames and their times (12 by default)
+  --width PIXELS       Largest width of each frame (1280; 480 on a sheet)
+  --output FOLDER      Save the images in this folder
+
 Config options:
+  --countdown N        Delay Before Recording, in seconds (0 to 99)
+  --preview on|off     Show the preview thumbnail after saving
   --fps N              10, 15, 24, 30, 60, 90, 120, 144 or 240
   --quality N          1 = low, 2 = medium, 3 = high
   --format mp4|mov     Video file format
@@ -73,7 +91,8 @@ Examples:
   tinyrecorder record screen 1 --duration 10       # 10 s of the main display, prints the file
   tinyrecorder list windows --app Safari           # IDs and titles of Safari's windows
   tinyrecorder record window --id 1234 --duration 5 --output ~/Desktop/demo.mp4
-  tinyrecorder record area 0,0,1280,720 --duration 5
+  tinyrecorder record area 0,0,1280,720 --duration 5 --quiet
+  tinyrecorder frames ~/Desktop/demo.mp4 --sheet    # one image to check what was recorded
   tinyrecorder screenshot window --id 1234 --output shot.png
   tinyrecorder record window "Untitled" --app TextEdit && sleep 5 && tinyrecorder stop
   tinyrecorder status --json
@@ -241,13 +260,17 @@ check_rect() {
 cmd_record() {
   local what=${1:-}; [ -n "$what" ] || usage_error "record what? screen, window, app, area or audio"
   shift
-  local target="" app="" mic="" duration="" wait=1 output="" id="" display=""
+  local target="" app="" mic="" duration="" wait=1 output="" id="" display="" countdown="" preview=""
   while [ $# -gt 0 ]; do
     case $1 in
       --app) [ $# -ge 2 ] || usage_error "--app needs a name"; app=$2; shift ;;
       --id) [ $# -ge 2 ] || usage_error "--id needs a window ID"; id=$2; shift ;;
       --display) [ $# -ge 2 ] || usage_error "--display needs a number"; display=$2; shift ;;
       --output|-o) [ $# -ge 2 ] || usage_error "--output needs a path"; output=$2; shift ;;
+      --countdown) [ $# -ge 2 ] || usage_error "--countdown needs a number of seconds"; countdown=$2; shift ;;
+      --no-countdown) countdown=0 ;;
+      --no-preview) preview=false ;;
+      --quiet|-q) countdown=0; preview=false ;;
       --mic) mic=true ;;
       --no-mic) mic=false ;;
       --duration) [ $# -ge 2 ] || usage_error "--duration needs a number of seconds"; duration=$2; shift ;;
@@ -263,6 +286,7 @@ cmd_record() {
   fi
   [ -z "$id" ] || check_number --id "$id"
   [ -z "$display" ] || check_number --display "$display"
+  [ -z "$countdown" ] || check_number --countdown "$countdown"
   [ "$what" = window ] || [ -z "$app$id" ] || usage_error "--app and --id only go with record window"
   [ "$what" = area ] || [ -z "$display" ] || usage_error "--display only goes with record area; use 'record screen NUMBER' for a whole display"
   [ "$what" = audio ] || [ -z "$mic" ] || usage_error "--mic / --no-mic only go with record audio; use 'config --mic on' for video"
@@ -309,10 +333,13 @@ cmd_record() {
       [ -z "$mic" ] || P="$P microphone $mic" ;;
     *) usage_error "can't record \"$what\"; use screen, window, app, area or audio" ;;
   esac
-  if [ -n "$output" ]; then
-    [ $interactive = 0 ] || usage_error "--output needs a target given on the command line (a number, title, name or area), not the picker"
-    add_param "saving to" "$(abs_path "$output")"
+  if [ -n "$output$countdown$preview" ] && [ $interactive = 1 ]; then
+    usage_error "--output, --countdown, --no-countdown, --no-preview and --quiet need a target given on the command line (a number, title, name or area), not the picker"
   fi
+  [ -z "$output" ] || add_param "saving to" "$(abs_path "$output")"
+  # Audio recordings have no countdown.
+  [ -z "$countdown" ] || [ "$what" = audio ] || add_param countdown "$countdown" int
+  [ -z "$preview" ] || P="$P showing preview false"
 
   # Lets TinyRecorder's usage statistics tell this tool apart from other scripts.
   run_script "on run argv
@@ -426,7 +453,12 @@ end run" ${A[@]+"${A[@]}"}) || exit 1
 }
 
 cmd_config() {
-  [ $# -gt 0 ] || usage_error "config needs at least one option"
+  [ $# -gt 0 ] || usage_error "config needs at least one option, or --show"
+  if [ "$1" = --show ]; then
+    [ $# = 1 ] || usage_error "--show takes no other options"
+    show_settings
+    return 0
+  fi
   local params="" n=0 args=() v
   bool() {
     case $1 in
@@ -448,13 +480,15 @@ cmd_config() {
       --hdr) params="$params hdr ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
       --mic-device) params="$params mic device (item $n of argv)"; v=$2 ;;
       --folder) params="$params save folder (item $n of argv)"; v=$(abs_path "$2") ;;
+      --countdown) params="$params countdown ((item $n of argv) as integer)"; v=$2 ;;
+      --preview) params="$params show preview ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
       --format) params="$params file format (item $n of argv)"; v=$2
         case $v in mp4|mov) ;; *) usage_error "--format must be mp4 or mov" ;; esac ;;
       --codec) params="$params video codec (item $n of argv)"; v=$2
         case $v in h264|h265|h.264|h.265|H264|H265|H.264|H.265) ;; *) usage_error "--codec must be h264 or h265" ;; esac ;;
       *) usage_error "unknown config option: $1" ;;
     esac
-    case $1 in --fps|--quality) case $v in ''|*[!0-9]*) usage_error "$1 must be a number" ;; esac ;; esac
+    case $1 in --fps|--quality|--countdown) case $v in ''|*[!0-9]*) usage_error "$1 must be a number" ;; esac ;; esac
     args+=("$v")
     shift 2
   done
@@ -463,6 +497,129 @@ cmd_config() {
 end run" "${args[@]}" >/dev/null || exit 1
   [ $JSON = 1 ] && echo '{"ok":true}'
   return 0
+}
+
+show_settings() {
+  if [ $JSON = 1 ]; then
+    run_script 'tell application id "com.33to9.TinyRecorder" to diagnose json true' || exit 1
+    echo
+    return 0
+  fi
+  local out
+  out=$(run_script 'tell application id "com.33to9.TinyRecorder" to diagnose') || exit 1
+  printf '%s\n' "$out" | awk -F'\t' '$1 == "setting" { printf "%-22s %s\n", $3 ":", $4 }'
+}
+
+# Path of the TinyRecorder.app that contains this script (resolving symlinks), or nothing.
+own_app() {
+  local src=$0 t
+  while [ -L "$src" ]; do
+    t=$(readlink "$src")
+    case $t in /*) src=$t ;; *) src=$(dirname "$src")/$t ;; esac
+  done
+  case $src in */Contents/Resources/tinyrecorder) printf '%s' "${src%/Contents/Resources/tinyrecorder}" ;; esac
+}
+
+# Checks that TinyRecorder can be driven from here: the app, this command on the PATH,
+# permission to control the app, and the app's own checks (Screen Recording permission,
+# save folder). Exit status 1 if anything is an error.
+cmd_doctor() {
+  [ $# = 0 ] || usage_error "doctor takes no arguments"
+  local rows="" errors=0 app on_path out msg errfile TAB
+  TAB=$(printf '\t')
+  add_row() {
+    rows="$rows$1$TAB$2$TAB$3
+"
+    [ "$1" != error ] || errors=$((errors + 1))
+  }
+
+  app=$(own_app)
+  if [ -n "$app" ]; then add_row ok command "$0 (in $app)"; else add_row warning command "$0 is not inside TinyRecorder.app; it may be an old copy"; fi
+  on_path=$(command -v tinyrecorder 2>/dev/null)
+  if [ -n "$on_path" ]; then
+    add_row ok path "tinyrecorder is on the PATH ($on_path)"
+  else
+    add_row warning path "tinyrecorder is not on the PATH. Choose TinyRecorder › Install Command-Line Tool…, then open a new Terminal window"
+  fi
+  if app_running; then add_row ok running "TinyRecorder is running"; else add_row ok running "TinyRecorder isn't running; it opens when a command needs it"; fi
+
+  errfile=$(mktemp "${TMPDIR:-/tmp}/tinyrecorder.XXXXXX") || die "can't create a temporary file"
+  if out=$(osascript -e 'tell application id "com.33to9.TinyRecorder" to diagnose' 2>"$errfile"); then
+    add_row ok automation-permission "this terminal may control TinyRecorder"
+    rows="$rows$(printf '%s\n' "$out" | awk -F'\t' '$1 == "check" { print $2 "\t" $3 "\t" $4 }')
+"
+    errors=$((errors + $(printf '%s\n' "$out" | awk -F'\t' '$1 == "check" && $2 == "error"' | wc -l)))
+  else
+    msg=$(cat "$errfile")
+    case $msg in
+      *-1743*) add_row error automation-permission "this terminal may not control TinyRecorder. Allow it in System Settings › Privacy & Security › Automation" ;;
+      *-1728*|*-1708*) add_row error app-version "TinyRecorder is too old for doctor (1.8.26 or later). Update it with Check for Updates…" ;;
+      *-600*|*-10814*|*-2700*) add_row error app "macOS can't find TinyRecorder. Install it from tinyrecorder.app" ;;
+      *) add_row error app "couldn't ask TinyRecorder: ${msg#*execution error: }" ;;
+    esac
+  fi
+  rm -f "$errfile"
+
+  if [ $JSON = 1 ]; then
+    local first=1 status name value
+    printf '{"ok":%s,"checks":[' "$([ $errors = 0 ] && echo true || echo false)"
+    while IFS="$TAB" read -r status name value; do
+      [ -n "$status" ] || continue
+      [ $first = 1 ] || printf ','
+      first=0
+      printf '{"status":%s,"name":%s,"value":%s}' "$(json_str "$status")" "$(json_str "$name")" "$(json_str "$value")"
+    done <<ROWS
+$rows
+ROWS
+    printf ']}\n'
+  else
+    printf '%s' "$rows" | awk -F'\t' 'NF { mark = ($1 == "ok") ? "ok  " : (($1 == "warning") ? "warn" : "FAIL"); printf "%s  %-28s %s\n", mark, $2, $3 }'
+    if [ $errors = 0 ]; then echo "Everything needed is in place."; else echo "$errors problem(s) to fix (see FAIL above)."; fi
+  fi
+  [ $errors = 0 ]
+}
+
+cmd_frames() {
+  local file=${1:-}; [ -n "$file" ] || usage_error "frames needs the path of a recording"
+  shift
+  local every="" count="" sheet=0 width="" output="" ms
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --every) [ $# -ge 2 ] || usage_error "--every needs a number of seconds"; every=$2; shift ;;
+      --count) [ $# -ge 2 ] || usage_error "--count needs a number"; count=$2; shift ;;
+      --sheet) sheet=1 ;;
+      --width) [ $# -ge 2 ] || usage_error "--width needs a number of pixels"; width=$2; shift ;;
+      --output|-o) [ $# -ge 2 ] || usage_error "--output needs a folder"; output=$2; shift ;;
+      -*) usage_error "unknown option for frames: $1" ;;
+      *) usage_error "unexpected argument: $1" ;;
+    esac
+    shift
+  done
+  [ -z "$every" ] || [ -z "$count" ] || usage_error "give --every or --count, not both"
+  [ -z "$count" ] || check_number --count "$count"
+  [ -z "$width" ] || check_number --width "$width"
+  [ -f "$file" ] || die "no such file: $file"
+  P=""; A=()
+  add_param "from file" "$(abs_path "$file")"
+  if [ -n "$every" ]; then
+    case $every in *[!0-9.]*|.*|*.*.*) usage_error "--every must be a number of seconds, e.g. 2 or 0.5" ;; esac
+    # Milliseconds as a whole number: "0.5" as real would depend on the decimal separator.
+    ms=$(awk -v s="$every" 'BEGIN { printf "%d", s * 1000 + 0.5 }')
+    [ "$ms" -gt 0 ] || usage_error "--every must be more than 0"
+    A+=("$ms"); P="$P interval (((item ${#A[@]} of argv) as integer) / 1000)"
+  fi
+  [ -z "$count" ] || add_param "frame count" "$count" int
+  [ -z "$width" ] || add_param "maximum width" "$width" int
+  [ -z "$output" ] || add_param "saving to" "$(abs_path "$output")"
+  [ $sheet = 0 ] || P="$P contact sheet true"
+  [ $JSON = 0 ] || P="$P json true"
+  local out
+  out=$(run_script "on run argv
+	with timeout of 600 seconds
+		tell application id \"com.33to9.TinyRecorder\" to extract frames$P
+	end timeout
+end run" "${A[@]}") || exit 1
+  if [ $JSON = 1 ]; then printf '{"files":%s}\n' "$out"; else printf '%s\n' "$out"; fi
 }
 
 cmd_version() {
@@ -492,6 +649,8 @@ case $cmd in
   record) cmd_record "$@" ;;
   stop) cmd_stop "$@" ;;
   list|ls) cmd_list "$@" ;;
+  doctor) cmd_doctor "$@" ;;
+  frames) cmd_frames "$@" ;;
   screenshot|shot) cmd_screenshot "$@" ;;
   pause) [ $# = 0 ] || usage_error "pause takes no arguments"; simple_command "pause recording" ;;
   resume) [ $# = 0 ] || usage_error "resume takes no arguments"; simple_command "resume recording" ;;

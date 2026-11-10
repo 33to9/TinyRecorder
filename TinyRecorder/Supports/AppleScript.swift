@@ -9,6 +9,7 @@ import Foundation
 import AppKit
 import SwiftUI
 import ScreenCaptureKit
+import AVFoundation
 import UniformTypeIdentifiers
 
 // The classes below are referenced by name from Scriptable.sdef (<cocoa class="..."/>).
@@ -88,6 +89,13 @@ extension NSScriptCommand {
         }
         return nil
     }
+
+    /// "countdown" argument: seconds to count down before recording, instead of the setting.
+    var scriptCountdown: Int? { (scriptArgs["countdown"] as? Int).map { max(0, $0) } }
+
+    /// "showing preview false": no preview, trimmer or "completed" notification after saving,
+    /// so nothing covers the screen for the script's next screenshot or recording.
+    var scriptQuiet: Bool { scriptArgs["preview"] as? Bool == false }
 
     /// The "saving to" argument of a recording command, checked: the path without its
     /// extension (TinyRecorder adds it), nil if there is none, or an error message.
@@ -175,6 +183,23 @@ enum ScriptTargets {
         }
     }
 
+    /// Writes the image as PNG, or JPEG for .jpg/.jpeg. Returns an error message.
+    static func writeImage(_ image: CGImage, to path: String) -> String? {
+        let ext = (path as NSString).pathExtension.lowercased()
+        let type = (ext == "jpg" || ext == "jpeg") ? UTType.jpeg : UTType.png
+        guard let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: path) as CFURL, type.identifier as CFString, 1, nil) else {
+            return "Couldn't create the file \(path)"
+        }
+        CGImageDestinationAddImage(dest, image, nil)
+        return CGImageDestinationFinalize(dest) ? nil : "Couldn't write the file \(path)"
+    }
+
+    /// A JSON array of strings or objects, for the commands' "json" option.
+    static func json(_ value: Any) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]) else { return "[]" }
+        return String(decoding: data, as: UTF8.self)
+    }
+
     private static let mediaExtensions: Set<String> = ["mp4", "mov", "m4a", "mp3", "ogg", "flac", "qma", "png", "jpg", "jpeg", "heic"]
 
     /// Checks an output path from a script: absolute, in an existing folder, nothing there yet.
@@ -217,8 +242,9 @@ class selectScreen: NSScriptCommand {
             let screen = screens[index - 1]
             let output = self.scriptRecordingOutput()
             if let error = output.error { return error }
-            AppDelegate.shared.createCountdownPanel(screen: screen) {
+            AppDelegate.shared.createCountdownPanel(screen: screen, seconds: self.scriptCountdown) {
                 SCContext.nextOutputBase = output.base
+                SCContext.nextQuiet = self.scriptQuiet
                 AppDelegate.shared.prepRecord(type: "display", screens: screen, windows: nil, applications: nil)
             }
             return nil
@@ -261,9 +287,10 @@ class selectArea: NSScriptCommand {
             overlay.backgroundColor = .clear
             overlay.contentView = NSHostingView(rootView: DashWindow())
             overlay.orderFront(nil)
-            AppDelegate.shared.createCountdownPanel(screen: screen) {
+            AppDelegate.shared.createCountdownPanel(screen: screen, seconds: self.scriptCountdown) {
                 SCContext.autoStop = 0
                 SCContext.nextOutputBase = output.base
+                SCContext.nextQuiet = self.scriptQuiet
                 AppDelegate.shared.prepRecord(type: "area", screens: screen, windows: nil, applications: nil)
             }
             return nil
@@ -300,8 +327,9 @@ class selectApps: NSScriptCommand {
             }
             let output = self.scriptRecordingOutput()
             if let error = output.error { return error }
-            AppDelegate.shared.createCountdownPanel(screen: s[0]) {
+            AppDelegate.shared.createCountdownPanel(screen: s[0], seconds: self.scriptCountdown) {
                 SCContext.nextOutputBase = output.base
+                SCContext.nextQuiet = self.scriptQuiet
                 AppDelegate.shared.prepRecord(type: "application", screens: s[0], windows: nil, applications: [app])
             }
             return nil
@@ -331,8 +359,9 @@ class selectWindows: NSScriptCommand {
             // Show the countdown on the pointer's screen if the window is on it, else on
             // the window's screen.
             let countdownScreen = SCContext.getSCDisplayWithMouse().flatMap { s.contains($0) ? $0 : nil } ?? s[0]
-            AppDelegate.shared.createCountdownPanel(screen: countdownScreen) {
+            AppDelegate.shared.createCountdownPanel(screen: countdownScreen, seconds: self.scriptCountdown) {
                 SCContext.nextOutputBase = output.base
+                SCContext.nextQuiet = self.scriptQuiet
                 AppDelegate.shared.prepRecord(type: "window", screens: s[0], windows: [window], applications: nil)
             }
             return nil
@@ -351,6 +380,7 @@ class recordAudio: NSScriptCommand {
             if let mic { UserDefaults.standard.set(mic, forKey: "recordMic") }
             closeAllWindow()
             SCContext.nextOutputBase = output.base
+            SCContext.nextQuiet = self.scriptQuiet
             AppDelegate.shared.prepRecord(type: "audio", screens: SCContext.getSCDisplayWithMouse(), windows: nil, applications: nil)
             UserDefaults.standard.set(m, forKey: "recordMic")
             return nil
@@ -454,6 +484,11 @@ class setPreferences: NSScriptCommand {
         if let codec, Encoder(rawValue: codec) == nil {
             return scriptFail("Invalid video codec! Allowed values: h264, h265")
         }
+        if let countdown = args["countdown"] as? Int, !(0...99).contains(countdown) {
+            return scriptFail("Invalid countdown! Allowed values: 0 to 99 seconds")
+        }
+        if let countdown = args["countdown"] as? Int { UserDefaults.standard.set(countdown, forKey: "countdown") }
+        if let preview = args["preview"] as? Bool { UserDefaults.standard.set(preview, forKey: "showPreview") }
         if let format { UserDefaults.standard.set(format, forKey: "videoFormat") }
         if let codec { UserDefaults.standard.set(codec, forKey: "encoder") }
         if let hires = args["hires"] as? Bool { UserDefaults.standard.set(hires ? 2 : 1, forKey: "highRes") }
@@ -632,7 +667,7 @@ class takeScreenshotCommand: NSScriptCommand {
                             self.resume(error: error?.localizedDescription ?? "Couldn't take the screenshot.")
                             return
                         }
-                        if let error = Self.write(image, to: path) { self.resume(error: error); return }
+                        if let error = ScriptTargets.writeImage(image, to: path) { self.resume(error: error); return }
                         self.resume(result: path)
                     }
                 }
@@ -641,15 +676,213 @@ class takeScreenshotCommand: NSScriptCommand {
         return nil
     }
 
-    /// Writes the image as PNG, or JPEG for .jpg/.jpeg. Returns an error message.
-    private static func write(_ image: CGImage, to path: String) -> String? {
-        let ext = (path as NSString).pathExtension.lowercased()
-        let type = (ext == "jpg" || ext == "jpeg") ? UTType.jpeg : UTType.png
-        guard let dest = CGImageDestinationCreateWithURL(URL(fileURLWithPath: path) as CFURL, type.identifier as CFString, 1, nil) else {
-            return "Couldn't create the file \(path)"
+}
+
+/// "diagnose": what TinyRecorder needs in order to work, and its current settings, for
+/// "tinyrecorder doctor" and "tinyrecorder config --show". Each row has a kind ("check" or
+/// "setting"), a status ("ok", "warning" or "error"; "info" for settings), a name and a value.
+/// Returns tab-separated lines, or JSON.
+@objc(diagnoseCommand)
+class diagnoseCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        var rows: [[String: String]] = []
+        func check(_ status: String, _ name: String, _ value: String) {
+            rows.append(["kind": "check", "status": status, "name": name, "value": value])
         }
-        CGImageDestinationAddImage(dest, image, nil)
-        return CGImageDestinationFinalize(dest) ? nil : "Couldn't write the file \(path)"
+        func setting(_ name: String, _ value: String) {
+            rows.append(["kind": "setting", "status": "info", "name": name, "value": value])
+        }
+        func onOff(_ key: String) -> String { ud.bool(forKey: key) ? "on" : "off" }
+
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        if Bundle.main.bundlePath.contains("/AppTranslocation/") {
+            check("warning", "app", "\(version), running from a temporary copy. Move TinyRecorder to the Applications folder and open it from there.")
+        } else {
+            check("ok", "app", "\(version) at \(Bundle.main.bundlePath)")
+        }
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        let osText = "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
+        if os.majorVersion < 14 {
+            check("warning", "macos", "\(osText). Screenshots need macOS 14 or later; recording works.")
+        } else {
+            check("ok", "macos", osText)
+        }
+        if CGPreflightScreenCaptureAccess() {
+            check("ok", "screen-recording-permission", "granted")
+        } else {
+            check("error", "screen-recording-permission", "not granted. Turn on TinyRecorder in System Settings › Privacy & Security › Screen & System Audio Recording, then quit and reopen TinyRecorder.")
+        }
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized: check("ok", "microphone-permission", "granted")
+        case .notDetermined: check("warning", "microphone-permission", "not asked yet. Only needed to record the microphone; macOS asks the first time.")
+        default: check("warning", "microphone-permission", "not granted. Only needed to record the microphone: System Settings › Privacy & Security › Microphone.")
+        }
+        let folder = ud.string(forKey: "saveDirectory") ?? ""
+        var isDir: ObjCBool = false
+        if folder.isEmpty {
+            check("error", "save-folder", "not set. Choose one in Settings, or run: tinyrecorder config --folder PATH")
+        } else if !FileManager.default.fileExists(atPath: folder, isDirectory: &isDir) {
+            check("warning", "save-folder", "\(folder) doesn't exist yet; it is created when a recording starts.")
+        } else if !isDir.boolValue {
+            check("error", "save-folder", "\(folder) is a file, not a folder. Run: tinyrecorder config --folder PATH")
+        } else if !FileManager.default.isWritableFile(atPath: folder) {
+            check("error", "save-folder", "\(folder) can't be written to. Run: tinyrecorder config --folder PATH")
+        } else {
+            check("ok", "save-folder", folder)
+        }
+        if let type = SCContext.streamType {
+            check("ok", "state", "recording (\(type))")
+        } else {
+            check("ok", "state", countdownPanel.isVisible ? "countdown" : "idle")
+        }
+
+        setting("format", ud.string(forKey: "videoFormat") ?? "mp4")
+        setting("codec", ud.string(forKey: "encoder") ?? "h264")
+        setting("fps", "\(ud.integer(forKey: "frameRate"))")
+        let q = ud.double(forKey: "videoQuality")
+        setting("quality", q < 0.5 ? "1" : (q < 0.9 ? "2" : "3"))
+        setting("hires", ud.integer(forKey: "highRes") == 2 ? "on" : "off")
+        setting("cursor", onOff("showMouse"))
+        setting("sound", onOff("recordWinSound"))
+        setting("mic", onOff("recordMic"))
+        setting("mic-device", ud.string(forKey: "micDevice") ?? "default")
+        setting("hdr", onOff("recordHDR"))
+        setting("folder", folder)
+        setting("countdown", "\(ud.integer(forKey: "countdown"))")
+        setting("preview", onOff("showPreview"))
+        setting("trim-after-recording", onOff("trimAfterRecord"))
+        setting("b-frames", onOff("allowBFrames"))
+        setting("audio-format", ud.string(forKey: "audioFormat") ?? "aac")
+
+        if scriptArgs["json"] as? Bool == true { return ScriptTargets.json(rows) }
+        let clean = { (s: String) in s.replacingOccurrences(of: "\t", with: " ").replacingOccurrences(of: "\n", with: " ") }
+        return rows.map { r in ["kind", "status", "name", "value"].map { clean(r[$0] ?? "") }.joined(separator: "\t") }
+            .joined(separator: "\n")
+    }
+}
+
+/// "extract frames": still images from a recording, so an agent that can't watch video can
+/// check what was recorded. Saves PNGs (or one contact sheet) into a folder and returns their
+/// paths, one per line (or a JSON array).
+@objc(extractFramesCommand)
+class extractFramesCommand: NSScriptCommand {
+    override func performDefaultImplementation() -> Any? {
+        let args = scriptArgs
+        guard let raw = args["file"] as? String, !raw.isEmpty else { return scriptFail("Give the path of the recording.") }
+        let path = (raw as NSString).expandingTildeInPath
+        guard path.hasPrefix("/") else { return scriptFail("The path must be absolute: \(raw)") }
+        guard FileManager.default.fileExists(atPath: path) else { return scriptFail("No such file: \(path)") }
+        let interval = (args["interval"] as? NSNumber)?.doubleValue
+        let count = args["count"] as? Int
+        let sheet = args["sheet"] as? Bool ?? false
+        let width = args["width"] as? Int
+        if interval != nil && count != nil { return scriptFail("Give an interval or a number of frames, not both.") }
+        if let interval, interval <= 0 { return scriptFail("The interval must be more than 0 seconds.") }
+        if let count, !(1...200).contains(count) { return scriptFail("The number of frames must be 1 to 200.") }
+        if let width, width < 64 { return scriptFail("The width must be at least 64 pixels.") }
+        var folder = (path as NSString).deletingPathExtension + " frames"
+        if let out = args["output"] as? String, !out.isEmpty {
+            folder = URL(fileURLWithPath: (out as NSString).expandingTildeInPath).standardizedFileURL.path
+            guard folder.hasPrefix("/") else { return scriptFail("The output folder must be an absolute path: \(out)") }
+        }
+        let json = args["json"] as? Bool ?? false
+        suspendExecution()
+        DispatchQueue.global(qos: .userInitiated).async {
+            let (paths, error) = Self.extract(path: path, to: folder, interval: interval, count: count, sheet: sheet, width: width)
+            DispatchQueue.main.async {
+                guard let paths else { self.resume(error: error); return }
+                self.resume(result: json ? ScriptTargets.json(paths) : paths.joined(separator: "\n"))
+            }
+        }
+        return nil
+    }
+
+    private static func extract(path: String, to folder: String, interval: Double?, count: Int?, sheet: Bool, width: Int?) -> ([String]?, String?) {
+        let asset = AVURLAsset(url: URL(fileURLWithPath: path))
+        guard !asset.tracks(withMediaType: .video).isEmpty else { return (nil, "This file has no video.") }
+        let duration = asset.duration.seconds
+        guard duration.isFinite, duration > 0 else { return (nil, "Couldn't read the length of this video.") }
+        var times: [Double]
+        if let interval {
+            times = Array(stride(from: 0, to: duration, by: interval))
+            if times.count > 200 {
+                return (nil, "That would be \(times.count) frames. Use a longer interval (200 frames at most).")
+            }
+        } else {
+            // The middle of equal parts: skips the first frame (often the countdown fading
+            // out) and the very end (often the click on Stop).
+            let n = count ?? (sheet ? 12 : 8)
+            times = (0..<n).map { duration * (Double($0) + 0.5) / Double(n) }
+        }
+        let generator = AVAssetImageGenerator(asset: asset)
+        generator.appliesPreferredTrackTransform = true
+        let tolerance = CMTime(seconds: 0.05, preferredTimescale: 600)
+        generator.requestedTimeToleranceBefore = tolerance
+        generator.requestedTimeToleranceAfter = tolerance
+        generator.maximumSize = CGSize(width: width ?? (sheet ? 480 : 1280), height: 0)
+        var images: [(Double, CGImage)] = []
+        for t in times {
+            do {
+                images.append((t, try generator.copyCGImage(at: CMTime(seconds: t, preferredTimescale: 600), actualTime: nil)))
+            } catch {
+                return (nil, "Couldn't read the frame at \(timestamp(t)): \(error.localizedDescription)")
+            }
+        }
+        do {
+            try FileManager.default.createDirectory(atPath: folder, withIntermediateDirectories: false)
+        } catch {
+            var isDir: ObjCBool = false
+            if !(FileManager.default.fileExists(atPath: folder, isDirectory: &isDir) && isDir.boolValue) {
+                return (nil, "Couldn't create the folder \(folder): \(error.localizedDescription)")
+            }
+        }
+        if sheet {
+            guard let image = contactSheet(images) else { return (nil, "Couldn't draw the contact sheet.") }
+            let file = (folder as NSString).appendingPathComponent("sheet.png")
+            if let error = ScriptTargets.writeImage(image, to: file) { return (nil, error) }
+            return ([file], nil)
+        }
+        var files: [String] = []
+        for (i, (t, image)) in images.enumerated() {
+            let file = (folder as NSString).appendingPathComponent(String(format: "frame-%03d-%.1fs.png", i + 1, t))
+            if let error = ScriptTargets.writeImage(image, to: file) { return (nil, error) }
+            files.append(file)
+        }
+        return (files, nil)
+    }
+
+    private static func timestamp(_ t: Double) -> String {
+        String(format: "%ld:%04.1f", Int(t) / 60, t.truncatingRemainder(dividingBy: 60))
+    }
+
+    /// All frames in a grid, each with its time underneath.
+    private static func contactSheet(_ images: [(Double, CGImage)]) -> CGImage? {
+        guard let first = images.first?.1, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        let n = images.count
+        let cols = n <= 3 ? n : (n == 4 ? 2 : (n <= 9 ? 3 : 4))
+        let rows = (n + cols - 1) / cols
+        let tw = first.width, th = first.height, gap = 8, label = 26
+        let w = cols * tw + (cols + 1) * gap
+        let h = rows * (th + label) + (rows + 1) * gap
+        guard let ctx = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        ctx.setFillColor(CGColor(gray: 0.12, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: ctx, flipped: false)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 15, weight: .medium),
+            .foregroundColor: NSColor.white,
+        ]
+        for (i, (t, image)) in images.enumerated() {
+            let x = gap + (i % cols) * (tw + gap)
+            let top = h - gap - (i / cols) * (th + label + gap) // CGContext's origin is bottom-left
+            ctx.draw(image, in: CGRect(x: x, y: top - th, width: image.width, height: image.height))
+            NSAttributedString(string: timestamp(t), attributes: attributes)
+                .draw(at: NSPoint(x: x + 2, y: top - th - label + 5))
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        return ctx.makeImage()
     }
 }
 

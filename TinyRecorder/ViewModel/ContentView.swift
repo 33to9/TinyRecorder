@@ -404,9 +404,10 @@ extension AppDelegate {
         }
     }
     
-    func createCountdownPanel(screen: SCDisplay, action: @escaping () -> Void) {
+    /// `seconds` overrides the Delay Before Recording setting (a script's --no-countdown).
+    func createCountdownPanel(screen: SCDisplay, seconds: Int? = nil, action: @escaping () -> Void) {
         guard let screen = screen.nsScreen else { return }
-        let countdown = ud.integer(forKey: "countdown")
+        let countdown = seconds ?? ud.integer(forKey: "countdown")
         if countdown == 0 {
             action()
         } else {

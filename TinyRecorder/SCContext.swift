@@ -63,6 +63,10 @@ class SCContext {
     static var nextOutputBase: String?
     /// This recording's script-chosen path; getFilePath() uses it once, then clears it.
     static var recOutputBase: String?
+    /// Set by a script before prepRecord(): this recording shows no preview,
+    /// trimmer or "completed" notification. prepRecord() moves it to recQuiet.
+    static var nextQuiet = false
+    static var recQuiet = false
     static let audioEngine = AVAudioEngine()
     static let AECEngine = AECAudioStream(sampleRate: 48000)
     static var backgroundColor: CGColor = CGColor.black
@@ -708,6 +712,9 @@ class SCContext {
         let currentType = streamType
         // Saving finishes asynchronously, after the recording state is reset below
         let recordingID = Analytics.recordingID
+        // A script asked for no preview, trimmer or "completed" notification for this recording.
+        let quiet = recQuiet
+        recQuiet = false
         if discardRequested {
             Analytics.recordingDiscarded(currentType)
             savingFinished(recordingID: recordingID, file: nil, error: "The recording was discarded.")
@@ -768,7 +775,7 @@ class SCContext {
                                 finalURL = url
                                 recordingSaved(url, type: currentType, recordingID: recordingID)
                                 print("Exported video to \(String(describing: url.path))")
-                                if !ud.bool(forKey: "showPreview") {
+                                if !quiet && !ud.bool(forKey: "showPreview") {
                                     showNotification(title: "Recording Completed".local, body: String(format: "File saved to: %@".local, url.path), id: "quickrecorder.completed.\(UUID().uuidString)")
                                 }
                             case .failure(let error):
@@ -782,9 +789,11 @@ class SCContext {
                             }
                             DispatchQueue.main.async {
                                 mixFinished()
-                                if ud.bool(forKey: "trimAfterRecord") {
+                                if quiet {
+                                    // A script asked for no preview or trimmer.
+                                } else if ud.bool(forKey: "trimAfterRecord") {
                                     AppDelegate.shared.createNewWindow(view: VideoTrimmerView(videoURL: finalURL), title: finalURL.lastPathComponent, only: false)
-                                } else {
+                                } else if !quiet {
                                     showPreview(path: finalURL.path, image: previewImage)
                                 }
                             }
@@ -818,11 +827,11 @@ class SCContext {
                     finishWriter(writer) { ok in
                         let error = writer.error
                         DispatchQueue.main.async {
-                            finalizeQmaRecording(path: path, micSaved: ok, error: error, remux: remuxQma, recordingID: recordingID)
+                            finalizeQmaRecording(path: path, micSaved: ok, error: error, remux: remuxQma, recordingID: recordingID, quiet: quiet)
                         }
                     }
                 } else {
-                    finalizeQmaRecording(path: path, micSaved: false, error: nil, remux: remuxQma, recordingID: recordingID)
+                    finalizeQmaRecording(path: path, micSaved: false, error: nil, remux: remuxQma, recordingID: recordingID, quiet: quiet)
                 }
             } else if recAudioFormat == AudioFormat.mp3.rawValue {
                 Task {
@@ -831,12 +840,12 @@ class SCContext {
                         try await m4a2mp3(inputUrl: path1.url, outputUrl: outPutUrl)
                         try? fd.removeItem(atPath: path1)
                         recordingSaved(outPutUrl, type: currentType, recordingID: recordingID)
-                        if !ud.bool(forKey: "showPreview") {
+                        if !quiet && !ud.bool(forKey: "showPreview") {
                             let title = "Recording Completed".local
                             let body = String(format: "File saved to: %@".local, outPutUrl.path.removingPercentEncoding ?? outPutUrl.path)
                             let id = "quickrecorder.completed.\(UUID().uuidString)"
                             showNotification(title: title, body: body, id: id)
-                        } else {
+                        } else if !quiet {
                             DispatchQueue.main.async { showPreview(path: outPutUrl.path, image: NSImage(named: "audioIcon")) }
                         }
                     } catch {
@@ -847,12 +856,12 @@ class SCContext {
                 }
             } else {
                 recordingSaved(path.url, type: currentType, recordingID: recordingID)
-                if !ud.bool(forKey: "showPreview") {
+                if !quiet && !ud.bool(forKey: "showPreview") {
                     let title = "Recording Completed".local
                     let body = String(format: "File saved to: %@".local, path)
                     let id = "quickrecorder.completed.\(UUID().uuidString)"
                     showNotification(title: title, body: body, id: id)
-                } else {
+                } else if !quiet {
                     showPreview(path: path, image: NSImage(named: "audioIcon"))
                 }
             }
@@ -873,15 +882,15 @@ class SCContext {
         
         if currentType != .systemaudio && !remuxVideo && videoSaved {
             recordingSaved(path.url, type: currentType, recordingID: recordingID)
-            if !ud.bool(forKey: "showPreview") {
+            if !quiet && !ud.bool(forKey: "showPreview") {
                 let title = "Recording Completed".local
                 let body = String(format: "File saved to: %@".local, path)
                 let id = "quickrecorder.completed.\(UUID().uuidString)"
                 showNotification(title: title, body: body, id: id)
-            } else {
+            } else if !quiet {
                 showPreview(path: path)
             }
-            trimVideo()
+            if !quiet { trimVideo() }
         }
         
         streamType = nil
@@ -889,7 +898,7 @@ class SCContext {
     }
     
     /// qma（系统声音 + 麦克风分轨）录制收尾：必须在麦克风写入器完成之后调用（主线程）
-    private static func finalizeQmaRecording(path: String, micSaved: Bool, error: Error?, remux: Bool, recordingID: String?) {
+    private static func finalizeQmaRecording(path: String, micSaved: Bool, error: Error?, remux: Bool, recordingID: String?, quiet: Bool) {
         guard micSaved else {
             Analytics.recordingFailed(stage: "saving", type: .systemaudio, error: error, id: recordingID)
             let err = error?.localizedDescription ?? "No content was captured.".local
@@ -920,12 +929,12 @@ class SCContext {
             }
         } else {
             copyRecordingToClipboard(path.url)
-            if !ud.bool(forKey: "showPreview") {
+            if !quiet && !ud.bool(forKey: "showPreview") {
                 let title = "Recording Completed".local
                 let body = String(format: "File saved to: %@".local, path)
                 let id = "quickrecorder.completed.\(UUID().uuidString)"
                 showNotification(title: title, body: body, id: id)
-            } else {
+            } else if !quiet {
                 showPreview(path: path, image: NSImage(named: "qmaIcon"))
             }
         }

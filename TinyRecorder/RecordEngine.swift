@@ -25,6 +25,7 @@ extension AppDelegate {
     func abortRecording(reason: String) {
         print("Recording aborted: \(reason)")
         SCContext.recOutputBase = nil
+        SCContext.recQuiet = false
         Analytics.recordingFailed(stage: "start", type: SCContext.streamType, error: nil)
         Analytics.recordingID = nil
         SCContext.streamQueue.sync { SCContext.isStopping = true }
@@ -54,6 +55,8 @@ extension AppDelegate {
         // A script's output path belongs to this recording only.
         SCContext.recOutputBase = SCContext.nextOutputBase
         SCContext.nextOutputBase = nil
+        SCContext.recQuiet = SCContext.nextQuiet
+        SCContext.nextQuiet = false
         switch type {
         case "window":  SCContext.streamType = .window
         case "windows":  SCContext.streamType = .windows
