@@ -24,6 +24,7 @@ extension AppDelegate {
     /// 中止一次尚未成功开始（或启动失败）的录制：清理资源、重置状态并提示用户。可在任意线程调用。
     func abortRecording(reason: String) {
         print("Recording aborted: \(reason)")
+        SCContext.recOutputBase = nil
         Analytics.recordingFailed(stage: "start", type: SCContext.streamType, error: nil)
         Analytics.recordingID = nil
         SCContext.streamQueue.sync { SCContext.isStopping = true }
@@ -50,6 +51,9 @@ extension AppDelegate {
     }
     
     @objc func prepRecord(type: String, screens: SCDisplay?, windows: [SCWindow]?, applications: [SCRunningApplication]?, fastStart: Bool = false) {
+        // A script's output path belongs to this recording only.
+        SCContext.recOutputBase = SCContext.nextOutputBase
+        SCContext.nextOutputBase = nil
         switch type {
         case "window":  SCContext.streamType = .window
         case "windows":  SCContext.streamType = .windows

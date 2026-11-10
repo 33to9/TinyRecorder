@@ -15,20 +15,32 @@ usage() {
 tinyrecorder: control TinyRecorder from the command line
 
 Usage:
+  tinyrecorder list displays|windows|apps      List what can be recorded (window IDs, display numbers)
   tinyrecorder record screen [NUMBER]          Record a display (1 = main). No number: open the picker
   tinyrecorder record window TITLE [--app APP] Record the window with this exact title
+  tinyrecorder record window --id ID           Record the window with this ID (from list windows)
   tinyrecorder record app NAME                 Record all windows of an app
+  tinyrecorder record area X,Y,W,H [--display N]
+                                               Record this area (points from the display's top-left)
   tinyrecorder record area                     Drag the area to record with the mouse
   tinyrecorder record audio [--mic|--no-mic]   Record system audio, with or without the microphone
   tinyrecorder stop [--no-wait]                Stop, wait until the file is saved, print its path
   tinyrecorder pause | resume                  Pause / resume the recording
   tinyrecorder discard                         Stop and move the recording to the Trash
   tinyrecorder status                          Print the state, kind and seconds recorded
+  tinyrecorder screenshot [TARGET] [--output PATH]
+                                               Save a PNG and print its path. TARGET: screen [NUMBER],
+                                               window TITLE [--app APP], window --id ID, or
+                                               area X,Y,W,H [--display N]. Default: display 1
   tinyrecorder config [OPTIONS]                Change recording settings (see below)
   tinyrecorder version                         Print the TinyRecorder version
   tinyrecorder help                            Show this help
 
 Record options:
+  --output PATH        Save the recording as PATH. The extension of the current format is added
+                       (.mp4 or .mov; audio: .m4a, .mp3, .flac, .ogg, or .qma with the microphone);
+                       if PATH has one, it must match. The folder must exist; existing files are
+                       never replaced.
   --duration SECONDS   Record this long, then stop and print the saved file's path.
                        Ctrl-C stops early and still saves.
   --no-wait            Return as soon as the command is sent. By default, record waits until
@@ -37,6 +49,8 @@ Record options:
 Config options:
   --fps N              10, 15, 24, 30, 60, 90, 120, 144 or 240
   --quality N          1 = low, 2 = medium, 3 = high
+  --format mp4|mov     Video file format
+  --codec h264|h265    Video codec
   --hires on|off       Record at Retina resolution
   --cursor on|off      Record the mouse pointer
   --sound on|off       Record system / app sound
@@ -56,6 +70,10 @@ You can change this in System Settings › Privacy & Security › Automation.
 
 Examples:
   tinyrecorder record screen 1 --duration 10       # 10 s of the main display, prints the file
+  tinyrecorder list windows --app Safari           # IDs and titles of Safari's windows
+  tinyrecorder record window --id 1234 --duration 5 --output ~/Desktop/demo.mp4
+  tinyrecorder record area 0,0,1280,720 --duration 5
+  tinyrecorder screenshot window --id 1234 --output shot.png
   tinyrecorder record window "Untitled" --app TextEdit && sleep 5 && tinyrecorder stop
   tinyrecorder status --json
 EOF
@@ -199,13 +217,36 @@ wait_for_start() {
   die "the recording didn't start within $1 seconds"
 }
 
+# Collects AppleScript parameters whose values travel in argv (never pasted into the script):
+# add_param NAME VALUE [int]. The caller resets P and A first.
+add_param() {
+  A+=("$2")
+  if [ "${3:-}" = int ]; then P="$P $1 ((item ${#A[@]} of argv) as integer)"; else P="$P $1 (item ${#A[@]} of argv)"; fi
+}
+
+# Absolute path for a path given on the command line (TinyRecorder doesn't know our directory).
+abs_path() {
+  case $1 in /*|~*) printf '%s' "$1" ;; *) printf '%s/%s' "$PWD" "$1" ;; esac
+}
+
+check_number() { # check_number OPTION VALUE
+  case $2 in ''|*[!0-9]*) usage_error "$1 must be a number" ;; esac
+}
+
+check_rect() {
+  case $1 in *[!0-9,\ ]*|'') usage_error "the area must be X,Y,WIDTH,HEIGHT in points, e.g. 100,100,1280,720" ;; esac
+}
+
 cmd_record() {
   local what=${1:-}; [ -n "$what" ] || usage_error "record what? screen, window, app, area or audio"
   shift
-  local target="" app="" mic="" duration="" wait=1 script args
+  local target="" app="" mic="" duration="" wait=1 output="" id="" display=""
   while [ $# -gt 0 ]; do
     case $1 in
       --app) [ $# -ge 2 ] || usage_error "--app needs a name"; app=$2; shift ;;
+      --id) [ $# -ge 2 ] || usage_error "--id needs a window ID"; id=$2; shift ;;
+      --display) [ $# -ge 2 ] || usage_error "--display needs a number"; display=$2; shift ;;
+      --output|-o) [ $# -ge 2 ] || usage_error "--output needs a path"; output=$2; shift ;;
       --mic) mic=true ;;
       --no-mic) mic=false ;;
       --duration) [ $# -ge 2 ] || usage_error "--duration needs a number of seconds"; duration=$2; shift ;;
@@ -219,60 +260,63 @@ cmd_record() {
     case $duration in ''|*[!0-9]*|0) usage_error "--duration must be a whole number of seconds (1 or more)" ;; esac
     [ $wait = 1 ] || usage_error "--duration can't be combined with --no-wait"
   fi
-
-  local tell='tell application id "com.33to9.TinyRecorder" to'
-  # Lets TinyRecorder's usage statistics tell this tool apart from other scripts.
-  local CLIENT=' client "cli"'
-  local interactive=0
-  case $what in
-    screen)
-      if [ -n "$target" ]; then
-        case $target in *[!0-9]*) usage_error "the screen number must be a number (1 = main display)" ;; esac
-        script="on run argv
-	$tell record screen numbered ((item 1 of argv) as integer)$CLIENT
-end run"
-      else
-        interactive=1; script="$tell record screen$CLIENT"
-      fi ;;
-    window)
-      if [ -n "$target" ] && [ -n "$app" ]; then
-        script="on run argv
-	$tell record window titled (item 1 of argv) in application (item 2 of argv)$CLIENT
-end run"
-      elif [ -n "$target" ]; then
-        script="on run argv
-	$tell record window titled (item 1 of argv)$CLIENT
-end run"
-      else
-        [ -z "$app" ] || usage_error "--app needs a window title too"
-        interactive=1; script="$tell record window$CLIENT"
-      fi ;;
-    app|application)
-      if [ -n "$target" ]; then
-        script="on run argv
-	$tell record application named (item 1 of argv)$CLIENT
-end run"
-      else
-        interactive=1; script="$tell record application$CLIENT"
-      fi ;;
-    area)
-      [ -z "$target" ] || usage_error "record area takes no argument; drag the area with the mouse"
-      interactive=1; script="$tell record screen area$CLIENT" ;;
-    audio)
-      [ -z "$target" ] || usage_error "record audio takes no argument"
-      if [ -n "$mic" ]; then script="$tell record system audio microphone $mic$CLIENT"; else script="$tell record system audio$CLIENT"; fi ;;
-    *) usage_error "can't record \"$what\"; use screen, window, app, area or audio" ;;
-  esac
-  [ "$what" = window ] || [ -z "$app" ] || usage_error "--app only goes with record window"
+  [ -z "$id" ] || check_number --id "$id"
+  [ -z "$display" ] || check_number --display "$display"
+  [ "$what" = window ] || [ -z "$app$id" ] || usage_error "--app and --id only go with record window"
+  [ "$what" = area ] || [ -z "$display" ] || usage_error "--display only goes with record area; use 'record screen NUMBER' for a whole display"
   [ "$what" = audio ] || [ -z "$mic" ] || usage_error "--mic / --no-mic only go with record audio; use 'config --mic on' for video"
 
-  if [ -n "$target" ] && [ -n "$app" ]; then
-    run_script "$script" "$target" "$app" >/dev/null || exit 1
-  elif [ -n "$target" ] && [ "$what" != area ] && [ "$what" != audio ]; then
-    run_script "$script" "$target" >/dev/null || exit 1
-  else
-    run_script "$script" >/dev/null || exit 1
+  P=""; A=()
+  local command interactive=0
+  case $what in
+    screen)
+      command="record screen"
+      if [ -n "$target" ]; then
+        case $target in *[!0-9]*) usage_error "the screen number must be a number (1 = main display)" ;; esac
+        add_param numbered "$target" int
+      else
+        interactive=1
+      fi ;;
+    window)
+      command="record window"
+      if [ -n "$id" ]; then
+        [ -z "$target$app" ] || usage_error "give a window ID or a title, not both"
+        add_param "identified by" "$id" int
+      elif [ -n "$target" ]; then
+        add_param titled "$target"
+        [ -z "$app" ] || add_param "in application" "$app"
+      else
+        [ -z "$app" ] || usage_error "--app needs a window title too"
+        interactive=1
+      fi ;;
+    app|application)
+      command="record application"
+      if [ -n "$target" ]; then add_param named "$target"; else interactive=1; fi ;;
+    area)
+      command="record screen area"
+      if [ -n "$target" ]; then
+        check_rect "$target"
+        add_param rectangle "$target"
+        [ -z "$display" ] || add_param "display number" "$display" int
+      else
+        [ -z "$display" ] || usage_error "--display needs the area too: record area X,Y,WIDTH,HEIGHT --display N"
+        interactive=1
+      fi ;;
+    audio)
+      command="record system audio"
+      [ -z "$target" ] || usage_error "record audio takes no argument"
+      [ -z "$mic" ] || P="$P microphone $mic" ;;
+    *) usage_error "can't record \"$what\"; use screen, window, app, area or audio" ;;
+  esac
+  if [ -n "$output" ]; then
+    [ $interactive = 0 ] || usage_error "--output needs a target given on the command line (a number, title, name or area), not the picker"
+    add_param "saving to" "$(abs_path "$output")"
   fi
+
+  # Lets TinyRecorder's usage statistics tell this tool apart from other scripts.
+  run_script "on run argv
+	tell application id \"com.33to9.TinyRecorder\" to $command$P client \"cli\"
+end run" ${A[@]+"${A[@]}"} >/dev/null || exit 1
 
   # A picker or the area selector waits for the user: only wait for them with --duration.
   if [ $wait = 0 ] || { [ $interactive = 1 ] && [ -z "$duration" ]; }; then
@@ -297,6 +341,89 @@ end run"
   stop_and_save
 }
 
+cmd_list() {
+  local kind=${1:-}; [ -n "$kind" ] || usage_error "list what? displays, windows or apps"
+  shift
+  case $kind in
+    display|displays|screen|screens) kind=displays ;;
+    window|windows) kind=windows ;;
+    app|apps|application|applications) kind=apps ;;
+    *) usage_error "can't list \"$kind\"; use displays, windows or apps" ;;
+  esac
+  local app=""
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --app) [ $# -ge 2 ] || usage_error "--app needs a name"; app=$2; shift ;;
+      *) usage_error "unknown option for list: $1" ;;
+    esac
+    shift
+  done
+  [ "$kind" != displays ] || [ -z "$app" ] || usage_error "--app only goes with list windows or list apps"
+  P=""; A=()
+  add_param showing "$kind"
+  [ -z "$app" ] || add_param "in application" "$app"
+  [ $JSON = 0 ] || P="$P json true"
+  local out
+  out=$(run_script "on run argv
+	tell application id \"com.33to9.TinyRecorder\" to list targets$P
+end run" "${A[@]}") || exit 1
+  if [ $JSON = 1 ]; then
+    echo "$out"
+  elif [ -z "$out" ]; then
+    echo "No $kind found." >&2
+  else
+    printf '%s\n' "$out" | column -t -s "$(printf '\t')"
+  fi
+  return 0
+}
+
+cmd_screenshot() {
+  local what=${1:-screen}
+  [ $# -gt 0 ] && shift
+  local target="" app="" output="" id="" display=""
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --app) [ $# -ge 2 ] || usage_error "--app needs a name"; app=$2; shift ;;
+      --id) [ $# -ge 2 ] || usage_error "--id needs a window ID"; id=$2; shift ;;
+      --display) [ $# -ge 2 ] || usage_error "--display needs a number"; display=$2; shift ;;
+      --output|-o) [ $# -ge 2 ] || usage_error "--output needs a path"; output=$2; shift ;;
+      -*) usage_error "unknown option for screenshot: $1" ;;
+      *) [ -z "$target" ] || usage_error "unexpected argument: $1"; target=$1 ;;
+    esac
+    shift
+  done
+  [ -z "$id" ] || check_number --id "$id"
+  [ -z "$display" ] || check_number --display "$display"
+  [ "$what" = window ] || [ -z "$app$id" ] || usage_error "--app and --id only go with screenshot window"
+  [ "$what" = area ] || [ -z "$display" ] || usage_error "--display only goes with screenshot area; use 'screenshot screen NUMBER' for a whole display"
+  P=""; A=()
+  case $what in
+    screen|display)
+      if [ -n "$target" ]; then check_number "the screen number" "$target"; add_param "display number" "$target" int; fi ;;
+    window)
+      if [ -n "$id" ]; then
+        [ -z "$target$app" ] || usage_error "give a window ID or a title, not both"
+        add_param "window identified by" "$id" int
+      else
+        [ -n "$target" ] || usage_error "screenshot window needs a title or --id (see 'tinyrecorder list windows')"
+        add_param "window titled" "$target"
+        [ -z "$app" ] || add_param "in application" "$app"
+      fi ;;
+    area)
+      [ -n "$target" ] || usage_error "screenshot area needs X,Y,WIDTH,HEIGHT"
+      check_rect "$target"
+      add_param rectangle "$target"
+      [ -z "$display" ] || add_param "display number" "$display" int ;;
+    *) usage_error "can't take a screenshot of \"$what\"; use screen, window or area" ;;
+  esac
+  [ -z "$output" ] || add_param "saving to" "$(abs_path "$output")"
+  local file
+  file=$(run_script "on run argv
+	tell application id \"com.33to9.TinyRecorder\" to take screenshot$P
+end run" ${A[@]+"${A[@]}"}) || exit 1
+  if [ $JSON = 1 ]; then printf '{"file":%s}\n' "$(json_str "$file")"; else echo "$file"; fi
+}
+
 cmd_config() {
   [ $# -gt 0 ] || usage_error "config needs at least one option"
   local params="" n=0 args=() v
@@ -319,7 +446,11 @@ cmd_config() {
       --mic) params="$params microphone ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
       --hdr) params="$params hdr ((item $n of argv) is \"true\")"; v=$(bool "$2") || exit 2 ;;
       --mic-device) params="$params mic device (item $n of argv)"; v=$2 ;;
-      --folder) params="$params save folder (item $n of argv)"; v=$2 ;;
+      --folder) params="$params save folder (item $n of argv)"; v=$(abs_path "$2") ;;
+      --format) params="$params file format (item $n of argv)"; v=$2
+        case $v in mp4|mov) ;; *) usage_error "--format must be mp4 or mov" ;; esac ;;
+      --codec) params="$params video codec (item $n of argv)"; v=$2
+        case $v in h264|h265|h.264|h.265|H264|H265|H.264|H.265) ;; *) usage_error "--codec must be h264 or h265" ;; esac ;;
       *) usage_error "unknown config option: $1" ;;
     esac
     case $1 in --fps|--quality) case $v in ''|*[!0-9]*) usage_error "$1 must be a number" ;; esac ;; esac
@@ -359,6 +490,8 @@ cmd=${1:-help}
 case $cmd in
   record) cmd_record "$@" ;;
   stop) cmd_stop "$@" ;;
+  list|ls) cmd_list "$@" ;;
+  screenshot|shot) cmd_screenshot "$@" ;;
   pause) [ $# = 0 ] || usage_error "pause takes no arguments"; simple_command "pause recording" ;;
   resume) [ $# = 0 ] || usage_error "resume takes no arguments"; simple_command "resume recording" ;;
   discard) [ $# = 0 ] || usage_error "discard takes no arguments"; simple_command "discard recording" ;;

@@ -58,6 +58,11 @@ class SCContext {
     /// Set by discardRecording(): the next stop throws the recording away (#64)
     static var discardRequested = false
     static var screenArea: NSRect?
+    /// File path (without extension) a script asked the next recording to be saved to. Set
+    /// right before prepRecord(), which moves it to recOutputBase.
+    static var nextOutputBase: String?
+    /// This recording's script-chosen path; getFilePath() uses it once, then clears it.
+    static var recOutputBase: String?
     static let audioEngine = AVAudioEngine()
     static let AECEngine = AECAudioStream(sampleRate: 48000)
     static var backgroundColor: CGColor = CGColor.black
@@ -250,6 +255,10 @@ class SCContext {
     }
     
     static func getFilePath(capture: Bool = false) -> String {
+        if !capture, let base = recOutputBase {
+            recOutputBase = nil
+            return base
+        }
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "y-MM-dd HH.mm.ss"
         return ud.string(forKey: "saveDirectory")! + (capture ? "/Capturing at ".local : "/Recording at ".local) + dateFormatter.string(from: Date())
