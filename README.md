@@ -122,8 +122,10 @@ tinyrecorder list windows --app TextEdit          # window IDs, titles and sizes
 tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
-tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder record area 0,0,1280,720 --duration 5 --quiet
+tinyrecorder frames ~/Desktop/demo.mp4 --sheet    # one image showing what was recorded
 tinyrecorder screenshot window --id 1234 --output shot.png
+tinyrecorder doctor                               # checks permissions and the save folder
 ```
 
 `record` waits until the recording has started, `stop` waits until the file is saved and prints its path, and with `--json` every command prints one JSON object.
@@ -132,8 +134,11 @@ tinyrecorder screenshot window --id 1234 --output shot.png
 - `record area X,Y,WIDTH,HEIGHT` records an area given in points from the display's top-left corner (`--display N` for another display), with no dragging.
 - `screenshot` saves a PNG of a display, a window or an area and prints its path. It uses TinyRecorder's Screen Recording permission, so your terminal doesn't need one.
 - `--output PATH` saves the recording under that name. `config --format mp4|mov --codec h264|h265` sets the file format and codec.
+- `--quiet` starts right away and shows no preview afterwards, so nothing gets in the way of the recording or the next screenshot (`--no-countdown` and `--no-preview` do one each).
+- `frames FILE` saves still images from a recording (`--every 2`, `--count 8`, or `--sheet` for one contact sheet with times), so an agent can check what it recorded without playing the video.
+- `doctor` checks that everything needed is in place: the Screen Recording permission, permission to control TinyRecorder, the command on the PATH and the save folder. `config --show` prints the current settings.
 
-Run `tinyrecorder help` for all commands and options. `list`, `screenshot`, `record area X,Y,WIDTH,HEIGHT`, `--id`, `--output`, `--format` and `--codec` need version 1.8.25 or later.
+Run `tinyrecorder help` for all commands and options. `list`, `screenshot`, `record area X,Y,WIDTH,HEIGHT`, `--id`, `--output`, `--format` and `--codec` need version 1.8.25 or later; `doctor`, `frames`, `config --show`, `--quiet`, `--no-countdown` and `--no-preview` need 1.8.26 or later.
 
 ### Use with AI agents
 
@@ -142,7 +147,9 @@ Coding agents such as Claude Code, Codex or Cursor run terminal commands, so the
 ```markdown
 ## Screen recording
 TinyRecorder is installed. Use the `tinyrecorder` command to record the screen:
-- `tinyrecorder record screen 1 --duration 15 --json` records the main display for 15 seconds and prints {"file": "<PATH>"}.
+- If a command fails, run `tinyrecorder doctor` and tell me what it reports.
+- `tinyrecorder record screen 1 --duration 15 --quiet --json` records the main display for 15 seconds and prints {"file": "<PATH>"}.
+- `tinyrecorder frames <PATH> --sheet --json` saves one image with frames from the recording; look at it to check what was recorded.
 - `tinyrecorder list windows --json` lists the windows with their IDs; `tinyrecorder record window --id <ID>` starts recording one, and `tinyrecorder stop --json` stops it and prints the file.
 - `tinyrecorder screenshot window --id <ID> --json` (or `screenshot screen 1`) saves a PNG and prints {"file": "<PATH>"}.
 - `--output <PATH>` on `record` chooses where the recording is saved.
@@ -180,6 +187,8 @@ The first time, macOS asks whether the app running the script (for example Termi
 | `recording status` | Returns the state (idle, countdown, starting, recording or paused) and, while recording, its kind and the seconds recorded. |
 | `discard recording` | Stops the recording and moves it to the Trash |
 | `list targets showing "windows"` | Lists the windows that can be recorded, with their IDs, one per line. Also `"displays"` and `"apps"`; add `in application "Safari"` to narrow it, or `json true` for JSON |
+| `diagnose` | Checks the Screen Recording and microphone permissions and the save folder, and lists the settings: one line per item (kind, status, name, value), or JSON with `json true` |
+| `extract frames from file "/path/demo.mp4"` | Saves still images from a recording and returns their paths. Add `interval 2`, `frame count 8`, `contact sheet true`, `maximum width 640` or `saving to "/folder"` |
 | `take screenshot` | Saves a PNG of display 1 and returns its path. Add `display number 2`, `window identified by 1234`, `window titled "Title"` or `rectangle "x,y,w,h"`, and `saving to "~/shot.png"` |
 | `configure …` | Changes recording settings (see below) |
 
@@ -198,6 +207,8 @@ The first time, macOS asks whether the app running the script (for example Termi
 | `save folder` | Folder to save recordings to; it must exist, `~` is allowed |
 | `file format` | `"mp4"` or `"mov"` |
 | `video codec` | `"h264"` or `"h265"` |
+| `countdown` | Delay Before Recording, in seconds (0 to 99) |
+| `show preview` | Show the preview thumbnail after saving |
 
 Example: record display 1 for one minute.
 
@@ -213,6 +224,7 @@ tell application "TinyRecorder" to stop recording
 Good to know:
 - The record commands return right away. If **Delay Before Recording** is set (Preferences → Recorder), recording starts after the countdown, so add that time to `delay`.
 - During the countdown, `stop recording` or `discard recording` cancels the recording before it starts, and another record command is refused as already recording.
+- Every record command (except the pickers) takes `countdown 0` to start right away and `showing preview false` to show no preview, trimmer or notification afterwards, for this recording only.
 - Every record command (except the pickers) takes `saving to "/path/name"`: the recording is saved there, with the extension of the current format added. The folder must exist, and an existing file is never replaced.
 - If a title matches several windows, the command returns an error; use the window's ID instead. If an app has windows on more than one screen, TinyRecorder opens the picker so you can choose, and the command returns an error.
 - Errors (already recording, not recording, no Screen Recording permission) are returned to the script, so `osascript` exits with an error. So are an invalid screen number and an app or window that can't be found; no dialog is shown.

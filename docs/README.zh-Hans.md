@@ -122,8 +122,10 @@ tinyrecorder list windows --app TextEdit          # 窗口 ID、标题和尺寸
 tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
-tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder record area 0,0,1280,720 --duration 5 --quiet
+tinyrecorder frames ~/Desktop/demo.mp4 --sheet    # 一张图看清录了什么
 tinyrecorder screenshot window --id 1234 --output shot.png
+tinyrecorder doctor                               # 检查权限和保存文件夹
 ```
 
 `record` 会等录制真正开始后才返回，`stop` 会等文件保存完成后打印文件路径，加上 `--json` 时每条命令输出一个 JSON 对象。
@@ -132,8 +134,11 @@ tinyrecorder screenshot window --id 1234 --output shot.png
 - `record area X,Y,WIDTH,HEIGHT` 录制指定区域，以点为单位、从屏幕左上角算起（其他屏幕用 `--display N`），不用拖动鼠标。
 - `screenshot` 把屏幕、窗口或区域保存为 PNG，并打印文件路径。它用的是 TinyRecorder 的屏幕录制权限，终端不需要单独授权。
 - `--output PATH` 把录制保存为指定的文件名。`config --format mp4|mov --codec h264|h265` 设置文件格式和编码。
+- `--quiet` 立即开始录制，结束后也不显示预览，不会挡住录制内容或下一张截图（`--no-countdown` 和 `--no-preview` 各只做其中一项）。
+- `frames FILE` 从录制中保存静态画面（`--every 2`、`--count 8`，或用 `--sheet` 生成一张带时间的缩略图总览），智能体不用播放视频就能检查录到了什么。
+- `doctor` 检查所需的一切是否就绪：屏幕录制权限、控制 TinyRecorder 的权限、PATH 中的命令，以及保存文件夹。`config --show` 打印当前设置。
 
-运行 `tinyrecorder help` 查看所有命令和选项。`list`、`screenshot`、`record area X,Y,WIDTH,HEIGHT`、`--id`、`--output`、`--format` 和 `--codec` 需要 1.8.25 及以上版本。
+运行 `tinyrecorder help` 查看所有命令和选项。`list`、`screenshot`、`record area X,Y,WIDTH,HEIGHT`、`--id`、`--output`、`--format` 和 `--codec` 需要 1.8.25 及以上版本；`doctor`、`frames`、`config --show`、`--quiet`、`--no-countdown` 和 `--no-preview` 需要 1.8.26 及以上版本。
 
 ### 配合 AI 智能体使用
 
@@ -142,7 +147,9 @@ Claude Code、Codex、Cursor 等编程智能体能执行终端命令，所以可
 ```markdown
 ## 录屏
 本机已安装 TinyRecorder，可以用 `tinyrecorder` 命令录屏：
-- `tinyrecorder record screen 1 --duration 15 --json`：录主屏幕 15 秒，输出 {"file": "<路径>"}。
+- 如果命令出错，运行 `tinyrecorder doctor`，并把结果告诉我。
+- `tinyrecorder record screen 1 --duration 15 --quiet --json`：录主屏幕 15 秒，输出 {"file": "<路径>"}。
+- `tinyrecorder frames <路径> --sheet --json`：把录制中的画面保存成一张图；看这张图来检查录到了什么。
 - `tinyrecorder list windows --json`：列出窗口及其 ID；`tinyrecorder record window --id <ID>` 开始录制其中一个窗口，`tinyrecorder stop --json` 停止并输出文件路径。
 - `tinyrecorder screenshot window --id <ID> --json`（或 `screenshot screen 1`）：保存 PNG，输出 {"file": "<路径>"}。
 - `--output <路径>`：用在 `record` 上，指定录制保存的位置。
@@ -180,6 +187,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `recording status` | 返回当前状态（idle、countdown、starting、recording 或 paused），录制中还会返回录制类型和已录秒数。 |
 | `discard recording` | 停止录制，并把文件移到废纸篓 |
 | `list targets showing "windows"` | 列出可以录制的窗口及其 ID，每行一个。也可以用 `"displays"` 和 `"apps"`；加上 `in application "Safari"` 缩小范围，或加上 `json true` 输出 JSON |
+| `diagnose` | 检查屏幕录制和麦克风权限以及保存文件夹，并列出各项设置：每项一行（类别、状态、名称、值），或加上 `json true` 输出 JSON |
+| `extract frames from file "/path/demo.mp4"` | 从录制中保存静态画面并返回文件路径。可以加上 `interval 2`、`frame count 8`、`contact sheet true`、`maximum width 640` 或 `saving to "/folder"` |
 | `take screenshot` | 保存第 1 块屏幕的 PNG 截图并返回文件路径。可以加上 `display number 2`、`window identified by 1234`、`window titled "标题"` 或 `rectangle "x,y,w,h"`，以及 `saving to "~/shot.png"` |
 | `configure …` | 修改录制设置（见下表） |
 
@@ -198,6 +207,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `save folder` | 保存录制的文件夹，必须已存在，可以用 `~` |
 | `file format` | `"mp4"` 或 `"mov"` |
 | `video codec` | `"h264"` 或 `"h265"` |
+| `countdown` | 开始录制前倒数，单位为秒（0 到 99） |
+| `show preview` | 保存后是否显示预览缩略图 |
 
 示例：录制第 1 块屏幕 1 分钟。
 
@@ -213,6 +224,7 @@ tell application "TinyRecorder" to stop recording
 注意：
 - 录制命令会立即返回。如果设置了 **开始录制前倒数**（设置 → 录制设置），录制会在倒数结束后才开始，`delay` 要把这段时间加上。
 - 倒数期间发送 `stop recording` 或 `discard recording` 会取消这次录制；再发录制命令会被当作“已在录制”拒绝。
+- 除了会打开选择窗口的命令，所有录制命令都可以带 `countdown 0` 立即开始，带 `showing preview false` 则结束后不显示预览、修剪器和通知，只对这一次录制有效。
 - 除了会打开选择窗口的命令，所有录制命令都可以带 `saving to "/path/name"`：录制会保存到这里，并加上当前格式的扩展名。文件夹必须已存在，已有的文件不会被覆盖。
 - 标题匹配到多个窗口时，命令会返回错误，请改用窗口 ID。App 的窗口分布在多块屏幕上时，TinyRecorder 会打开选择窗口让你手动选，此时命令也会返回错误。
 - 出错时（已经在录制、没有在录制、没有屏幕录制权限）会把错误返回给脚本，`osascript` 会以出错状态退出。屏幕编号无效、找不到应用或窗口时也一样，不会弹出对话框。

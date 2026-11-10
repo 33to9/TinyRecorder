@@ -122,8 +122,10 @@ tinyrecorder list windows --app TextEdit          # IDs, títulos y tamaños de 
 tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
-tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder record area 0,0,1280,720 --duration 5 --quiet
+tinyrecorder frames ~/Desktop/demo.mp4 --sheet    # una imagen que muestra lo que se grabó
 tinyrecorder screenshot window --id 1234 --output shot.png
+tinyrecorder doctor                               # comprueba los permisos y la carpeta de guardado
 ```
 
 `record` espera a que la grabación haya empezado, `stop` espera a que se guarde el archivo e imprime su ruta, y con `--json` cada comando imprime un objeto JSON.
@@ -132,8 +134,11 @@ tinyrecorder screenshot window --id 1234 --output shot.png
 - `record area X,Y,WIDTH,HEIGHT` graba un área indicada en puntos desde la esquina superior izquierda de la pantalla (`--display N` para otra pantalla), sin arrastrar nada.
 - `screenshot` guarda un PNG de una pantalla, una ventana o un área e imprime su ruta. Usa el permiso de grabación de pantalla de TinyRecorder, así que tu terminal no necesita uno propio.
 - `--output PATH` guarda la grabación con ese nombre. `config --format mp4|mov --codec h264|h265` define el formato de archivo y el códec.
+- `--quiet` empieza de inmediato y no muestra la vista previa después, así que nada estorba la grabación ni la siguiente captura de pantalla (`--no-countdown` y `--no-preview` hacen solo una de esas cosas cada una).
+- `frames FILE` guarda imágenes fijas de una grabación (`--every 2`, `--count 8`, o `--sheet` para una sola hoja de contactos con los tiempos), así que un agente puede comprobar lo que grabó sin reproducir el vídeo.
+- `doctor` comprueba que todo lo necesario está en su sitio: el permiso de grabación de pantalla, el permiso para controlar TinyRecorder, el comando en el PATH y la carpeta de guardado. `config --show` imprime los ajustes actuales.
 
-Ejecuta `tinyrecorder help` para ver todos los comandos y opciones. `list`, `screenshot`, `record area X,Y,WIDTH,HEIGHT`, `--id`, `--output`, `--format` y `--codec` requieren la versión 1.8.25 o posterior.
+Ejecuta `tinyrecorder help` para ver todos los comandos y opciones. `list`, `screenshot`, `record area X,Y,WIDTH,HEIGHT`, `--id`, `--output`, `--format` y `--codec` requieren la versión 1.8.25 o posterior; `doctor`, `frames`, `config --show`, `--quiet`, `--no-countdown` y `--no-preview` requieren la 1.8.26 o posterior.
 
 ### Uso con agentes de IA
 
@@ -142,7 +147,9 @@ Los agentes de programación como Claude Code, Codex o Cursor ejecutan comandos 
 ```markdown
 ## Grabación de pantalla
 TinyRecorder está instalado. Usa el comando `tinyrecorder` para grabar la pantalla:
-- `tinyrecorder record screen 1 --duration 15 --json` graba la pantalla principal durante 15 segundos e imprime {"file": "<RUTA>"}.
+- Si un comando falla, ejecuta `tinyrecorder doctor` y dime lo que indica.
+- `tinyrecorder record screen 1 --duration 15 --quiet --json` graba la pantalla principal durante 15 segundos e imprime {"file": "<RUTA>"}.
+- `tinyrecorder frames <RUTA> --sheet --json` guarda una imagen con fotogramas de la grabación; mírala para comprobar lo que se grabó.
 - `tinyrecorder list windows --json` lista las ventanas con sus ID; `tinyrecorder record window --id <ID>` empieza a grabar una, y `tinyrecorder stop --json` la detiene e imprime el archivo.
 - `tinyrecorder screenshot window --id <ID> --json` (o `screenshot screen 1`) guarda un PNG e imprime {"file": "<RUTA>"}.
 - `--output <RUTA>` en `record` elige dónde se guarda la grabación.
@@ -180,6 +187,8 @@ La primera vez, macOS pregunta si la app que ejecuta el script (por ejemplo, Ter
 | `recording status` | Devuelve el estado (idle, countdown, starting, recording o paused) y, mientras se graba, el tipo de grabación y los segundos grabados. |
 | `discard recording` | Detiene la grabación y la mueve a la Papelera |
 | `list targets showing "windows"` | Lista las ventanas que se pueden grabar, con sus ID, una por línea. También `"displays"` y `"apps"`; añade `in application "Safari"` para acotar la lista, o `json true` para obtener JSON |
+| `diagnose` | Comprueba los permisos de grabación de pantalla y de micrófono y la carpeta de guardado, y lista los ajustes: una línea por elemento (tipo, estado, nombre, valor), o JSON con `json true` |
+| `extract frames from file "/path/demo.mp4"` | Guarda imágenes fijas de una grabación y devuelve sus rutas. Añade `interval 2`, `frame count 8`, `contact sheet true`, `maximum width 640` o `saving to "/folder"` |
 | `take screenshot` | Guarda un PNG de la pantalla 1 y devuelve su ruta. Añade `display number 2`, `window identified by 1234`, `window titled "Título"` o `rectangle "x,y,w,h"`, y `saving to "~/shot.png"` |
 | `configure …` | Cambia los ajustes de grabación (ver abajo) |
 
@@ -198,6 +207,8 @@ La primera vez, macOS pregunta si la app que ejecuta el script (por ejemplo, Ter
 | `save folder` | Carpeta donde guardar las grabaciones; debe existir, se admite `~` |
 | `file format` | `"mp4"` o `"mov"` |
 | `video codec` | `"h264"` o `"h265"` |
+| `countdown` | Retardo antes de grabar, en segundos (de 0 a 99) |
+| `show preview` | Mostrar la miniatura de vista previa después de guardar |
 
 Ejemplo: grabar la pantalla 1 durante un minuto.
 
@@ -213,6 +224,7 @@ tell application "TinyRecorder" to stop recording
 Conviene saber:
 - Los comandos de grabación vuelven de inmediato. Si tienes configurado **Retardo antes de grabar** (Preferencias → Grabación), la grabación empieza tras la cuenta atrás: suma ese tiempo a `delay`.
 - Durante la cuenta atrás, `stop recording` o `discard recording` cancelan la grabación antes de que empiece, y otro comando de grabación se rechaza como si ya se estuviera grabando.
+- Todos los comandos de grabación (salvo los que abren un selector) aceptan `countdown 0` para empezar de inmediato y `showing preview false` para no mostrar después la vista previa, el editor de recorte ni la notificación, solo en esa grabación.
 - Todos los comandos de grabación (salvo los que abren un selector) aceptan `saving to "/path/name"`: la grabación se guarda ahí, con la extensión del formato actual. La carpeta debe existir y nunca se reemplaza un archivo existente.
 - Si un título coincide con varias ventanas, el comando devuelve un error; usa el ID de la ventana. Si una app tiene ventanas en más de una pantalla, TinyRecorder abre el selector para que elijas tú, y el comando devuelve un error.
 - Los errores (ya se está grabando, no se está grabando, falta el permiso de grabación de pantalla) se devuelven al script, así que `osascript` termina con error. Lo mismo ocurre con un número de pantalla no válido o una app o ventana que no se encuentra; no aparece ningún diálogo.
