@@ -31,7 +31,8 @@ Usage:
   tinyrecorder screenshot [TARGET] [--output PATH]
                                                Save a PNG and print its path. TARGET: screen [NUMBER],
                                                window TITLE [--app APP], window --id ID, or
-                                               area X,Y,W,H [--display N]. Default: display 1
+                                               area X,Y,W,H [--display N]. Default: display 1.
+                                               Needs macOS 14 or later
   tinyrecorder config [OPTIONS]                Change recording settings (see below)
   tinyrecorder version                         Print the TinyRecorder version
   tinyrecorder help                            Show this help

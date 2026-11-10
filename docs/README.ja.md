@@ -118,12 +118,22 @@ sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Conte
 
 ```bash
 tinyrecorder record screen 1 --duration 10
-tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder list windows --app TextEdit          # ウインドウの ID、タイトル、サイズ
+tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
+tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder screenshot window --id 1234 --output shot.png
 ```
 
-`record` は収録が実際に始まるまで待ってから戻り、`stop` はファイルの保存が終わるまで待ってからパスを表示します。`--json` を付けると、各コマンドが JSON オブジェクトを 1 つ出力します。すべてのコマンドとオプションは `tinyrecorder help` で確認できます。
+`record` は収録が実際に始まるまで待ってから戻り、`stop` はファイルの保存が終わるまで待ってからパスを表示します。`--json` を付けると、各コマンドが JSON オブジェクトを 1 つ出力します。
+
+- `list displays`、`list windows`、`list apps` で、収録できる対象をディスプレイ番号やウインドウ ID とともに表示します。
+- `record area X,Y,WIDTH,HEIGHT` は、ディスプレイの左上からのポイント単位で指定した範囲を、ドラッグせずに収録します（別のディスプレイは `--display N`）。
+- `screenshot` はディスプレイ、ウインドウ、範囲の PNG を保存し、そのパスを表示します。TinyRecorder の画面収録の権限を使うので、ターミナルに権限を与える必要はありません。
+- `--output PATH` で収録をその名前で保存します。`config --format mp4|mov --codec h264|h265` でファイル形式とコーデックを設定します。
+
+すべてのコマンドとオプションは `tinyrecorder help` で確認できます。`list`、`screenshot`、`record area X,Y,WIDTH,HEIGHT`、`--id`、`--output`、`--format`、`--codec` にはバージョン 1.8.25 以降が必要です。
 
 ### AI エージェントから使う
 
@@ -133,7 +143,9 @@ Claude Code、Codex、Cursor などのコーディングエージェントはタ
 ## 画面収録
 この Mac には TinyRecorder がインストールされています。`tinyrecorder` コマンドで画面を収録できます：
 - `tinyrecorder record screen 1 --duration 15 --json`：メインディスプレイを 15 秒収録し、{"file": "<パス>"} を出力します。
-- `tinyrecorder record window "<ウインドウの正確なタイトル>" --app "<アプリ名>"`：ウインドウの収録を開始します。`tinyrecorder stop --json` で停止し、ファイルのパスを出力します。
+- `tinyrecorder list windows --json`：ウインドウを ID 付きで一覧表示します。`tinyrecorder record window --id <ID>` でそのウインドウの収録を開始し、`tinyrecorder stop --json` で停止してファイルのパスを出力します。
+- `tinyrecorder screenshot window --id <ID> --json`（または `screenshot screen 1`）：PNG を保存し、{"file": "<パス>"} を出力します。
+- `--output <パス>`：`record` に付けると、収録の保存先を指定できます。
 - `tinyrecorder status --json`：収録中かどうかを確認します。
 エラーは stderr に出力され、終了ステータスは 0 以外になります。すべてのオプションは `tinyrecorder help` で確認できます。
 ```
@@ -158,13 +170,17 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `record screen numbered 1` | ディスプレイ 1 を録画（番号は 1 から）。`numbered` を省略すると画面の選択を開きます |
 | `record application named "Safari"` | App を名前で指定して録画。`named` を省略すると App の選択を開きます |
 | `record window titled "タイトル" in application "Safari"` | ウインドウを正確なタイトルで指定して録画。`in application` は省略可。`titled` を省略するとウインドウの選択を開きます |
+| `record window identified by 1234` | 指定した ID のウインドウを録画（ID は `list targets` で確認） |
 | `record screen area` | 範囲選択を開き、マウスで範囲をドラッグします |
+| `record screen area rectangle "0,0,1280,720"` | 指定した範囲を録画。x、y、幅、高さをディスプレイの左上からのポイント単位で指定します。別のディスプレイは `display number 2` を追加 |
 | `record system audio` | システムオーディオのみ録音。`microphone true` を付けると今回はマイクも録音します |
 | `pause recording` / `resume recording` | 録画を一時停止 / 再開 |
 | `stop recording` | 録画を停止して保存 |
 | `stop recording with waiting until saved` | 録画を停止し、ファイルの保存（音声のミックスや変換を含む）が終わるまで待ってからパスを返します。保存に失敗した場合はエラーを返します。 |
 | `recording status` | 現在の状態（idle、countdown、starting、recording、paused）を返します。収録中は収録の種類と経過秒数も返します。 |
 | `discard recording` | 録画を停止し、ファイルをゴミ箱に移動 |
+| `list targets showing "windows"` | 録画できるウインドウを ID 付きで 1 行に 1 つずつ返します。`"displays"` と `"apps"` も指定可。`in application "Safari"` で絞り込み、`json true` で JSON を返します |
+| `take screenshot` | ディスプレイ 1 の PNG を保存し、そのパスを返します。`display number 2`、`window identified by 1234`、`window titled "タイトル"`、`rectangle "x,y,w,h"` や、`saving to "~/shot.png"` を追加できます |
 | `configure …` | 録画設定を変更（下の表を参照） |
 
 `configure` には次のパラメータを自由に組み合わせて指定できます。変更は環境設定で変えた場合と同じく保存されます。録画中は使えません。
@@ -180,6 +196,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `mic device` | 入力デバイス名、または `"default"` |
 | `hdr` | HDR で録画（macOS 15 以降） |
 | `save folder` | 録画の保存先フォルダ。既存のフォルダである必要があり、`~` も使えます |
+| `file format` | `"mp4"` または `"mov"` |
+| `video codec` | `"h264"` または `"h265"` |
 
 例：ディスプレイ 1 を 1 分間録画する。
 
@@ -195,7 +213,8 @@ tell application "TinyRecorder" to stop recording
 補足：
 - 録画コマンドはすぐに戻ります。「**録画開始までの待ち時間**」（環境設定 → 録画）を設定している場合、録画はカウントダウン後に始まるので、その分を `delay` に足してください。
 - カウントダウン中に `stop recording` または `discard recording` を送ると、録画は開始前に取り消されます。別の録画コマンドは「録画中」として拒否されます。
-- 名前が複数のウインドウに一致する場合や、App のウインドウが複数の画面にある場合は、選択画面が開くので手動で選んでください。このときコマンドはエラーを返します。
+- 録画コマンドはすべて（選択画面を開くものを除く）`saving to "/path/name"` を受け付けます。録画はその場所に、現在の形式の拡張子を付けて保存されます。フォルダは既存である必要があり、既存のファイルが置き換えられることはありません。
+- タイトルが複数のウインドウに一致する場合、コマンドはエラーを返します。代わりにウインドウの ID を使ってください。App のウインドウが複数の画面にある場合は、選択画面が開くので手動で選んでください。このときもコマンドはエラーを返します。
 - エラー（すでに録画中、録画していない、画面収録の権限がない）はスクリプトに返され、`osascript` はエラーで終了します。画面番号が無効な場合や、アプリやウインドウが見つからない場合も同様で、ダイアログは表示されません。
 - iPhone / iPad の録画では `pause`、`resume`、`discard` は使えません。`stop recording` は使えます。
 

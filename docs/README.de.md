@@ -118,12 +118,22 @@ Danach zum Beispiel:
 
 ```bash
 tinyrecorder record screen 1 --duration 10
-tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder list windows --app TextEdit          # Fenster-IDs, Titel und Größen
+tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
+tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder screenshot window --id 1234 --output shot.png
 ```
 
-`record` wartet, bis die Aufnahme wirklich läuft, `stop` wartet, bis die Datei gespeichert ist, und gibt ihren Pfad aus, und mit `--json` gibt jeder Befehl ein JSON-Objekt aus. Alle Befehle und Optionen zeigt `tinyrecorder help`.
+`record` wartet, bis die Aufnahme wirklich läuft, `stop` wartet, bis die Datei gespeichert ist, und gibt ihren Pfad aus, und mit `--json` gibt jeder Befehl ein JSON-Objekt aus.
+
+- `list displays`, `list windows` und `list apps` zeigen, was sich aufnehmen lässt, mit Bildschirmnummern und Fenster-IDs.
+- `record area X,Y,WIDTH,HEIGHT` nimmt einen Bereich auf, angegeben in Punkten ab der linken oberen Ecke des Bildschirms (`--display N` für einen anderen Bildschirm), ganz ohne Aufziehen mit der Maus.
+- `screenshot` speichert ein PNG eines Bildschirms, eines Fensters oder eines Bereichs und gibt seinen Pfad aus. Dafür nutzt es die Berechtigung für Bildschirmaufnahme von TinyRecorder, dein Terminal braucht also keine eigene.
+- `--output PATH` speichert die Aufnahme unter diesem Namen. `config --format mp4|mov --codec h264|h265` legt Dateiformat und Codec fest.
+
+Alle Befehle und Optionen zeigt `tinyrecorder help`. `list`, `screenshot`, `record area X,Y,WIDTH,HEIGHT`, `--id`, `--output`, `--format` und `--codec` setzen Version 1.8.25 oder neuer voraus.
 
 ### Mit KI-Agenten nutzen
 
@@ -133,7 +143,9 @@ Coding-Agenten wie Claude Code, Codex oder Cursor führen Terminalbefehle aus un
 ## Bildschirmaufnahme
 TinyRecorder ist installiert. Mit dem Befehl `tinyrecorder` lässt sich der Bildschirm aufnehmen:
 - `tinyrecorder record screen 1 --duration 15 --json` nimmt den Hauptbildschirm 15 Sekunden lang auf und gibt {"file": "<PFAD>"} aus.
-- `tinyrecorder record window "<GENAUER FENSTERTITEL>" --app "<APP-NAME>"` startet die Aufnahme eines Fensters; `tinyrecorder stop --json` beendet sie und gibt die Datei aus.
+- `tinyrecorder list windows --json` listet die Fenster mit ihren IDs auf; `tinyrecorder record window --id <ID>` startet die Aufnahme eines Fensters, und `tinyrecorder stop --json` beendet sie und gibt die Datei aus.
+- `tinyrecorder screenshot window --id <ID> --json` (oder `screenshot screen 1`) speichert ein PNG und gibt {"file": "<PFAD>"} aus.
+- `--output <PFAD>` bei `record` legt fest, wo die Aufnahme gespeichert wird.
 - `tinyrecorder status --json` zeigt, ob gerade aufgenommen wird.
 Fehler gehen nach stderr, der Exit-Status ist dann ungleich 0. Alle Optionen zeigt `tinyrecorder help`.
 ```
@@ -158,13 +170,17 @@ Beim ersten Mal fragt macOS, ob die App, die das Skript ausführt (z. B. Termina
 | `record screen numbered 1` | Nimmt Bildschirm 1 auf (Zählung beginnt bei 1). Ohne `numbered` öffnet sich die Bildschirmauswahl |
 | `record application named "Safari"` | Nimmt eine App anhand ihres Namens auf. Ohne `named` öffnet sich die App-Auswahl |
 | `record window titled "Titel" in application "Safari"` | Nimmt ein Fenster anhand seines genauen Titels auf; `in application` ist optional. Ohne `titled` öffnet sich die Fensterauswahl |
+| `record window identified by 1234` | Nimmt das Fenster mit dieser ID auf (siehe `list targets`) |
 | `record screen area` | Öffnet die Bereichsauswahl; du ziehst den Bereich mit der Maus auf |
+| `record screen area rectangle "0,0,1280,720"` | Nimmt diesen Bereich auf: x, y, Breite und Höhe in Punkten ab der linken oberen Ecke des Bildschirms. Mit `display number 2` für einen anderen Bildschirm |
 | `record system audio` | Nimmt nur den Systemton auf. Mit `microphone true` wird bei dieser Aufnahme auch das Mikrofon aufgenommen |
 | `pause recording` / `resume recording` | Pausiert / setzt die Aufnahme fort |
 | `stop recording` | Stoppt und speichert die Aufnahme |
 | `stop recording with waiting until saved` | Stoppt die Aufnahme, wartet, bis die Datei gespeichert ist (einschließlich Audio-Mischung oder Umwandlung), und gibt ihren Pfad zurück. Schlägt das Speichern fehl, kommt ein Fehler zurück. |
 | `recording status` | Gibt den Status zurück (idle, countdown, starting, recording oder paused) und während einer Aufnahme ihre Art und die bisher aufgenommenen Sekunden. |
 | `discard recording` | Stoppt die Aufnahme und legt sie in den Papierkorb |
+| `list targets showing "windows"` | Listet die aufnehmbaren Fenster mit ihren IDs auf, eines pro Zeile. Auch `"displays"` und `"apps"`; mit `in application "Safari"` eingrenzen oder mit `json true` als JSON ausgeben |
+| `take screenshot` | Speichert ein PNG von Bildschirm 1 und gibt seinen Pfad zurück. Möglich sind `display number 2`, `window identified by 1234`, `window titled "Titel"` oder `rectangle "x,y,w,h"` sowie `saving to "~/shot.png"` |
 | `configure …` | Ändert Aufnahmeeinstellungen (siehe unten) |
 
 `configure` akzeptiert beliebige der folgenden Parameter. Die Änderungen werden gespeichert, genau wie in den Einstellungen, und während einer Aufnahme ist der Befehl nicht möglich.
@@ -180,6 +196,8 @@ Beim ersten Mal fragt macOS, ob die App, die das Skript ausführt (z. B. Termina
 | `mic device` | Name des Eingabegeräts oder `"default"` |
 | `hdr` | In HDR aufnehmen (ab macOS 15) |
 | `save folder` | Ordner für Aufnahmen; er muss existieren, `~` ist erlaubt |
+| `file format` | `"mp4"` oder `"mov"` |
+| `video codec` | `"h264"` oder `"h265"` |
 
 Beispiel: Bildschirm 1 eine Minute lang aufnehmen.
 
@@ -195,7 +213,8 @@ tell application "TinyRecorder" to stop recording
 Gut zu wissen:
 - Die Aufnahmebefehle kehren sofort zurück. Ist **Verzögerung vor der Aufnahme** eingestellt (Einstellungen → Aufnahme), beginnt die Aufnahme erst nach dem Countdown – rechne diese Zeit zu `delay` hinzu.
 - Während des Countdowns bricht `stop recording` oder `discard recording` die Aufnahme ab, bevor sie beginnt; ein weiterer Aufnahmebefehl wird abgelehnt, als liefe bereits eine Aufnahme.
-- Passt ein Name auf mehrere Fenster oder hat die App Fenster auf mehreren Bildschirmen, öffnet TinyRecorder die Auswahl, damit du selbst wählst. Der Befehl gibt dann einen Fehler zurück.
+- Jeder Aufnahmebefehl (außer denen, die eine Auswahl öffnen) akzeptiert `saving to "/path/name"`: Die Aufnahme wird dort gespeichert, mit der Endung des aktuellen Formats. Der Ordner muss existieren, und eine vorhandene Datei wird nie ersetzt.
+- Passt ein Titel auf mehrere Fenster, gibt der Befehl einen Fehler zurück; nimm dann die ID des Fensters. Hat eine App Fenster auf mehreren Bildschirmen, öffnet TinyRecorder die Auswahl, damit du selbst wählst, und der Befehl gibt einen Fehler zurück.
 - Fehler (Aufnahme läuft bereits, keine Aufnahme aktiv, keine Berechtigung für Bildschirmaufnahme) werden an das Skript zurückgegeben; `osascript` endet dann mit einem Fehler. Das gilt auch für eine ungültige Bildschirmnummer und eine App oder ein Fenster, das nicht gefunden wird; es erscheint kein Dialog.
 - `pause`, `resume` und `discard` funktionieren nicht bei iPhone-/iPad-Aufnahmen; `stop recording` schon.
 

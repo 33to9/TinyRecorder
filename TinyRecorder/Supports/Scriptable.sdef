@@ -127,7 +127,7 @@
             <result type="text" description="One line per target, or a JSON array"/>
         </command>
 
-        <command name="take screenshot" code="QKrdSHot" description="Save a screenshot of a display, a window or an area and return its path">
+        <command name="take screenshot" code="QKrdSHot" description="Save a screenshot of a display, a window or an area and return its path (macOS 14 or later)">
             <cocoa class="takeScreenshotCommand"/>
             <parameter name="display number" code="DIar" type="integer" description="Display number (1 if no window is given)" optional="yes">
                 <cocoa key="display"/>

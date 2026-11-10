@@ -570,6 +570,8 @@ class listTargetsCommand: NSScriptCommand {
 @objc(takeScreenshotCommand)
 class takeScreenshotCommand: NSScriptCommand {
     override func performDefaultImplementation() -> Any? {
+        // SCScreenshotManager and the filter's size and scale are macOS 14 APIs.
+        guard #available(macOS 14.0, *) else { return scriptFail("Screenshots need macOS 14 or later.") }
         let args = scriptArgs
         let displayNumber = args["display"] as? Int
         let title = args["title"] as? String

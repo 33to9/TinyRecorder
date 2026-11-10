@@ -118,12 +118,22 @@ sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Conte
 
 ```bash
 tinyrecorder record screen 1 --duration 10
-tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder list windows --app TextEdit          # 窗口 ID、标题和尺寸
+tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
+tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder screenshot window --id 1234 --output shot.png
 ```
 
-`record` 会等录制真正开始后才返回，`stop` 会等文件保存完成后打印文件路径，加上 `--json` 时每条命令输出一个 JSON 对象。运行 `tinyrecorder help` 查看所有命令和选项。
+`record` 会等录制真正开始后才返回，`stop` 会等文件保存完成后打印文件路径，加上 `--json` 时每条命令输出一个 JSON 对象。
+
+- `list displays`、`list windows` 和 `list apps` 列出可以录制的对象，附带屏幕编号和窗口 ID。
+- `record area X,Y,WIDTH,HEIGHT` 录制指定区域，以点为单位、从屏幕左上角算起（其他屏幕用 `--display N`），不用拖动鼠标。
+- `screenshot` 把屏幕、窗口或区域保存为 PNG，并打印文件路径。它用的是 TinyRecorder 的屏幕录制权限，终端不需要单独授权。
+- `--output PATH` 把录制保存为指定的文件名。`config --format mp4|mov --codec h264|h265` 设置文件格式和编码。
+
+运行 `tinyrecorder help` 查看所有命令和选项。`list`、`screenshot`、`record area X,Y,WIDTH,HEIGHT`、`--id`、`--output`、`--format` 和 `--codec` 需要 1.8.25 及以上版本。
 
 ### 配合 AI 智能体使用
 
@@ -133,7 +143,9 @@ Claude Code、Codex、Cursor 等编程智能体能执行终端命令，所以可
 ## 录屏
 本机已安装 TinyRecorder，可以用 `tinyrecorder` 命令录屏：
 - `tinyrecorder record screen 1 --duration 15 --json`：录主屏幕 15 秒，输出 {"file": "<路径>"}。
-- `tinyrecorder record window "<窗口完整标题>" --app "<应用名>"`：开始录制一个窗口；`tinyrecorder stop --json` 停止并输出文件路径。
+- `tinyrecorder list windows --json`：列出窗口及其 ID；`tinyrecorder record window --id <ID>` 开始录制其中一个窗口，`tinyrecorder stop --json` 停止并输出文件路径。
+- `tinyrecorder screenshot window --id <ID> --json`（或 `screenshot screen 1`）：保存 PNG，输出 {"file": "<路径>"}。
+- `--output <路径>`：用在 `record` 上，指定录制保存的位置。
 - `tinyrecorder status --json`：查看是否正在录制。
 出错时错误信息写到 stderr，退出码不为 0。运行 `tinyrecorder help` 查看所有选项。
 ```
@@ -158,13 +170,17 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `record screen numbered 1` | 录制第 1 块屏幕（从 1 开始编号）。不带 `numbered` 时打开屏幕选择 |
 | `record application named "Safari"` | 按名称录制某个 App。不带 `named` 时打开 App 选择 |
 | `record window titled "标题" in application "Safari"` | 按完整标题录制一个窗口，`in application` 可省略。不带 `titled` 时打开窗口选择 |
+| `record window identified by 1234` | 录制该 ID 的窗口（ID 可用 `list targets` 查看） |
 | `record screen area` | 打开区域选择，用鼠标拖出要录的区域 |
+| `record screen area rectangle "0,0,1280,720"` | 录制指定区域：x、y、宽、高，以点为单位，从屏幕左上角算起。加上 `display number 2` 可录其他屏幕 |
 | `record system audio` | 只录系统声音。加上 `microphone true` 时本次同时录麦克风 |
 | `pause recording` / `resume recording` | 暂停 / 继续录制 |
 | `stop recording` | 停止并保存 |
 | `stop recording with waiting until saved` | 停止录制，等文件保存完成（包括混音或转换）后返回文件路径；保存失败时返回错误。 |
 | `recording status` | 返回当前状态（idle、countdown、starting、recording 或 paused），录制中还会返回录制类型和已录秒数。 |
 | `discard recording` | 停止录制，并把文件移到废纸篓 |
+| `list targets showing "windows"` | 列出可以录制的窗口及其 ID，每行一个。也可以用 `"displays"` 和 `"apps"`；加上 `in application "Safari"` 缩小范围，或加上 `json true` 输出 JSON |
+| `take screenshot` | 保存第 1 块屏幕的 PNG 截图并返回文件路径。可以加上 `display number 2`、`window identified by 1234`、`window titled "标题"` 或 `rectangle "x,y,w,h"`，以及 `saving to "~/shot.png"` |
 | `configure …` | 修改录制设置（见下表） |
 
 `configure` 可以带下面任意参数。修改会被保存，和在设置里改是一样的；录制过程中不能使用。
@@ -180,6 +196,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `mic device` | 输入设备名称，或 `"default"` |
 | `hdr` | HDR 录制（macOS 15 及以上） |
 | `save folder` | 保存录制的文件夹，必须已存在，可以用 `~` |
+| `file format` | `"mp4"` 或 `"mov"` |
+| `video codec` | `"h264"` 或 `"h265"` |
 
 示例：录制第 1 块屏幕 1 分钟。
 
@@ -195,7 +213,8 @@ tell application "TinyRecorder" to stop recording
 注意：
 - 录制命令会立即返回。如果设置了 **开始录制前倒数**（设置 → 录制设置），录制会在倒数结束后才开始，`delay` 要把这段时间加上。
 - 倒数期间发送 `stop recording` 或 `discard recording` 会取消这次录制；再发录制命令会被当作“已在录制”拒绝。
-- 名称匹配到多个窗口，或者 App 的窗口分布在多块屏幕上时，TinyRecorder 会打开选择窗口让你手动选。此时命令会返回错误。
+- 除了会打开选择窗口的命令，所有录制命令都可以带 `saving to "/path/name"`：录制会保存到这里，并加上当前格式的扩展名。文件夹必须已存在，已有的文件不会被覆盖。
+- 标题匹配到多个窗口时，命令会返回错误，请改用窗口 ID。App 的窗口分布在多块屏幕上时，TinyRecorder 会打开选择窗口让你手动选，此时命令也会返回错误。
 - 出错时（已经在录制、没有在录制、没有屏幕录制权限）会把错误返回给脚本，`osascript` 会以出错状态退出。屏幕编号无效、找不到应用或窗口时也一样，不会弹出对话框。
 - 录制 iPhone / iPad 时不支持 `pause`、`resume` 和 `discard`，`stop recording` 可以用。
 

@@ -118,12 +118,22 @@ Then, for example:
 
 ```bash
 tinyrecorder record screen 1 --duration 10
-tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder list windows --app TextEdit          # window IDs, titles and sizes
+tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
+tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder screenshot window --id 1234 --output shot.png
 ```
 
-`record` waits until the recording has started, `stop` waits until the file is saved and prints its path, and with `--json` every command prints one JSON object. Run `tinyrecorder help` for all commands and options.
+`record` waits until the recording has started, `stop` waits until the file is saved and prints its path, and with `--json` every command prints one JSON object.
+
+- `list displays`, `list windows` and `list apps` show what can be recorded, with display numbers and window IDs.
+- `record area X,Y,WIDTH,HEIGHT` records an area given in points from the display's top-left corner (`--display N` for another display), with no dragging.
+- `screenshot` saves a PNG of a display, a window or an area and prints its path. It uses TinyRecorder's Screen Recording permission, so your terminal doesn't need one.
+- `--output PATH` saves the recording under that name. `config --format mp4|mov --codec h264|h265` sets the file format and codec.
+
+Run `tinyrecorder help` for all commands and options. `list`, `screenshot`, `record area X,Y,WIDTH,HEIGHT`, `--id`, `--output`, `--format` and `--codec` need version 1.8.25 or later.
 
 ### Use with AI agents
 
@@ -133,7 +143,9 @@ Coding agents such as Claude Code, Codex or Cursor run terminal commands, so the
 ## Screen recording
 TinyRecorder is installed. Use the `tinyrecorder` command to record the screen:
 - `tinyrecorder record screen 1 --duration 15 --json` records the main display for 15 seconds and prints {"file": "<PATH>"}.
-- `tinyrecorder record window "<EXACT TITLE>" --app "<APP NAME>"` starts recording one window; `tinyrecorder stop --json` stops it and prints the file.
+- `tinyrecorder list windows --json` lists the windows with their IDs; `tinyrecorder record window --id <ID>` starts recording one, and `tinyrecorder stop --json` stops it and prints the file.
+- `tinyrecorder screenshot window --id <ID> --json` (or `screenshot screen 1`) saves a PNG and prints {"file": "<PATH>"}.
+- `--output <PATH>` on `record` chooses where the recording is saved.
 - `tinyrecorder status --json` tells whether a recording is running.
 Errors go to stderr with a non-zero exit status. Run `tinyrecorder help` for all options.
 ```
@@ -158,13 +170,17 @@ The first time, macOS asks whether the app running the script (for example Termi
 | `record screen numbered 1` | Records display 1 (numbering starts at 1). Without `numbered`, opens the screen picker |
 | `record application named "Safari"` | Records an app by its name. Without `named`, opens the app picker |
 | `record window titled "Title" in application "Safari"` | Records one window by its exact title; `in application` is optional. Without `titled`, opens the window picker |
+| `record window identified by 1234` | Records the window with this ID (see `list targets`) |
 | `record screen area` | Opens the area selector; you drag the area with the mouse |
+| `record screen area rectangle "0,0,1280,720"` | Records this area: x, y, width and height in points from the display's top-left corner. Add `display number 2` for another display |
 | `record system audio` | Records system audio only. Add `microphone true` to include the microphone in this recording |
 | `pause recording` / `resume recording` | Pauses / resumes the recording |
 | `stop recording` | Stops and saves the recording |
 | `stop recording with waiting until saved` | Stops, waits until the file is saved (and its audio mixed or converted), then returns its path. Returns an error if saving failed. |
 | `recording status` | Returns the state (idle, countdown, starting, recording or paused) and, while recording, its kind and the seconds recorded. |
 | `discard recording` | Stops the recording and moves it to the Trash |
+| `list targets showing "windows"` | Lists the windows that can be recorded, with their IDs, one per line. Also `"displays"` and `"apps"`; add `in application "Safari"` to narrow it, or `json true` for JSON |
+| `take screenshot` | Saves a PNG of display 1 and returns its path. Add `display number 2`, `window identified by 1234`, `window titled "Title"` or `rectangle "x,y,w,h"`, and `saving to "~/shot.png"` |
 | `configure …` | Changes recording settings (see below) |
 
 `configure` takes any of these parameters. The changes are saved, just like changing them in Preferences, and it can't be used while recording.
@@ -180,6 +196,8 @@ The first time, macOS asks whether the app running the script (for example Termi
 | `mic device` | Name of the input device, or `"default"` |
 | `hdr` | Record in HDR (macOS 15 and later) |
 | `save folder` | Folder to save recordings to; it must exist, `~` is allowed |
+| `file format` | `"mp4"` or `"mov"` |
+| `video codec` | `"h264"` or `"h265"` |
 
 Example: record display 1 for one minute.
 
@@ -195,7 +213,8 @@ tell application "TinyRecorder" to stop recording
 Good to know:
 - The record commands return right away. If **Delay Before Recording** is set (Preferences → Recorder), recording starts after the countdown, so add that time to `delay`.
 - During the countdown, `stop recording` or `discard recording` cancels the recording before it starts, and another record command is refused as already recording.
-- If a name matches several windows, or the app has windows on more than one screen, TinyRecorder opens the picker so you can choose. The command then returns an error.
+- Every record command (except the pickers) takes `saving to "/path/name"`: the recording is saved there, with the extension of the current format added. The folder must exist, and an existing file is never replaced.
+- If a title matches several windows, the command returns an error; use the window's ID instead. If an app has windows on more than one screen, TinyRecorder opens the picker so you can choose, and the command returns an error.
 - Errors (already recording, not recording, no Screen Recording permission) are returned to the script, so `osascript` exits with an error. So are an invalid screen number and an app or window that can't be found; no dialog is shown.
 - `pause`, `resume` and `discard` don't work for iPhone / iPad recordings; `stop recording` does.
 

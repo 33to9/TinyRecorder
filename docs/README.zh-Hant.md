@@ -118,12 +118,22 @@ sudo mkdir -p /usr/local/bin && sudo ln -sf /Applications/TinyRecorder.app/Conte
 
 ```bash
 tinyrecorder record screen 1 --duration 10
-tinyrecorder record window "Untitled" --app TextEdit
+tinyrecorder list windows --app TextEdit          # 視窗 ID、標題和尺寸
+tinyrecorder record window --id 1234 --output ~/Desktop/demo.mp4
 tinyrecorder status
 tinyrecorder stop
+tinyrecorder record area 0,0,1280,720 --duration 5
+tinyrecorder screenshot window --id 1234 --output shot.png
 ```
 
-`record` 會等錄製真正開始後才回傳，`stop` 會等檔案儲存完成後印出檔案路徑，加上 `--json` 時每個指令輸出一個 JSON 物件。執行 `tinyrecorder help` 查看所有指令和選項。
+`record` 會等錄製真正開始後才回傳，`stop` 會等檔案儲存完成後印出檔案路徑，加上 `--json` 時每個指令輸出一個 JSON 物件。
+
+- `list displays`、`list windows` 和 `list apps` 列出可以錄製的對象，並附上螢幕編號和視窗 ID。
+- `record area X,Y,WIDTH,HEIGHT` 錄製指定區域，以點為單位、從螢幕左上角起算（其他螢幕用 `--display N`），不必用滑鼠拖曳。
+- `screenshot` 將螢幕、視窗或區域儲存為 PNG，並印出檔案路徑。它使用 TinyRecorder 的螢幕錄製權限，終端機不需要另外授權。
+- `--output PATH` 將錄製儲存為指定的檔案名稱。`config --format mp4|mov --codec h264|h265` 設定檔案格式和編碼。
+
+執行 `tinyrecorder help` 查看所有指令和選項。`list`、`screenshot`、`record area X,Y,WIDTH,HEIGHT`、`--id`、`--output`、`--format` 和 `--codec` 需要 1.8.25 及以上版本。
 
 ### 搭配 AI 代理使用
 
@@ -133,7 +143,9 @@ Claude Code、Codex、Cursor 等程式設計代理能執行終端機指令，所
 ## 錄製螢幕
 本機已安裝 TinyRecorder，可以用 `tinyrecorder` 指令錄製螢幕：
 - `tinyrecorder record screen 1 --duration 15 --json`：錄製主螢幕 15 秒，輸出 {"file": "<路徑>"}。
-- `tinyrecorder record window "<視窗完整標題>" --app "<應用程式名稱>"`：開始錄製一個視窗；`tinyrecorder stop --json` 停止並輸出檔案路徑。
+- `tinyrecorder list windows --json`：列出視窗及其 ID；`tinyrecorder record window --id <ID>` 開始錄製其中一個視窗，`tinyrecorder stop --json` 停止並輸出檔案路徑。
+- `tinyrecorder screenshot window --id <ID> --json`（或 `screenshot screen 1`）：儲存 PNG，輸出 {"file": "<路徑>"}。
+- `--output <路徑>`：用在 `record` 上，指定錄製儲存的位置。
 - `tinyrecorder status --json`：查看是否正在錄製。
 出錯時錯誤訊息寫到 stderr，結束代碼不為 0。執行 `tinyrecorder help` 查看所有選項。
 ```
@@ -158,13 +170,17 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `record screen numbered 1` | 錄製第 1 個螢幕（從 1 開始編號）。不帶 `numbered` 時開啟螢幕選擇 |
 | `record application named "Safari"` | 依名稱錄製某個應用程式。不帶 `named` 時開啟應用程式選擇 |
 | `record window titled "標題" in application "Safari"` | 依完整標題錄製一個視窗，`in application` 可省略。不帶 `titled` 時開啟視窗選擇 |
+| `record window identified by 1234` | 錄製該 ID 的視窗（ID 可用 `list targets` 查看） |
 | `record screen area` | 開啟區域選擇，用滑鼠拖出要錄製的區域 |
+| `record screen area rectangle "0,0,1280,720"` | 錄製指定區域：x、y、寬、高，以點為單位，從螢幕左上角起算。加上 `display number 2` 可錄製其他螢幕 |
 | `record system audio` | 只錄製系統聲音。加上 `microphone true` 時本次同時錄製麥克風 |
 | `pause recording` / `resume recording` | 暫停 / 繼續錄製 |
 | `stop recording` | 停止並儲存 |
 | `stop recording with waiting until saved` | 停止錄製，等檔案儲存完成（包括混音或轉換）後回傳檔案路徑；儲存失敗時回傳錯誤。 |
 | `recording status` | 回傳目前狀態（idle、countdown、starting、recording 或 paused），錄製中還會回傳錄製類型和已錄秒數。 |
 | `discard recording` | 停止錄製，並將檔案移到垃圾桶 |
+| `list targets showing "windows"` | 列出可以錄製的視窗及其 ID，每行一個。也可以用 `"displays"` 和 `"apps"`；加上 `in application "Safari"` 縮小範圍，或加上 `json true` 輸出 JSON |
+| `take screenshot` | 儲存第 1 個螢幕的 PNG 截圖並回傳檔案路徑。可以加上 `display number 2`、`window identified by 1234`、`window titled "標題"` 或 `rectangle "x,y,w,h"`，以及 `saving to "~/shot.png"` |
 | `configure …` | 修改錄製設定（見下表） |
 
 `configure` 可以帶下列任意參數。修改會被儲存，和在設定中修改相同；錄製過程中無法使用。
@@ -180,6 +196,8 @@ osascript -e 'tell application "TinyRecorder" to stop recording'
 | `mic device` | 輸入裝置名稱，或 `"default"` |
 | `hdr` | HDR 錄製（macOS 15 以上） |
 | `save folder` | 儲存錄製的檔案夾，必須已存在，可以使用 `~` |
+| `file format` | `"mp4"` 或 `"mov"` |
+| `video codec` | `"h264"` 或 `"h265"` |
 
 範例：錄製第 1 個螢幕 1 分鐘。
 
@@ -195,7 +213,8 @@ tell application "TinyRecorder" to stop recording
 注意：
 - 錄製指令會立即返回。如果設定了「**開始錄製前倒數**」（設定 → 錄製設定），錄製會在倒數結束後才開始，`delay` 要加上這段時間。
 - 倒數期間傳送 `stop recording` 或 `discard recording` 會取消這次錄製；再傳送錄製指令會被視為「已在錄製」而拒絕。
-- 名稱符合多個視窗，或應用程式的視窗分布在多個螢幕上時，TinyRecorder 會開啟選擇視窗讓你手動選擇。此時命令會回傳錯誤。
+- 除了會開啟選擇視窗的指令，所有錄製指令都可以帶 `saving to "/path/name"`：錄製會儲存到這裡，並加上目前格式的副檔名。檔案夾必須已存在，既有檔案不會被覆蓋。
+- 標題符合多個視窗時，命令會回傳錯誤，請改用視窗 ID。應用程式的視窗分布在多個螢幕上時，TinyRecorder 會開啟選擇視窗讓你手動選擇，此時命令也會回傳錯誤。
 - 出錯時（已經在錄製、沒有在錄製、沒有螢幕錄製權限）會將錯誤傳回給腳本，`osascript` 會以錯誤狀態結束。螢幕編號無效、找不到應用程式或視窗時也一樣，不會跳出對話框。
 - 錄製 iPhone / iPad 時不支援 `pause`、`resume` 和 `discard`，`stop recording` 可以使用。
 
