@@ -25,9 +25,9 @@ cask "tinyrecorder" do
 
   # The app is self-signed, not notarized by Apple: without this, Gatekeeper
   # blocks the first launch of the quarantined copy Homebrew downloaded.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/TinyRecorder.app"]
+  # Structured steps (Homebrew 6.0+): the legacy `postflight do` block is deprecated.
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/TinyRecorder.app"]
   end
 
   uninstall quit: "com.33to9.TinyRecorder"
