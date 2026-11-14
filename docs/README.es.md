@@ -61,6 +61,8 @@ El script descarga la última versión desde GitHub, comprueba su SHA-256, la in
 brew install --cask 33to9/tap/tinyrecorder
 ```
 
+Si añadiste el tap por separado con `brew tap 33to9/tap`, Homebrew 7 y posteriores solo leen sus casks después de `brew trust 33to9/tap`. El comando de arriba lo hace por ti.
+
 ### Opción 3: DMG
 
 Descarga el último `TinyRecorder_vX.Y.Z.dmg` desde [Versiones](https://github.com/33to9/TinyRecorder/releases/latest), ábrelo y arrastra TinyRecorder a tu carpeta Aplicaciones.

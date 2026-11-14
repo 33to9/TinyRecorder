@@ -7,7 +7,7 @@ cask "tinyrecorder" do
 
   url "https://github.com/33to9/TinyRecorder/releases/download/v#{version}/TinyRecorder_v#{version}.dmg"
   name "TinyRecorder"
-  desc "Lightweight screen recorder with macOS 27 support"
+  desc "Lightweight screen recorder"
   homepage "https://github.com/33to9/TinyRecorder"
 
   livecheck do

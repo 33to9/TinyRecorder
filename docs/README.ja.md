@@ -61,6 +61,8 @@ curl -fsSL https://raw.githubusercontent.com/33to9/TinyRecorder/main/install.sh 
 brew install --cask 33to9/tap/tinyrecorder
 ```
 
+`brew tap 33to9/tap` で tap を別に追加した場合、Homebrew 7 以降では `brew trust 33to9/tap` を実行するまでその cask を読み込みません。上のコマンドなら自動で信頼されます。
+
 ### 方法 3：DMG
 
 [リリースページ](https://github.com/33to9/TinyRecorder/releases/latest)から最新の `TinyRecorder_vX.Y.Z.dmg` をダウンロードして開き、TinyRecorder を「アプリケーション」フォルダにドラッグします。
