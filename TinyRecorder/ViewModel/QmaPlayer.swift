@@ -423,7 +423,10 @@ class AudioPlayerManager: ObservableObject {
     private var fileEncoder = "aac"
     private var packageURL: URL?
     private var seekTime: Double = 0
-    private var panel = NSSavePanel()
+    /// Created on demand in showSavePanel(). Never create it in init(): this object is built by
+    /// @StateObject during a SwiftUI view update, and NSSavePanel's init runs layout through its
+    /// remote view bridge, which aborts in AttributeGraph on newer macOS (issue #6).
+    private var panel: NSSavePanel?
     
     init() {
         setupAudioEngine()
@@ -673,6 +676,8 @@ class AudioPlayerManager: ObservableObject {
     
     private func showSavePanel(defaultFileName: String, exportMP3: Bool, completion: @escaping (URL?, Bool) -> Void) {
         // ARC 已持有 panel；设为 true 会在 close() 时被 AppKit 再释放一次（勾选“导出为 MP3”时崩溃）
+        let panel = NSSavePanel()
+        self.panel = panel
         panel.isReleasedWhenClosed = false
         panel.nameFieldStringValue = defaultFileName
         panel.canCreateDirectories = true
@@ -689,7 +694,7 @@ class AudioPlayerManager: ObservableObject {
         panel.begin { response in
             if response == .OK {
                 let exportAsMP3 = (checkBox.state == .on)
-                completion(self.panel.url, exportAsMP3)
+                completion(panel.url, exportAsMP3)
             } else {
                 completion(nil, false)
             }
@@ -697,8 +702,8 @@ class AudioPlayerManager: ObservableObject {
     }
     
     @objc private func checkBoxToggled(_ sender: NSButton) {
-        panel.close()
-        panel = NSSavePanel()
+        panel?.close()
+        panel = nil
         exportMP3.toggle()
         export()
     }
